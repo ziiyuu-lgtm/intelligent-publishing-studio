@@ -82,6 +82,7 @@ def _editor(request, slug, kind, formset=None, status=200):
         "save_route":"save_journal_pages" if kind == "journal" else "save_publisher_pages",
         "manage_route":"manage_journal_site" if kind == "journal" else "manage_publisher_portal",
         "preview_route":"preview_journal_page" if kind == "journal" else "preview_publisher_page",
+        "blocks_route":"manage_journal_page_blocks" if kind == "journal" else "manage_publisher_page_blocks",
         "page_options":initial, "ai_page_enabled":enabled, "ai_provider_configured":_provider_configured(),
         "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
         "ai_request_id":uuid.uuid4(), "ai_page_runs":site.ai_design_runs.filter(requested_by=request.user, prompt_version=PROMPT_VERSION)[:10],
@@ -97,6 +98,12 @@ def _save(request, slug, kind):
         initial = validate_pages(site.pages_config)
     except InvalidPages as exc:
         raise Http404 from exc
+    try:
+        total = int(request.POST.get("pages-TOTAL_FORMS", "-1"))
+    except ValueError:
+        total = -1
+    if request.POST.get("pages-INITIAL_FORMS") != str(len(initial)) or total < len(initial):
+        return HttpResponse(_("The page editor is out of date; reload the page."), status=409)
     formset = SitePageFormSet(request.POST, prefix="pages", initial=initial, form_kwargs={"image_choices":image_choices(site)})
     if not formset.is_valid():
         return _editor(request, slug, kind, formset=formset, status=400)
@@ -151,16 +158,22 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
             candidate = validate_pages([page_override])[0]
         except InvalidPages as exc:
             raise Http404 from exc
-        protected = ("slug", "visible", "image_asset_id", "image_alt", "image_fit", "image_position")
+        protected = ("slug", "visible", "image_asset_id", "image_alt", "image_fit", "image_position", "blocks")
         if any(candidate.get(key) != page.get(key) for key in protected):
             raise Http404
         page = candidate
         pages = [candidate if entry["slug"] == page_slug else entry for entry in pages]
+    image_route = ("private_journal_image" if kind == "journal" else "private_portal_image") if preview else (
+        "public_journal_image" if kind == "journal" else "public_portal_image")
     image_url = ""
     if page.get("image_asset_id"):
-        image_route = ("private_journal_image" if kind == "journal" else "private_portal_image") if preview else (
-            "public_journal_image" if kind == "journal" else "public_portal_image")
         image_url = reverse(image_route, args=[slug, page["image_asset_id"]])
+    blocks = []
+    for block in page.get("blocks", []):
+        if block["visible"]:
+            block = dict(block)
+            block["image_url"] = reverse(image_route, args=[slug, block["image_asset_id"]]) if block.get("image_asset_id") else ""
+            blocks.append(block)
     home_route = ("preview_journal_site" if kind == "journal" else "preview_publisher_portal") if preview else (
         "public_journal_site" if kind == "journal" else "public_publisher_portal")
     return _no_index(render(request, "publishing/site_page.html", {
@@ -170,6 +183,7 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
         "page_appearance":page_appearance(page["design"]) if page.get("design") else None,
         "appearance":appearance_for(design.design_config) if design.design_config else None,
         "home_url":reverse(home_route, args=[slug]), "image_url":image_url,
+        "page_blocks":blocks,
         "page_navigation":page_navigation(pages, kind, slug, preview),
     }))
 

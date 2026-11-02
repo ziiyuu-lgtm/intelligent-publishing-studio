@@ -6,7 +6,7 @@
   <span class="eyebrow">{% translate "PAGE DESIGN" %}</span><h1>{% translate "Independent pages" %}</h1>
   <p>{% translate "Create pages such as About, Author Guidelines, Editorial Board or Policies, or choose your own titles. Pages inherit the site design unless customised." %}</p>
   <p class="muted">{% translate "Save one new blank page at a time. Use the order number to rearrange navigation; uncheck visibility to keep a page private. Changes remain in the draft until the site is published." %}</p>
-  <p class="muted">{% translate "Upload images in the site image library first. Each page can use one image with its own description and display settings." %}</p>
+  <p class="muted">{% translate "Upload images in the site image library first. Each page can have a primary image and additional images in content blocks." %}</p>
   <p class="muted">{% translate "Up to 20 pages are supported in this prototype. Changing a page URL name breaks links to its old address after publishing." %}</p>
   <form method="post" action="{% url save_route owner.slug %}" class="stack">{% csrf_token %}
     <input type="hidden" name="revision" value="{{ site.revision }}"><input type="hidden" name="fingerprint" value="{{ fingerprint }}">
@@ -14,7 +14,7 @@
     {% for page_form in page_formset %}
     <article class="module-card">
       <div class="module-card__header"><strong>{% if page_form.initial.slug %}{{ page_form.initial.title }}{% else %}{% translate "New page" %}{% endif %}</strong>
-      {% if page_form.initial.slug %}<a class="button secondary small" href="{% url preview_route owner.slug page_form.initial.slug %}">{% translate "Preview saved draft page" %}</a>{% endif %}</div>
+      {% if page_form.initial.slug %}<a class="button secondary small" href="{% url preview_route owner.slug page_form.initial.slug %}">{% translate "Preview saved draft page" %}</a> <a class="button secondary small" href="{% url blocks_route owner.slug page_form.initial.slug %}">{% translate "Edit content blocks" %}</a>{% endif %}</div>
       {{ page_form.non_field_errors }}<input type="hidden" name="{{ page_form.prefix }}-design_form_present" value="yes">
       <div class="module-fields"><div class="field">{{ page_form.slug.label_tag }}{{ page_form.slug }}{{ page_form.slug.errors }}<small>{{ page_form.slug.help_text }}</small></div><div class="field">{{ page_form.title.label_tag }}{{ page_form.title }}{{ page_form.title.errors }}</div></div>
       <div class="field">{{ page_form.body.label_tag }}{{ page_form.body }}{{ page_form.body.errors }}</div>
@@ -28,7 +28,7 @@
 </section>
 <section class="card panel"><span class="eyebrow">{% translate "OPTIONAL EXTERNAL AI" %}</span><h2>{% translate "AI page suggestions" %}</h2>
 <p>{% translate "Choose a saved page and describe its purpose and the style you want. AI can suggest editable titles, text and design settings." %}</p>
-<div class="notice">{% translate "Only your brief, whether the page has an image, and the site type are sent to OpenAI. Existing page text, names, image bytes and manuscripts are not sent automatically. Use fictional information only. API use may incur charges and provider retention may apply; generated suggestions are stored in this test database." %}</div>
+<div class="notice">{% translate "Only your brief, whether the page has a primary image, and the site type are sent to OpenAI. Existing page and block content, names, image bytes and manuscripts are not sent automatically. Use fictional information only. API use may incur charges and provider retention may apply; generated suggestions are stored in this test database." %}</div>
 <p class="muted">{% translate "Save page changes first. AI can make mistakes or invent facts; review all output before applying and publishing." %}</p>
 <p class="muted">{% translate "Each suggested text is limited to 2,500 characters. You can expand the page in the editor after applying." %}</p>
 {% if not ai_page_enabled %}<p class="notice">{% translate "The AI manager has not enabled independent-page suggestions in this site's AI policy." %}</p>{% elif not ai_provider_configured %}<p class="notice">{% translate "The OpenAI connection is not configured in this test environment." %}</p>{% elif not page_options %}<p class="notice">{% translate "Save an independent page before requesting suggestions." %}</p>{% else %}

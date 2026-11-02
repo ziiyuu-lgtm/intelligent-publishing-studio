@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from .module_images import IMAGE_FIELDS, SectionImageForm, form_image_fields, validate_image_fields
+from .page_blocks import validate_blocks
 from .page_design import ALIGNMENTS, LAYOUTS, InvalidPageDesign, validate_page_design
 
 MAX_PAGES = 20
@@ -25,7 +26,7 @@ def validate_pages(pages):
     result, slugs = [], set()
     for item in pages:
         if (not isinstance(item, dict) or not PAGE_FIELDS.issubset(item) or
-                set(item) - PAGE_FIELDS - IMAGE_FIELDS - {"design"}):
+                set(item) - PAGE_FIELDS - IMAGE_FIELDS - {"design", "blocks"}):
             raise InvalidPages("invalid_fields")
         slug, title, body, visible = (item[key] for key in ("slug", "title", "body", "visible"))
         if not isinstance(slug, str) or len(slug) > 60 or not SLUG_PATTERN.fullmatch(slug) or slug in slugs:
@@ -41,8 +42,12 @@ def validate_pages(pages):
             design = {"design":validate_page_design(item["design"])} if "design" in item else {}
         except InvalidPageDesign as exc:
             raise InvalidPages("invalid_design") from exc
+        try:
+            blocks = {"blocks":validate_blocks(item["blocks"])} if "blocks" in item else {}
+        except ValueError as exc:
+            raise InvalidPages("invalid_blocks") from exc
         slugs.add(slug)
-        result.append({"slug":slug, "title":title.strip(), "body":body.strip(), "visible":visible, **image, **design})
+        result.append({"slug":slug, "title":title.strip(), "body":body.strip(), "visible":visible, **image, **design, **blocks})
     return result
 
 
@@ -99,6 +104,8 @@ class BaseSitePageFormSet(BaseFormSet):
             page = {**{key:data[key] for key in ("slug", "title", "body", "visible")}, **form_image_fields(data)}
             if data.get("design_enabled"):
                 page["design"] = data["design"]
+            if "blocks" in form.initial:
+                page["blocks"] = form.initial["blocks"]
             active.append(((order is None, order if order is not None else 0, index), page))
         try:
             self.cleaned_pages = validate_pages([page for _, page in sorted(active, key=lambda row:row[0])])

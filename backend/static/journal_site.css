@@ -66,3 +66,14 @@
 .corners-square .journal-site__module-image{border-radius:0}
 .has-design.feature-hidden.has-hero-image .journal-site__hero{grid-template-columns:minmax(0,1fr) minmax(190px,.38fr)}
 @media(max-width:720px){.has-design.feature-hidden.has-hero-image .journal-site__hero{grid-template-columns:1fr}}
+/* Independent page blocks: free ordering and several content treatments. */
+.journal-site__page-blocks{display:grid;gap:32px;margin:40px auto 0;max-width:var(--page-width,100%)}
+.journal-site__page-block{min-width:0;line-height:1.8;overflow-wrap:anywhere}
+.journal-site__page-block h2{font-size:clamp(1.3rem,2vw,1.8rem);line-height:1.25;margin:0 0 12px}
+.journal-site__page-block-image{display:block;width:100%;aspect-ratio:16/9;max-height:480px;border-radius:8px;margin:0 0 20px}
+.journal-site__page-block--image.has-image{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+.journal-site__page-block--image .journal-site__page-block-image{margin:0}
+.journal-site__page-block--callout{padding:24px;border:1px solid currentColor;border-left:5px solid var(--page-accent,var(--site-accent,currentColor));border-radius:8px}
+.journal-site__page-block--quote{padding:12px 24px;border-left:4px solid var(--page-accent,var(--site-accent,currentColor));font:italic 1.1rem/1.8 Georgia,serif}
+.journal-site__page-block a{color:inherit;text-decoration:underline;text-underline-offset:4px;font-weight:700}
+@media(max-width:720px){.journal-site__page-block--image.has-image{grid-template-columns:1fr}.journal-site__page-blocks{max-width:100%}}

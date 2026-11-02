@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "Page content blocks" %} | {{ page.title }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url pages_route owner.slug %}">← {% translate "Back to independent pages" %}</a>
+<section class="card panel"><span class="eyebrow">{% translate "PAGE BUILDER" %}</span><h1>{% translate "Page content blocks" %}</h1><p>{{ page.title }}</p>
+<p>{% translate "Build this page with text, images, highlights, quotations and links. Add as many blocks as you need within the prototype limit, then reorder, hide or delete them." %}</p>
+<p class="muted">{% translate "Upload images in the site's image library first. Each block can use one image and needs an accessible description. Up to 20 blocks are supported per page in this prototype." %}</p>
+<p class="muted">{% translate "Use the handles, arrow buttons or order numbers. Blocks remain in the draft until the site is published. Hidden blocks and their images stay private unless the same image is published elsewhere." %}</p>
+<div class="actions"><a class="button secondary small" href="{% url preview_route owner.slug page.slug %}">{% translate "Preview saved draft page" %}</a></div>
+<form method="post" action="{% url save_route owner.slug page.slug %}" class="stack" data-section-editor data-moved-text="{% translate 'Block order updated.' %}" data-max-text="{% translate 'Maximum block count reached. Save deletions before adding more.' %}">{% csrf_token %}
+<input type="hidden" name="revision" value="{{ site.revision }}"><input type="hidden" name="fingerprint" value="{{ fingerprint }}">{{ block_formset.management_form }}{{ block_formset.non_form_errors }}
+<div class="module-list" data-section-list>{% for block_form in block_formset %}{% include 'publishing/_page_block_form.html' with block_form=block_form %}{% endfor %}</div>
+<template data-empty-section>{% include 'publishing/_page_block_form.html' with block_form=block_formset.empty_form %}</template>
+<div class="actions"><button class="button secondary small" type="button" data-add-section>{% translate "Add block" %}</button><button class="button small" type="submit">{% translate "Save content blocks" %}</button></div>
+<p class="muted" role="status" aria-live="polite" data-section-status></p><noscript><p class="muted">{% translate "Without JavaScript, use the empty block and order numbers above; save before adding another block." %}</p></noscript></form></section>
+<script src="{% static 'section_editor.js' %}" defer></script>
+{% endblock %}

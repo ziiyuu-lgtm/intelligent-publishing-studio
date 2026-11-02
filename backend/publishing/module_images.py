@@ -69,7 +69,22 @@ def _owner_key(owner):
 
 
 def image_ids(sections):
-    return {item["image_asset_id"] for item in sections if item.get("image_asset_id")}
+    """Collect top-level and independent-page block images, including hidden ones."""
+    ids = set()
+    for item in sections:
+        if not isinstance(item, dict):
+            raise ValueError("invalid image owner")
+        if item.get("image_asset_id"):
+            ids.add(item["image_asset_id"])
+        blocks = item.get("blocks", [])
+        if not isinstance(blocks, list):
+            raise ValueError("invalid blocks")
+        for block in blocks:
+            if not isinstance(block, dict) or "blocks" in block:
+                raise ValueError("invalid block")
+            if block.get("image_asset_id"):
+                ids.add(block["image_asset_id"])
+    return ids
 
 
 def images_valid(site, sections, owner=None, check_references=True, pages=None):
@@ -80,7 +95,7 @@ def images_valid(site, sections, owner=None, check_references=True, pages=None):
         if not isinstance(sections, list) or not isinstance(pages, list):
             return False
         ids = image_ids(sections) | image_ids(pages)
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, ValueError):
         return False
     if check_references:
         if owner is None:

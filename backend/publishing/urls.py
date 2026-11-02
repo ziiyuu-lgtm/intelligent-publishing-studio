@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_views, site_page_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -16,6 +16,8 @@ urlpatterns = [
     path("publishers/<slug:slug>/site/sections/", portal_views.edit_sections, name="edit_publisher_sections"),
     path("publishers/<slug:slug>/site/page-designer/", site_page_views.manage_publisher_pages, name="manage_publisher_pages"),
     path("publishers/<slug:slug>/site/page-designer/save/", site_page_views.save_publisher_pages, name="save_publisher_pages"),
+    path("publishers/<slug:slug>/site/page-designer/blocks/<slug:page_slug>/", site_page_block_views.manage_publisher_page_blocks, name="manage_publisher_page_blocks"),
+    path("publishers/<slug:slug>/site/page-designer/blocks/<slug:page_slug>/save/", site_page_block_views.save_publisher_page_blocks, name="save_publisher_page_blocks"),
     path("publishers/<slug:slug>/site/page-designer/ai/", site_page_ai_views.request_publisher_page_ai, name="request_publisher_page_ai"),
     path("publishers/<slug:slug>/site/page-designer/ai/<uuid:run_id>/", site_page_ai_views.publisher_page_ai_result, name="publisher_page_ai_result"),
     path("publishers/<slug:slug>/site/page-designer/ai/<uuid:run_id>/preview/<int:index>/", site_page_ai_views.preview_publisher_page_ai, name="preview_publisher_page_ai"),
@@ -58,6 +60,8 @@ urlpatterns = [
     path("journals/<slug:slug>/site/sections/", site_views.edit_site_sections, name="edit_site_sections"),
     path("journals/<slug:slug>/site/page-designer/", site_page_views.manage_journal_pages, name="manage_journal_pages"),
     path("journals/<slug:slug>/site/page-designer/save/", site_page_views.save_journal_pages, name="save_journal_pages"),
+    path("journals/<slug:slug>/site/page-designer/blocks/<slug:page_slug>/", site_page_block_views.manage_journal_page_blocks, name="manage_journal_page_blocks"),
+    path("journals/<slug:slug>/site/page-designer/blocks/<slug:page_slug>/save/", site_page_block_views.save_journal_page_blocks, name="save_journal_page_blocks"),
     path("journals/<slug:slug>/site/page-designer/ai/", site_page_ai_views.request_journal_page_ai, name="request_journal_page_ai"),
     path("journals/<slug:slug>/site/page-designer/ai/<uuid:run_id>/", site_page_ai_views.journal_page_ai_result, name="journal_page_ai_result"),
     path("journals/<slug:slug>/site/page-designer/ai/<uuid:run_id>/preview/<int:index>/", site_page_ai_views.preview_journal_page_ai, name="preview_journal_page_ai"),

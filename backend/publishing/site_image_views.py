@@ -219,6 +219,9 @@ def _public_image(slug, asset_id, kind):
                       if section["visible"] and section.get("image_asset_id")}
     visible_images.update(page["image_asset_id"] for page in pages
                           if page["visible"] and page.get("image_asset_id"))
+    visible_images.update(block["image_asset_id"] for page in pages if page["visible"]
+                          for block in page.get("blocks", [])
+                          if block["visible"] and block.get("image_asset_id"))
     if release.hero_asset_id != asset_id and str(asset_id) not in visible_images:
         raise Http404
     asset = get_object_or_404(site.images, pk=asset_id)

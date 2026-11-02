@@ -3406,3 +3406,117 @@ msgstr "当时应用的已审核内容"
 
 msgid "Each suggested text is limited to 2,500 characters. You can expand the page in the editor after applying."
 msgstr "每条建议正文最多 2,500 个字符；应用后可在页面编辑器中继续扩充。"
+
+msgid "Text"
+msgstr "文本"
+
+msgid "Image and text"
+msgstr "图文"
+
+msgid "Highlight"
+msgstr "重点提示"
+
+msgid "Quotation"
+msgstr "引文"
+
+msgid "Link"
+msgstr "链接"
+
+msgid "Block style"
+msgstr "区块样式"
+
+msgid "Choose a style"
+msgstr "选择样式"
+
+msgid "Block heading"
+msgstr "区块标题"
+
+msgid "Block text"
+msgstr "区块正文"
+
+msgid "Link label"
+msgstr "链接文字"
+
+msgid "Link URL"
+msgstr "链接地址"
+
+msgid "Use an HTTPS address or a site path beginning with / ."
+msgstr "请输入 HTTPS 地址，或以 / 开头的站内路径。"
+
+msgid "Show this block when the page is published"
+msgstr "页面发布后显示此区块"
+
+msgid "Block image"
+msgstr "区块图片"
+
+msgid "Block image description"
+msgstr "区块图片描述"
+
+msgid "Block image display"
+msgstr "区块图片显示方式"
+
+msgid "Block image focus"
+msgstr "区块图片焦点"
+
+msgid "Enter both a link label and URL."
+msgstr "请同时填写链接文字和链接地址。"
+
+msgid "Use a valid HTTPS address or local site path."
+msgstr "请输入有效的 HTTPS 地址或站内路径。"
+
+msgid "Add text, an image or a link to this block."
+msgstr "请为此区块添加文字、图片或链接。"
+
+msgid "Check the content and links in each block."
+msgstr "请检查每个区块的内容和链接。"
+
+msgid "The page editor is out of date; reload the page."
+msgstr "页面编辑器已过期，请重新加载。"
+
+msgid "Content blocks saved to the draft. Preview the page before publishing."
+msgstr "内容区块已保存到草稿，请在发布前预览页面。"
+
+msgid "Content block"
+msgstr "内容区块"
+
+msgid "Delete this block"
+msgstr "删除此区块"
+
+msgid "Page content blocks"
+msgstr "页面内容区块"
+
+msgid "Build this page with text, images, highlights, quotations and links. Add as many blocks as you need within the prototype limit, then reorder, hide or delete them."
+msgstr "使用文字、图片、重点提示、引文和链接构建页面。可在原型数量限制内添加区块，并调整顺序、隐藏或删除。"
+
+msgid "Upload images in the site's image library first. Each block can use one image and needs an accessible description. Up to 20 blocks are supported per page in this prototype."
+msgstr "请先将图片上传至网站图片库。每个区块可使用一张图片，需提供无障碍描述；此原型每页最多支持 20 个区块。"
+
+msgid "Use the handles, arrow buttons or order numbers. Blocks remain in the draft until the site is published. Hidden blocks and their images stay private unless the same image is published elsewhere."
+msgstr "使用拖动手柄、箭头按钮或顺序编号调整排列。区块在网站发布前保留在草稿中。隐藏的区块及其图片不会公开，除非同一图片在其他公开位置使用。"
+
+msgid "Block order updated."
+msgstr "区块顺序已更新。"
+
+msgid "Maximum block count reached. Save deletions before adding more."
+msgstr "已达到区块数量上限，请先保存删除操作。"
+
+msgid "Add block"
+msgstr "添加区块"
+
+msgid "Save content blocks"
+msgstr "保存内容区块"
+
+msgid "Without JavaScript, use the empty block and order numbers above; save before adding another block."
+msgstr "未启用 JavaScript 时，可使用上方空白区块和顺序编号；保存后再添加下一区块。"
+
+msgid "Upload images in the site image library first. Each page can have a primary image and additional images in content blocks."
+msgstr "请先将图片上传至网站图片库。每个页面可设置一张主图，并通过内容区块添加更多图片。"
+
+msgid "Edit content blocks"
+msgstr "编辑内容区块"
+
+msgid "Only your brief, whether the page has a primary image, and the site type are sent to OpenAI. Existing page and block content, names, image bytes and manuscripts are not sent automatically. Use fictional information only. API use may incur charges and provider retention may apply; generated suggestions are stored in this test database."
+msgstr "仅向 OpenAI 发送您输入的需求、页面是否有主图以及网站类型；不会自动发送现有页面和区块内容、名称、图片文件或稿件。请只使用虚构信息。API 可能产生费用，服务商可能保留数据；生成的建议保存在此测试数据库中。"
+
+msgid "AI may invent or misstate facts. Check every statement, especially policies, names, indexing, fees and dates. Applying replaces this page's draft title, body and page-specific design; it preserves its URL, image, content blocks and visibility. Publishing requires a separate confirmation."
+msgstr "AI 可能虚构或误述事实。请核实每一项内容，尤其是政策、名称、收录、费用和日期。应用将替换此页面草稿的标题、正文及页面设计，但保留网址、图片、内容区块和可见状态。发布需要另行确认。"
