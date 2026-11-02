@@ -13,11 +13,12 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
 from .author_responses import author_responses_ready, is_response_participant
+from .author_notices import visible_author_notices
 from .contributor_evidence import all_confirmations_intact, confirmation_rows
 from .review_notices import visible_review_notices
 from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
                            MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
-from .models import (ConflictDeclaration, ContributorChangeRequest, ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
+from .models import (AuthorNotice, ConflictDeclaration, ContributorChangeRequest, ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
                      PublicationDraft, ReviewAssignment, ReviewNotice, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
@@ -201,6 +202,7 @@ def workspace(request):
         "production": production, "local_publication_enabled": production_enabled,
         "author_response_tasks": author_response_tasks,
         "unread_review_notice_count": visible_review_notices(request.user).filter(read_at__isnull=True).count(),
+        "unread_author_notice_count": visible_author_notices(request.user).filter(read_at__isnull=True).count(),
         "site_manager_journals": site_manager_journals,
         "ai_manager_journals": ai_manager_journals,
         "portal_organisations": portal_organisations,
@@ -558,6 +560,9 @@ def contributor_change_detail(request, pk, change_id):
                 locked.decision_note = form.cleaned_data["note"]
                 locked.editor_attested = outcome == ContributorChangeRequest.Status.APPROVED and form.cleaned_data["verified"]
                 locked.save(update_fields=["status", "closed_by", "closed_at", "decision_note", "editor_attested"])
+                if locked.requested_by_id == current.author_id:
+                    AuthorNotice.objects.create(submission=current, recipient_id=current.author_id,
+                                                kind=AuthorNotice.Kind.AUTHOR_CHANGE, author_change=locked)
                 _event(current, request.user, "contributor_change_reviewed")
             messages.success(request, _("Author change decision recorded. No email was sent."))
             return redirect("contributor_change_detail", pk=pk, change_id=change_id)
@@ -620,6 +625,8 @@ def submission_submit(request, pk):
         submission.status = Submission.Status.SUBMITTED
         submission.submitted_at = timezone.now()
         submission.save(update_fields=["status", "submitted_at"])
+        AuthorNotice.objects.create(submission=submission, recipient_id=submission.author_id,
+                                    kind=AuthorNotice.Kind.SUBMITTED)
         _event(submission, request.user, "submitted")
     messages.success(request, _("Submission received for editorial screening."))
     return redirect("submission_detail", pk=submission.pk)
@@ -919,6 +926,8 @@ def editorial_decision(request, pk):
                     EditorialDecision.Outcome.REJECT: Submission.Status.REJECTED,
                 }[outcome]
                 submission.save(update_fields=["status"])
+                AuthorNotice.objects.create(submission=submission, recipient_id=submission.author_id,
+                                            kind=AuthorNotice.Kind.DECISION, decision=decision)
                 _event(submission, request.user, "editorial_decision")
                 messages.success(request, _("Decision recorded. No email was sent."))
                 return redirect("submission_detail", pk=pk)

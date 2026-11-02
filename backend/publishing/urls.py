@@ -1,11 +1,13 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, author_dashboard_views, author_response_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
     path("workspace/", views.workspace, name="workspace"),
     path("workspace/author-changes/", author_dashboard_views.author_change_dashboard, name="author_change_dashboard"),
     path("workspace/review-progress/", review_deadline_views.review_progress, name="review_progress"),
+    path("workspace/author-notices/", author_notice_views.author_notice_inbox, name="author_notice_inbox"),
+    path("author-notices/<uuid:pk>/read/", author_notice_views.read_author_notice, name="read_author_notice"),
     path("workspace/review-notices/", review_notice_views.review_notice_inbox, name="review_notice_inbox"),
     path("review-notices/<uuid:pk>/read/", review_notice_views.read_review_notice, name="read_review_notice"),
     path("reviews/<uuid:pk>/deadline/", review_deadline_views.manage_review_deadline, name="manage_review_deadline"),

@@ -190,3 +190,8 @@ An assigned editor can set, change or remove a date-only review deadline for an 
 ## Local review notifications
 
 New review invitations and actual deadline changes create private in-app notices for the assigned reviewer, bound to that account and assignment. The reviewer can filter unread notices, open their own task and mark individual notices read. Each access is checked against the current journal role and review-task permissions; a later reassignment does not transfer old notices. A deadline notice prompts the reviewer to view the current date rather than storing or exposing an obsolete date or the editor’s private reason. Existing assignments are preserved without inferred historical notifications by migration 0029. There are no automatic timed reminders, emails, external messages or AI requests. Use fictional data in isolated local testing only.
+
+
+## Local submission notifications
+
+The submitting account receives in-app notices for initial submission, an editorial decision, and a reviewed author-list change request. Each notice remains bound to the original submitting account and is visible only while that account still owns the submission and the journal and organisation are active. The author can filter unread notices, open the submission and mark individual notices read. Notices do not reproduce review reports, reviewer identities, decision text or editor notes; the author opens the submission to review permitted details. Existing records receive no inferred notifications in migration 0030. No coauthor accounts, scheduled reminders, emails, external messages or AI requests are created by this feature. Use fictional data in an isolated test environment.

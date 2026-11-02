@@ -4729,3 +4729,48 @@ msgstr "通知已在本地测试账户中标记为已读。"
 
 msgid "PRIVATE REVIEWER WORKSPACE"
 msgstr "审稿人私密工作区"
+
+msgid "Submission received"
+msgstr "投稿已收到"
+
+msgid "Editorial decision recorded"
+msgstr "编辑决定已记录"
+
+msgid "Author change reviewed"
+msgstr "作者名单变更已审核"
+
+msgid "Submission notifications"
+msgstr "投稿通知"
+
+msgid "AUTHOR WORKSPACE"
+msgstr "作者工作区"
+
+msgid "Follow updates on your submitted manuscripts."
+msgstr "集中查看已投稿件的处理动态。"
+
+msgid "PRIVATE AUTHOR WORKSPACE"
+msgstr "作者私密工作区"
+
+msgid "Fictional test data only. Notices are shown to the submitting account; no email or external message is sent."
+msgstr "仅使用虚构测试数据。通知仅对投稿账户显示，不发送邮件或站外消息。"
+
+msgid "Your submission updates"
+msgstr "我的投稿动态"
+
+msgid "Your submission notices"
+msgstr "您的投稿通知"
+
+msgid "Your submission was received for editorial screening."
+msgstr "您的投稿已收到，等待编辑初审。"
+
+msgid "An editorial decision has been recorded. Open your submission to review it."
+msgstr "编辑决定已记录，请打开投稿查看详情。"
+
+msgid "Your author-list change request has been reviewed. Open your submission for details."
+msgstr "您的作者名单变更申请已审核，请打开投稿查看详情。"
+
+msgid "Open submission"
+msgstr "打开投稿"
+
+msgid "No submission notifications match this filter."
+msgstr "没有符合筛选条件的投稿通知。"

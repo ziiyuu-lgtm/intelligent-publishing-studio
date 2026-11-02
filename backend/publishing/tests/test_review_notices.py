@@ -1,5 +1,5 @@
 import tempfile
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -174,6 +174,14 @@ class ReviewNoticeTests(TestCase):
             with self.assertRaises(RuntimeError):
                 self.client.post(reverse("review_invite", args=[self.submission.pk]), {"reviewer":other.pk})
         self.assertFalse(ReviewAssignment.objects.filter(submission=self.submission, reviewer=other).exists())
+
+    def test_notice_timestamps_are_always_labelled_utc(self):
+        instant = datetime(2026, 11, 2, 23, 30, tzinfo=datetime_timezone.utc)
+        ReviewNotice.objects.filter(pk=self.notice.pk).update(created_at=instant)
+        self.client.force_login(self.reviewer)
+        with timezone.override("Asia/Shanghai"):
+            page = self.client.get(self.inbox)
+        self.assertContains(page, "2026-11-02 23:30 UTC")
 
     def test_database_constraints_and_pagination(self):
         with self.assertRaises(IntegrityError), transaction.atomic():

@@ -751,6 +751,36 @@ class EditorialDecision(models.Model):
         ordering = ["round__number"]
 
 
+class AuthorNotice(models.Model):
+    """Private local notice for the submitting author, pinned to the original account."""
+    class Kind(models.TextChoices):
+        SUBMITTED = "submitted", _("Submission received")
+        DECISION = "decision", _("Editorial decision recorded")
+        AUTHOR_CHANGE = "author_change", _("Author change reviewed")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="author_notices")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="submission_notices")
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    decision = models.ForeignKey(EditorialDecision, on_delete=models.PROTECT, null=True, blank=True, related_name="author_notices")
+    author_change = models.ForeignKey(ContributorChangeRequest, on_delete=models.PROTECT, null=True, blank=True, related_name="author_notices")
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["submission"], condition=models.Q(kind="submitted"), name="one_author_submission_notice"),
+            models.UniqueConstraint(fields=["decision"], condition=models.Q(kind="decision"), name="one_author_decision_notice"),
+            models.UniqueConstraint(fields=["author_change"], condition=models.Q(kind="author_change"), name="one_author_change_notice"),
+            models.CheckConstraint(condition=(
+                models.Q(kind="submitted", decision__isnull=True, author_change__isnull=True) |
+                models.Q(kind="decision", decision__isnull=False, author_change__isnull=True) |
+                models.Q(kind="author_change", decision__isnull=True, author_change__isnull=False)),
+                name="valid_author_notice_source"),
+        ]
+
+
 def publication_proof_path(instance, filename):
     return f"publication-proofs/{uuid.uuid4().hex}.pdf"
 
