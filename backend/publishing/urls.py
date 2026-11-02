@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, issue_views, production_views, site_ai_views, site_views, views
+from . import ai_policy_views, ai_views, issue_views, production_views, site_ai_module_views, site_ai_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -21,6 +21,10 @@ urlpatterns = [
     path("journals/<slug:slug>/site/samples/<slug:sample_id>/apply/", site_views.apply_site_sample, name="apply_site_sample"),
     path("journals/<slug:slug>/site/appearance/", site_views.edit_site_appearance, name="edit_site_appearance"),
     path("journals/<slug:slug>/site/sections/", site_views.edit_site_sections, name="edit_site_sections"),
+    path("journals/<slug:slug>/site/ai-modules/", site_ai_module_views.request_site_ai_modules, name="request_site_ai_modules"),
+    path("journals/<slug:slug>/site/ai-modules/<uuid:run_id>/", site_ai_module_views.site_ai_module_result, name="site_ai_module_result"),
+    path("journals/<slug:slug>/site/ai-modules/<uuid:run_id>/preview/<int:index>/", site_ai_module_views.preview_site_ai_modules, name="preview_site_ai_modules"),
+    path("journals/<slug:slug>/site/ai-modules/<uuid:run_id>/apply/<int:index>/", site_ai_module_views.apply_site_ai_modules, name="apply_site_ai_modules"),
     path("journals/<slug:slug>/site/ai-design/", site_ai_views.request_site_ai_design, name="request_site_ai_design"),
     path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/", site_ai_views.site_ai_result, name="site_ai_result"),
     path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/preview/<int:index>/", site_ai_views.preview_site_ai_option, name="preview_site_ai_option"),

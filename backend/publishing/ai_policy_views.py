@@ -17,7 +17,7 @@ from .models import Journal, JournalAIPolicy, JournalAIPolicyEvent, Membership
 from .ai_usage import journal_requests_since
 from .views import _has_role
 
-POLICY_FIELDS = ("metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "journal_daily_limit")
+POLICY_FIELDS = ("metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "site_modules_enabled", "journal_daily_limit")
 
 
 def _managed_journal(user, slug, locked=False):

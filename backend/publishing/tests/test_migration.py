@@ -277,6 +277,22 @@ except IrreversibleError:
     assert Release13.objects.filter(pk=release11.pk).exists()
 else:
     raise AssertionError('Saved page modules must not be silently discarded')
+Policy13 = apps.get_model('publishing', 'JournalAIPolicy')
+Policy13.objects.filter(pk=policy10.pk).update(site_design_enabled=True)
+module_policy_scope = ('publishing', '0014_journalaipolicy_site_modules_enabled')
+executor = MigrationExecutor(connection)
+executor.migrate([module_policy_scope])
+apps = executor.loader.project_state([module_policy_scope]).apps
+Policy14 = apps.get_model('publishing', 'JournalAIPolicy')
+policy14 = Policy14.objects.get(pk=policy10.pk)
+assert policy14.site_design_enabled and not policy14.site_modules_enabled
+assert policy14.metadata_enabled and policy14.allow_author and policy14.journal_daily_limit == 4
+try:
+    MigrationExecutor(connection).migrate([modular_scope])
+except IrreversibleError:
+    assert Policy14.objects.filter(pk=policy10.pk).exists()
+else:
+    raise AssertionError('AI module policy must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

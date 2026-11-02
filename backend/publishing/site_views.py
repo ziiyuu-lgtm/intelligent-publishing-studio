@@ -79,9 +79,11 @@ def _context(journal, site, form=None, user=None, appearance_form=None, section_
             "design_samples": samples,
             "section_formset": section_formset if section_formset is not None else JournalSectionFormSet(prefix="sections", initial=section_initial),
             "fingerprint": _fingerprint(site), "releases": site.releases.select_related("published_by"),
-            "ai_design_enabled": bool(policy and policy.site_design_enabled), "ai_provider_configured": _provider_configured(),
+            "ai_design_enabled": bool(policy and policy.site_design_enabled),
+            "ai_modules_enabled": bool(policy and policy.site_modules_enabled), "ai_provider_configured": _provider_configured(),
             "ai_policy_revision": policy.revision if policy else 0, "ai_model_name": settings.IPS_OPENAI_MODEL,
-            "ai_request_id": uuid.uuid4(), "ai_design_runs": site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
+            "ai_request_id": uuid.uuid4(), "ai_module_request_id": uuid.uuid4(),
+            "ai_design_runs": site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
 
 
 def _stale(request, site):

@@ -117,6 +117,7 @@ class JournalAIPolicy(models.Model):
     allow_author = models.BooleanField(_("Allow submitting authors to request suggestions"), default=False)
     allow_editor = models.BooleanField(_("Allow assigned editors to request suggestions"), default=False)
     site_design_enabled = models.BooleanField(_("Enable journal site design suggestions"), default=False)
+    site_modules_enabled = models.BooleanField(_("Enable AI module arrangement suggestions"), default=False)
     journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)

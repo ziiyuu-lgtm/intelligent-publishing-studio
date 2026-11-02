@@ -6,10 +6,13 @@ Unknown tasks, providers or input fields are rejected instead of forwarded.
 """
 from .ai_provider import request_metadata_suggestions
 from .site_ai_provider import request_design_suggestions
+from .site_ai_modules import request_module_suggestions, validate_descriptors
+from .ai_provider import ProviderError
 from .site_design import InvalidDesign, validate_blueprint
 
 METADATA_WRITING = "metadata_writing"
 SITE_DESIGN = "site_design"
+SITE_MODULES = "site_modules"
 OPENAI = "openai"
 
 
@@ -18,8 +21,16 @@ class GatewayRejected(ValueError):
 
 
 def run_ai_task(*, task, provider, model, api_key, payload):
-    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN):
+    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES):
         raise GatewayRejected("unsupported_task_or_provider")
+    if task == SITE_MODULES:
+        if not isinstance(payload, dict) or set(payload) != {"brief", "modules"} or not isinstance(payload["brief"], str):
+            raise GatewayRejected("unsupported_input_fields")
+        try:
+            modules = validate_descriptors(payload["modules"])
+        except ProviderError as exc:
+            raise GatewayRejected("invalid_modules") from exc
+        return request_module_suggestions(api_key=api_key, model=model, brief=payload["brief"], modules=modules)
     if task == SITE_DESIGN:
         if not isinstance(payload, dict) or set(payload) != {"brief", "appearance"} or not isinstance(payload["brief"], str):
             raise GatewayRejected("unsupported_input_fields")

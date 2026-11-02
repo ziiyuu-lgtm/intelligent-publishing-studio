@@ -24,6 +24,7 @@ from .ai_views import _policy, _provider_configured
 from .models import JournalSiteAIDesignRun, JournalSiteEvent
 from .production_views import _enabled, _no_index
 from .site_ai_provider import LEGACY_PROMPT_VERSION, MAX_BRIEF_LENGTH, PROMPT_VERSION, validate_options
+from .site_ai_modules import PROMPT_VERSION as MODULE_PROMPT_VERSION
 from .site_design import COMPOSITIONS, FONTS, InvalidDesign, appearance_for, legacy_to_blueprint, validate_blueprint
 from .site_views import SITE_FIELDS, _fingerprint, _managed_journal, _render_site, _site
 
@@ -73,6 +74,8 @@ def request_site_ai_design(request, slug):
     if previous:
         if previous.site_id != site.pk or previous.requested_by_id != request.user.pk:
             raise Http404
+        if previous.prompt_version not in (LEGACY_PROMPT_VERSION, PROMPT_VERSION):
+            return HttpResponse(_("This request identifier belongs to a different AI task."), status=409)
         return redirect("site_ai_result", slug=slug, run_id=previous.pk)
     brief = request.POST.get("brief", "").strip()
     if not brief or len(brief) > MAX_BRIEF_LENGTH:
@@ -95,6 +98,8 @@ def request_site_ai_design(request, slug):
         if previous:
             if previous.site_id != site.pk or previous.requested_by_id != request.user.pk:
                 raise Http404
+            if previous.prompt_version not in (LEGACY_PROMPT_VERSION, PROMPT_VERSION):
+                return HttpResponse(_("This request identifier belongs to a different AI task."), status=409)
             return redirect("site_ai_result", slug=slug, run_id=previous.pk)
         if request.POST.get("revision") != str(site.revision) or request.POST.get("fingerprint") != _fingerprint(site):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
@@ -148,6 +153,8 @@ def site_ai_result(request, slug, run_id):
     journal = _managed_journal(request.user, slug)
     site = _site(journal)
     run = _run(journal, request.user, run_id)
+    if run.prompt_version == MODULE_PROMPT_VERSION:
+        return redirect("site_ai_module_result", slug=slug, run_id=run.pk)
     choices = []
     if run.status == JournalSiteAIDesignRun.Status.COMPLETED:
         for i, option in enumerate(_options(run)):
