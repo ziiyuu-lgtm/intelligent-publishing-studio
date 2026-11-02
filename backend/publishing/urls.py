@@ -110,6 +110,7 @@ urlpatterns = [
     path("journals/<slug:slug>/test-articles/<uuid:pk>/pdf/", production_views.test_article_pdf, name="test_article_pdf"),
     path("journals/<slug:slug>/test-issues/<uuid:pk>/", issue_views.test_issue, name="test_issue"),
     path("submissions/<uuid:pk>/", views.submission_detail, name="submission_detail"),
+    path("submissions/<uuid:pk>/authors/", views.submission_contributors, name="submission_contributors"),
     path("submissions/<uuid:pk>/submit/", views.submission_submit, name="submission_submit"),
     path("submissions/<uuid:pk>/file/", views.submission_file, name="submission_file"),
     path("submissions/<uuid:pk>/versions/<int:number>/file/", views.submission_version_file, name="submission_version_file"),

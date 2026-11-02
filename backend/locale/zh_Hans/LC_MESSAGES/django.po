@@ -3838,3 +3838,93 @@ msgstr "页面布局建议使用下方单独的开关。"
 
 msgid "Drag blocks in the sketch to reorder them, or use the move buttons below."
 msgstr "拖动草图中的区块即可调整顺序，也可以使用下方的移动按钮。"
+
+msgid "Author name"
+msgstr "作者姓名"
+
+msgid "Affiliation"
+msgstr "作者单位"
+
+msgid "Email address"
+msgstr "电子邮箱"
+
+msgid "ORCID iD (optional)"
+msgstr "ORCID iD（可选）"
+
+msgid "Enter an ORCID iD or its https://orcid.org/ address. It is not authenticated here."
+msgstr "请输入 ORCID iD 或其 https://orcid.org/ 地址；此处不会核验身份。"
+
+msgid "Corresponding author"
+msgstr "通讯作者"
+
+msgid "Enter a correctly formatted ORCID iD with a valid check digit."
+msgstr "请输入格式和校验位均有效的 ORCID iD。"
+
+msgid "Check the author details. Email addresses and ORCID iDs must not be repeated."
+msgstr "请检查作者信息；电子邮箱和 ORCID iD 不能重复。"
+
+msgid "The author list is locked after the initial submission."
+msgstr "初次投稿后，作者列表将锁定。"
+
+msgid "The saved author list is invalid; contact the local administrator."
+msgstr "已保存的作者信息无效，请联系本地管理员。"
+
+msgid "The author editor is out of date; reload the page."
+msgstr "作者编辑页面已过期，请重新加载。"
+
+msgid "The draft or author list changed; reload the page."
+msgstr "草稿或作者列表已发生变化，请重新加载。"
+
+msgid "Author details saved to the draft."
+msgstr "作者信息已保存到草稿。"
+
+msgid "Add a corresponding author and email for each corresponding author before submitting."
+msgstr "提交前请指定通讯作者，并填写每位通讯作者的电子邮箱。"
+
+msgid "Author details"
+msgstr "作者信息"
+
+msgid "Remove this author"
+msgstr "删除此作者"
+
+msgid "Submission authors"
+msgstr "投稿作者"
+
+msgid "Add authors in their publication order, including yourself where appropriate. You may mark more than one corresponding author."
+msgstr "按发表顺序填写作者，并在适用时包括您自己。可以标记多位通讯作者。"
+
+msgid "Use fictional test information only. Authors listed here do not receive accounts, invitations or manuscript access. These details are visible to the submitting author and assigned editors, not on the reviewer page."
+msgstr "请仅使用虚构测试信息。此处列出的作者不会自动获得账户、邀请或稿件访问权限。投稿作者与指定编辑可以查看这些信息，审稿页面不显示此列表。"
+
+msgid "The author list is optional in this prototype. If you add authors, designate at least one corresponding author and provide an email for every corresponding author before submitting. ORCID is optional and is not identity verification."
+msgstr "当前原型中的作者列表为选填。如已添加作者，提交前须至少指定一位通讯作者，并为每位通讯作者填写邮箱。ORCID 为选填，此处不会核验身份。"
+
+msgid "The list is locked after initial submission. It is not automatically copied to production or checked against editor and reviewer accounts; assess conflicts separately."
+msgstr "初次投稿后作者列表将锁定。名单不会自动传入制作流程，也不会自动与编辑和审稿人账户比对；请单独核查利益冲突。"
+
+msgid "Author order updated."
+msgstr "作者顺序已更新。"
+
+msgid "Maximum author count reached. Save deletions before adding more."
+msgstr "已达到作者数量上限。请先保存删除操作，再添加作者。"
+
+msgid "Add another author"
+msgstr "添加作者"
+
+msgid "Save author details"
+msgstr "保存作者信息"
+
+msgid "Without JavaScript, complete the blank author form and save before adding another author."
+msgstr "如果未启用 JavaScript，请填写空白作者表单并保存，然后继续添加作者。"
+
+msgid "Edit author details"
+msgstr "编辑作者信息"
+
+msgid "No author details have been added to this draft."
+msgstr "尚未为这篇草稿添加作者信息。"
+
+msgid "This list does not grant account access or establish author consent. It is not shown on the reviewer page; conflict checks remain manual."
+msgstr "此列表不会授予账户访问权限，也不代表已取得作者同意。审稿页面不显示此列表；利益冲突仍须人工核查。"
+
+msgid "DRAFT"
+msgstr "草稿"

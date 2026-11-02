@@ -31,7 +31,7 @@ class WorkflowTests(TestCase):
         self.author = users.create_user("writer", password="a-long-synthetic-password")
         self.editor = users.create_user("editor", password="a-long-synthetic-password")
         self.coordinator = users.create_user("coordinator", password="a-long-synthetic-password")
-        self.reviewer = users.create_user("reviewer", password="a-long-synthetic-password")
+        self.reviewer = users.create_user("fictional-reviewer-identity-824", password="a-long-synthetic-password")
         self.other_editor = users.create_user("other-editor", password="a-long-synthetic-password")
         self.other_reviewer = users.create_user("other-reviewer", password="a-long-synthetic-password")
         self.superuser = users.create_superuser("administrator", password="a-long-synthetic-password")

@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
+from .contributors import ContributorFormSet, MAX_CONTRIBUTORS, ready_to_submit, validate_contributors
 from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
                      PublicationDraft, ReviewAssignment, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
@@ -321,6 +322,11 @@ def submission_detail(request, pk):
                "versions": submission.versions.all(), "decisions": submission.decisions.select_related("round"),
                "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version)),
                "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED}
+    try:
+        context["contributors"] = validate_contributors(submission.contributors_config)
+        context["contributors_ready"] = ready_to_submit(context["contributors"])
+    except ValueError:
+        context["contributors_invalid"] = True
     if context["local_publication_enabled"]:
         from .production_views import _producer_can_manage
         draft = getattr(submission, "publication_draft", None)
@@ -337,6 +343,50 @@ def submission_detail(request, pk):
 
 @login_required
 @never_cache
+@require_http_methods(["GET", "POST"])
+def submission_contributors(request, pk):
+    submission = _submission(pk)
+    if not _author_can_view(request.user, submission):
+        raise Http404
+    if submission.status != Submission.Status.DRAFT:
+        return HttpResponse(_("The author list is locked after the initial submission."), status=409)
+    try:
+        initial = validate_contributors(submission.contributors_config)
+    except ValueError:
+        return HttpResponse(_("The saved author list is invalid; contact the local administrator."), status=409)
+    if request.method == "POST":
+        try:
+            total = int(request.POST.get("authors-TOTAL_FORMS", "-1"))
+        except ValueError:
+            total = -1
+        if (request.POST.get("authors-INITIAL_FORMS") != str(len(initial)) or
+                request.POST.get("authors-TOTAL_FORMS") != str(total) or
+                not len(initial) <= total <= MAX_CONTRIBUTORS * 2):
+            return HttpResponse(_("The author editor is out of date; reload the page."), status=409)
+        formset = ContributorFormSet(request.POST, prefix="authors", initial=initial)
+        if formset.is_valid():
+            with transaction.atomic():
+                current = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
+                if not _author_can_view(request.user, current):
+                    raise Http404
+                if (current.status != Submission.Status.DRAFT or
+                        request.POST.get("revision") != str(current.contributors_revision) or
+                        current.contributors_config != initial):
+                    return HttpResponse(_("The draft or author list changed; reload the page."), status=409)
+                if current.contributors_config != formset.cleaned_contributors:
+                    current.contributors_config = formset.cleaned_contributors
+                    current.contributors_revision += 1
+                    current.save(update_fields=["contributors_config", "contributors_revision"])
+                    _event(current, request.user, "draft_contributors_updated")
+            messages.success(request, _("Author details saved to the draft."))
+            return redirect("submission_detail", pk=pk)
+        return render(request, "publishing/submission_contributors.html", {"submission":submission, "formset":formset}, status=400)
+    formset = ContributorFormSet(prefix="authors", initial=initial)
+    return render(request, "publishing/submission_contributors.html", {"submission":submission, "formset":formset})
+
+
+@login_required
+@never_cache
 @require_POST
 def submission_submit(request, pk):
     with transaction.atomic():
@@ -345,6 +395,12 @@ def submission_submit(request, pk):
             raise Http404
         if submission.status != Submission.Status.DRAFT:
             return HttpResponse(_("This draft has already been submitted."), status=409)
+        try:
+            contributors = validate_contributors(submission.contributors_config)
+        except ValueError:
+            return HttpResponse(_("The saved author list is invalid; contact the local administrator."), status=409)
+        if not ready_to_submit(contributors):
+            return HttpResponse(_("Add a corresponding author and email for each corresponding author before submitting."), status=409)
         version = submission.versions.filter(number=1).first()
         if not version or submission.rounds.exists():
             return HttpResponse(_("The manuscript version is unavailable."), status=409)

@@ -104,6 +104,10 @@ Each site has an isolated library of at most 50 images, stored in the local deve
 
 Managers may upload an image to the library without changing the hero, then select one image per page module and enter its description, display mode and focus. Modules keep their images when reordered or when an AI arrangement is applied. Drafts and every published version protect their referenced images from deletion. A module, page or block image is publicly served only if it is used in a visible homepage module, visible page or visible block on a visible page in the current local release; a hero image remains public while selected as the current hero. AI arrangement requests do not automatically send image identifiers, descriptions or bytes. The prototype does not generate images with AI, support multiple images in one block or homepage module, or provide arbitrary page layouts. Independent pages can have multiple images by using multiple blocks. Use fictional data and keep the server local.
 
+## Draft contributor details
+
+Submitting authors may add, reorder or remove up to 100 fictional contributors before initial submission. The list supports names, affiliations, email addresses, optional ORCID iDs and multiple corresponding authors. When the list is nonempty, at least one corresponding author and an email for each corresponding author are required to submit. An empty list remains permitted for compatibility with existing drafts. ORCID syntax and the ISO 7064 MOD 11-2 check digit are checked locally ([ORCID identifier structure](https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier)); no registry lookup, identity verification or consent collection occurs. Coauthors do not gain accounts or manuscript access. The submitting author and the assigned editor can see the list; the review-task page does not display it, although manuscript files, titles and abstracts may still contain identifying information. The list is locked after initial submission. It is not copied to production or automatically checked for conflicts. Use only fictional data in this prototype.
+
 ## Validation
 
 From `backend/`:

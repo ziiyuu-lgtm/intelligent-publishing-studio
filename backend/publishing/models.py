@@ -387,6 +387,9 @@ class Submission(models.Model):
     review_mode = models.CharField(max_length=16, choices=Journal.ReviewMode.choices, default=Journal.ReviewMode.DIRECT)
     title = models.CharField(_("Title"), max_length=250)
     abstract = models.TextField(_("Abstract"), max_length=10000)
+    # Contributor metadata is private and editable only before initial submission.
+    contributors_config = models.JSONField(default=list, blank=True)
+    contributors_revision = models.PositiveIntegerField(default=0)
     manuscript = models.FileField(_("Manuscript PDF"), upload_to=manuscript_path, max_length=255)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.DRAFT)
     created_at = models.DateTimeField(auto_now_add=True)

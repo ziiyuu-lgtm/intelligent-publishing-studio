@@ -465,6 +465,21 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'JournalSiteAIDesignRun').objects.filter(pk=run11.pk).exists()
 else:
     raise AssertionError('Page layout AI policy must not be silently discarded')
+contributors_scope = ('publishing', '0024_submission_contributors')
+executor = MigrationExecutor(connection)
+executor.migrate([contributors_scope])
+apps = executor.loader.project_state([contributors_scope]).apps
+Submission24 = apps.get_model('publishing', 'Submission')
+legacy_submission = Submission24.objects.get(pk=submission.pk)
+assert legacy_submission.title == 'Synthetic'
+assert legacy_submission.contributors_config == [] and legacy_submission.contributors_revision == 0
+assert Submission24.objects.get(pk=accepted6.pk).contributors_config == []
+try:
+    MigrationExecutor(connection).migrate([layout_ai_scope])
+except IrreversibleError:
+    assert Submission24.objects.filter(pk=submission.pk).exists()
+else:
+    raise AssertionError('Contributor metadata must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
