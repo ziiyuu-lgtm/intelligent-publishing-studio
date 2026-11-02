@@ -36,6 +36,7 @@ class Membership(models.Model):
         EDITOR = "editor", _("Editor")
         REVIEWER = "reviewer", _("Reviewer")
         COORDINATOR = "coordinator", _("Editorial coordinator")
+        PRODUCER = "producer", _("Production editor")
 
     journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="memberships")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_memberships")
@@ -285,6 +286,25 @@ class PublicationProof(models.Model):
 
     class Meta:
         ordering = ["-pk"]
+
+
+class ProductionAssignment(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        REVOKED = "revoked", _("Removed")
+        RECUSED = "recused", _("Recused")
+
+    draft = models.ForeignKey(PublicationDraft, on_delete=models.PROTECT, related_name="production_assignments")
+    producer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="production_assignments")
+    assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="production_assignments_made")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.ACTIVE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    ended_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="production_assignments_ended")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["draft", "producer"], condition=models.Q(status="active"), name="one_active_producer_per_draft")]
+        ordering = ["-created_at", "-pk"]
 
 
 class PublicationApproval(models.Model):

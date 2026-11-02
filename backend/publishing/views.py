@@ -12,8 +12,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
-from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, Membership, ReviewAssignment, ReviewRound,
-                     Submission, SubmissionEvent, SubmissionVersion)
+from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, Membership, ProductionAssignment,
+                     PublicationDraft, ReviewAssignment, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
 
@@ -33,14 +33,16 @@ def _editor_can_view(user, submission):
     return (submission.author_id != user.pk and submission.status != Submission.Status.DRAFT
             and _has_role(user, submission.journal, Membership.Role.EDITOR)
             and submission.editor_assignments.filter(editor=user, status=EditorialAssignment.Status.ACTIVE).exists()
-            and not submission.reviews.filter(reviewer=user).exists())
+            and not submission.reviews.filter(reviewer=user).exists()
+            and not ProductionAssignment.objects.filter(draft__submission=submission, producer=user, status=ProductionAssignment.Status.RECUSED).exists())
 
 
 def _can_coordinate(user, submission):
     return (submission.status != Submission.Status.DRAFT and submission.author_id != user.pk
             and _has_role(user, submission.journal, Membership.Role.COORDINATOR)
             and not submission.reviews.filter(reviewer=user).exists()
-            and not submission.editor_assignments.filter(editor=user, status=EditorialAssignment.Status.RECUSED).exists())
+            and not submission.editor_assignments.filter(editor=user, status=EditorialAssignment.Status.RECUSED).exists()
+            and not ProductionAssignment.objects.filter(draft__submission=submission, producer=user, status=ProductionAssignment.Status.RECUSED).exists())
 
 
 def _author_can_view(user, submission):
@@ -59,6 +61,7 @@ def _review(pk, user):
     if (assignment.round.submission_id != assignment.submission_id or
             assignment.round.version.submission_id != assignment.submission_id or
             assignment.submission.author_id == user.pk or
+            ProductionAssignment.objects.filter(draft__submission=assignment.submission, producer=user).exists() or
             not _has_role(user, assignment.submission.journal, Membership.Role.REVIEWER)):
         raise Http404
     return assignment
@@ -116,16 +119,36 @@ def workspace(request):
         journal__in=visible_journals, journal__memberships__user=request.user,
         journal__memberships__role=Membership.Role.EDITOR, journal__memberships__active=True,
         editor_assignments__editor=request.user, editor_assignments__status=EditorialAssignment.Status.ACTIVE,
-    ).exclude(author=request.user).exclude(reviews__reviewer=request.user).exclude(status=Submission.Status.DRAFT).select_related("journal", "author").distinct().annotate(
+    ).exclude(author=request.user).exclude(reviews__reviewer=request.user).exclude(status=Submission.Status.DRAFT).exclude(
+        Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("pk"), producer=request.user,
+                                                    status=ProductionAssignment.Status.RECUSED))
+    ).select_related("journal", "author").distinct().annotate(
         has_reported_conflict=Exists(ReviewAssignment.objects.filter(submission_id=OuterRef("pk"), conflict=ReviewAssignment.Conflict.YES)))
     reviews = ReviewAssignment.objects.filter(
         reviewer=request.user, submission__journal__in=visible_journals,
         submission__journal__memberships__user=request.user,
         submission__journal__memberships__role=Membership.Role.REVIEWER,
         submission__journal__memberships__active=True,
-    ).exclude(submission__author=request.user).select_related("submission__journal", "round").distinct()
+    ).exclude(submission__author=request.user).exclude(
+        Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("submission_id"), producer=request.user))
+    ).select_related("submission__journal", "round").distinct()
+    production_enabled = settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED
+    production = PublicationDraft.objects.none()
+    if production_enabled:
+        production = PublicationDraft.objects.filter(
+            submission__status=Submission.Status.ACCEPTED, submission__journal__in=visible_journals,
+            submission__journal__memberships__user=request.user, submission__journal__memberships__role=Membership.Role.PRODUCER,
+            submission__journal__memberships__active=True, production_assignments__producer=request.user,
+            production_assignments__status=ProductionAssignment.Status.ACTIVE,
+        ).exclude(submission__author=request.user).exclude(submission__reviews__reviewer=request.user).exclude(
+            Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("submission_id"), editor=request.user,
+                                                      status=EditorialAssignment.Status.RECUSED))
+        ).exclude(Exists(ProductionAssignment.objects.filter(draft_id=OuterRef("pk"), producer=request.user,
+                                                              status=ProductionAssignment.Status.RECUSED))
+        ).select_related("submission__journal").distinct()
     return render(request, "publishing/workspace.html", {
         "author_journals": author_journals, "authored": authored, "editorial": editorial, "reviews": reviews,
+        "production": production, "local_publication_enabled": production_enabled,
         "is_coordinator": Membership.objects.filter(user=request.user, role=Membership.Role.COORDINATOR,
              active=True, journal__active=True, journal__organisation__active=True).exists(),
     })
@@ -143,6 +166,9 @@ def coordination_workspace(request):
         reviews__reviewer=request.user).exclude(
         Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("pk"), editor=request.user,
                                                   status=EditorialAssignment.Status.RECUSED))
+    ).exclude(
+        Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("pk"), producer=request.user,
+                                                    status=ProductionAssignment.Status.RECUSED))
     ).select_related("journal").distinct().order_by("-submitted_at")
     return render(request, "publishing/coordination_workspace.html", {"submissions": submissions})
 
@@ -157,7 +183,7 @@ def submission_editors(request, pk):
     if request.method == "POST":
         try:
             editor_id = int(request.POST.get("editor", ""))
-            if editor_id < 1:
+            if not 1 <= editor_id <= 9223372036854775807:
                 raise ValueError
         except (TypeError, ValueError):
             return HttpResponse(_("Choose an eligible editor."), status=400)
@@ -169,7 +195,8 @@ def submission_editors(request, pk):
             if (not editor or editor.pk in (submission.author_id, request.user.pk) or
                     not _has_role(editor, submission.journal, Membership.Role.EDITOR) or
                     submission.reviews.filter(reviewer=editor).exists() or
-                    submission.editor_assignments.filter(editor=editor, status=EditorialAssignment.Status.RECUSED).exists()):
+                    submission.editor_assignments.filter(editor=editor, status=EditorialAssignment.Status.RECUSED).exists() or
+                    ProductionAssignment.objects.filter(draft__submission=submission, producer=editor, status=ProductionAssignment.Status.RECUSED).exists()):
                 return HttpResponse(_("Choose an eligible editor."), status=400)
             assignment, created = EditorialAssignment.objects.get_or_create(submission=submission, editor=editor,
                 status=EditorialAssignment.Status.ACTIVE, defaults={"assigned_by": request.user})
@@ -181,10 +208,13 @@ def submission_editors(request, pk):
     excluded += list(submission.reviews.values_list("reviewer_id", flat=True))
     excluded += list(submission.editor_assignments.filter(status__in=[EditorialAssignment.Status.ACTIVE,
                               EditorialAssignment.Status.RECUSED]).values_list("editor_id", flat=True))
+    excluded += list(ProductionAssignment.objects.filter(draft__submission=submission, status=ProductionAssignment.Status.RECUSED).values_list("producer_id", flat=True))
     candidates = get_user_model().objects.filter(is_active=True, journal_memberships__journal=submission.journal,
         journal_memberships__role=Membership.Role.EDITOR, journal_memberships__active=True).exclude(pk__in=excluded).distinct().order_by("username")
     history = submission.editor_assignments.select_related("editor", "assigned_by", "ended_by")
-    return render(request, "publishing/submission_editors.html", {"submission": submission, "candidates": candidates, "assignments": history})
+    production_draft = getattr(submission, "publication_draft", None) if settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED else None
+    return render(request, "publishing/submission_editors.html", {"submission": submission, "candidates": candidates,
+        "assignments": history, "production_draft": production_draft})
 
 
 @login_required
@@ -270,6 +300,11 @@ def submission_detail(request, pk):
                "versions": submission.versions.all(), "decisions": submission.decisions.select_related("round"),
                "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version)),
                "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED}
+    if context["local_publication_enabled"]:
+        from .production_views import _producer_can_manage
+        draft = getattr(submission, "publication_draft", None)
+        context["production_draft"] = draft
+        context["can_open_production"] = bool(draft and (author_view or _producer_can_manage(request.user, draft)))
     if editor_view:
         context["my_editorial_assignment"] = submission.editor_assignments.get(editor=request.user, status=EditorialAssignment.Status.ACTIVE)
         context["has_reported_conflict"] = submission.reviews.filter(conflict=ReviewAssignment.Conflict.YES).exists()
@@ -317,7 +352,8 @@ def submission_file(request, pk):
         raise Http404
     privileged = _author_can_view(request.user, submission) or _editor_can_view(request.user, submission)
     reviewer_access = False
-    if not privileged and _has_role(request.user, submission.journal, Membership.Role.REVIEWER):
+    if (not privileged and _has_role(request.user, submission.journal, Membership.Role.REVIEWER)
+            and not ProductionAssignment.objects.filter(draft__submission=submission, producer=request.user).exists()):
         reviewer_access = ReviewAssignment.objects.filter(
             submission=submission, reviewer=request.user, round__submission=submission,
             round__version=version, round__status=ReviewRound.Status.OPEN,
@@ -438,6 +474,7 @@ def review_invite(request, pk):
         if (submission.reviews.filter(invited_by=reviewer).exists() or
                 submission.decisions.filter(decided_by=reviewer).exists() or
                 submission.editor_assignments.filter(editor=reviewer).exists() or
+                ProductionAssignment.objects.filter(draft__submission=submission, producer=reviewer).exists() or
                 Membership.objects.filter(user=reviewer, journal=submission.journal, role=Membership.Role.EDITOR).exists()):
             raise Http404
         assignment, created = ReviewAssignment.objects.get_or_create(

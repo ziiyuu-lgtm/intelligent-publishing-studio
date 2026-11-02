@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 01:22+0000\n"
+"POT-Creation-Date: 2026-11-02 01:44+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,7 +25,7 @@ msgstr "英语"
 msgid "Simplified Chinese"
 msgstr "简体中文"
 
-#: publishing/ai_views.py:51 publishing/models.py:71
+#: publishing/ai_views.py:51 publishing/models.py:72
 #: templates/publishing/checks.html:10
 msgid "Title"
 msgstr "题目"
@@ -34,7 +34,7 @@ msgstr "题目"
 msgid "Checks whether the title field contains text; accuracy is not verified."
 msgstr "仅检查题目是否有文字，不核实其准确性。"
 
-#: publishing/ai_views.py:52 publishing/models.py:72
+#: publishing/ai_views.py:52 publishing/models.py:73
 #: templates/publishing/checks.html:10
 #: templates/publishing/review_detail.html:5
 #: templates/publishing/submission_detail.html:8
@@ -46,7 +46,7 @@ msgstr "摘要"
 msgid "Checks whether the abstract field contains text; content is not verified."
 msgstr "仅检查摘要是否有文字，不核实其内容。"
 
-#: publishing/ai_views.py:53 publishing/models.py:73 publishing/models.py:108
+#: publishing/ai_views.py:53 publishing/models.py:74 publishing/models.py:109
 msgid "Manuscript PDF"
 msgstr "稿件 PDF"
 
@@ -71,7 +71,7 @@ msgid "An editor must record a manual check; anonymity is not guaranteed."
 msgstr "编辑须记录人工核查；系统不保证完全匿名。"
 
 #: publishing/ai_views.py:96 publishing/ai_views.py:147
-#: publishing/production_views.py:217 publishing/production_views.py:244
+#: publishing/production_views.py:334 publishing/production_views.py:361
 msgid "Both confirmations are required."
 msgstr "请完成两项确认。"
 
@@ -128,7 +128,7 @@ msgstr "我已检查审稿文件、题目和摘要中的身份识别信息。"
 msgid "Revised manuscript PDF"
 msgstr "修回稿件 PDF"
 
-#: publishing/forms.py:45 publishing/models.py:113
+#: publishing/forms.py:45 publishing/models.py:114
 #: templates/publishing/submission_detail.html:15
 msgid "Response to the editor"
 msgstr "给编辑的回复"
@@ -141,7 +141,7 @@ msgstr "请填写回复。"
 msgid "Editorial decision"
 msgstr "编辑决定"
 
-#: publishing/forms.py:70 publishing/models.py:252
+#: publishing/forms.py:70 publishing/models.py:253
 msgid "Message to the author"
 msgstr "给作者的说明"
 
@@ -153,28 +153,28 @@ msgstr "请填写给作者的说明。"
 msgid "Reviewer"
 msgstr "审稿人"
 
-#: publishing/forms.py:100 templates/publishing/review_detail.html:11
+#: publishing/forms.py:101 templates/publishing/review_detail.html:11
 #: templates/publishing/submission_detail.html:17
 msgid "Recommendation"
 msgstr "审稿建议"
 
-#: publishing/forms.py:100
+#: publishing/forms.py:101
 msgid "Confidential comments to the editor"
 msgstr "给编辑的保密意见"
 
-#: publishing/forms.py:111
+#: publishing/forms.py:112
 msgid "Please provide comments."
 msgstr "请填写意见。"
 
-#: publishing/forms.py:124
+#: publishing/forms.py:125
 msgid "Provide fictional author names."
 msgstr "请填写虚构的作者姓名。"
 
-#: publishing/forms.py:129
+#: publishing/forms.py:130
 msgid "Fictional publication PDF"
 msgstr "虚构的发表用 PDF"
 
-#: publishing/forms.py:130
+#: publishing/forms.py:131
 msgid "I confirm this PDF contains only fictional test data."
 msgstr "我确认该 PDF 只包含虚构测试数据。"
 
@@ -206,7 +206,7 @@ msgstr "允许 OpenAI 题目摘要建议"
 msgid "Author"
 msgstr "作者"
 
-#: publishing/models.py:36 templates/publishing/submission_editors.html:6
+#: publishing/models.py:36 templates/publishing/submission_editors.html:7
 msgid "Editor"
 msgstr "编辑"
 
@@ -214,294 +214,326 @@ msgstr "编辑"
 msgid "Editorial coordinator"
 msgstr "编辑协调员"
 
-#: publishing/models.py:59
+#: publishing/models.py:39 templates/publishing/production_team.html:5
+msgid "Production editor"
+msgstr "制作编辑"
+
+#: publishing/models.py:60
 msgid "Draft"
 msgstr "草稿"
 
-#: publishing/models.py:60
+#: publishing/models.py:61
 msgid "Submitted"
 msgstr "已投稿"
 
-#: publishing/models.py:61
+#: publishing/models.py:62
 msgid "Under review"
 msgstr "审稿中"
 
-#: publishing/models.py:62
+#: publishing/models.py:63
 msgid "Revision requested"
 msgstr "需要修回"
 
-#: publishing/models.py:63 publishing/models.py:149
+#: publishing/models.py:64 publishing/models.py:150
 msgid "Accepted"
 msgstr "已接受"
 
-#: publishing/models.py:64
+#: publishing/models.py:65
 msgid "Rejected"
 msgstr "已拒稿"
 
-#: publishing/models.py:88
+#: publishing/models.py:89 publishing/models.py:293
 msgid "Active"
 msgstr "有效"
 
-#: publishing/models.py:89
+#: publishing/models.py:90 publishing/models.py:294
 msgid "Removed"
 msgstr "已移除"
 
-#: publishing/models.py:90
+#: publishing/models.py:91 publishing/models.py:295
 msgid "Recused"
 msgstr "已回避"
 
-#: publishing/models.py:109
+#: publishing/models.py:110
 msgid "Reviewer PDF"
 msgstr "审稿用 PDF"
 
-#: publishing/models.py:127
+#: publishing/models.py:128
 msgid "Open"
 msgstr "进行中"
 
-#: publishing/models.py:128
+#: publishing/models.py:129
 msgid "Closed"
 msgstr "已结束"
 
-#: publishing/models.py:148
+#: publishing/models.py:149
 msgid "Invited"
 msgstr "已邀请"
 
-#: publishing/models.py:150
+#: publishing/models.py:151
 msgid "Declined"
 msgstr "已拒绝"
 
-#: publishing/models.py:151 publishing/models.py:157 publishing/models.py:188
+#: publishing/models.py:152 publishing/models.py:158 publishing/models.py:189
 #: templates/publishing/workspace.html:15
 msgid "Conflict declared"
 msgstr "已声明利益冲突"
 
-#: publishing/models.py:152
+#: publishing/models.py:153
 msgid "Report submitted"
 msgstr "已提交意见"
 
-#: publishing/models.py:155
+#: publishing/models.py:156
 msgid "Not declared"
 msgstr "尚未声明"
 
-#: publishing/models.py:156 publishing/models.py:187
+#: publishing/models.py:157 publishing/models.py:188
 msgid "No conflict declared"
 msgstr "已声明无利益冲突"
 
-#: publishing/models.py:160 publishing/models.py:246
+#: publishing/models.py:161 publishing/models.py:247
 msgid "Accept"
 msgstr "接收"
 
-#: publishing/models.py:161 publishing/models.py:244
+#: publishing/models.py:162 publishing/models.py:245
 msgid "Minor revision"
 msgstr "小修"
 
-#: publishing/models.py:162 publishing/models.py:245
+#: publishing/models.py:163 publishing/models.py:246
 msgid "Major revision"
 msgstr "大修"
 
-#: publishing/models.py:163 publishing/models.py:247
+#: publishing/models.py:164 publishing/models.py:248
 msgid "Reject"
 msgstr "拒稿"
 
-#: publishing/models.py:218
+#: publishing/models.py:219
 msgid "Pending"
 msgstr "处理中"
 
-#: publishing/models.py:219
+#: publishing/models.py:220
 msgid "Completed"
 msgstr "已完成"
 
-#: publishing/models.py:220
+#: publishing/models.py:221
 msgid "Unavailable"
 msgstr "不可用"
 
-#: publishing/models.py:221
+#: publishing/models.py:222
 msgid "Cancelled"
 msgstr "已取消"
 
-#: publishing/models.py:268 templates/publishing/production_detail.html:6
+#: publishing/models.py:269 templates/publishing/production_detail.html:7
 msgid "Public title"
 msgstr "公开题目"
 
-#: publishing/models.py:269 templates/publishing/production_detail.html:6
+#: publishing/models.py:270 templates/publishing/production_detail.html:7
 msgid "Public author names"
 msgstr "公开作者姓名"
 
-#: publishing/models.py:270 templates/publishing/production_detail.html:6
+#: publishing/models.py:271 templates/publishing/production_detail.html:7
 msgid "Public abstract"
 msgstr "公开摘要"
 
-#: publishing/models.py:281
+#: publishing/models.py:282
 msgid "Publication PDF"
 msgstr "发表用 PDF"
 
-#: publishing/production_views.py:99
+#: publishing/production_views.py:115
 msgid "Confirm that the materials are fictional."
 msgstr "请确认材料为虚构测试数据。"
 
-#: publishing/production_views.py:106
+#: publishing/production_views.py:122 publishing/production_views.py:142
 msgid "A valid acceptance for the latest version is required."
 msgstr "最新稿件版本须有有效的录用决定。"
 
-#: publishing/production_views.py:141 publishing/production_views.py:175
-msgid "Production changed or is closed; reload the page."
-msgstr "制作内容已变更或已关闭，请重新加载页面。"
+#: publishing/production_views.py:127
+msgid "Production started. A coordinator must assign a production editor."
+msgstr "已开始制作，协调员须分配制作编辑。"
 
-#: publishing/production_views.py:225 publishing/production_views.py:252
-msgid "Production changed or is incomplete; reload the page."
-msgstr "制作内容已变更或尚不完整，请重新加载页面。"
+#: publishing/production_views.py:128
+msgid "Production has already started."
+msgstr "制作流程已经开始。"
 
-#: publishing/production_views.py:228 publishing/production_views.py:232
-msgid "The proof or metadata changed; review it again."
-msgstr "校样或元数据已变更，请重新核对。"
+#: publishing/production_views.py:149 publishing/production_views.py:163
+msgid "Choose an eligible production editor."
+msgstr "请选择符合条件的制作编辑。"
 
-#: publishing/production_views.py:257
-msgid "The current proof needs a valid author confirmation."
-msgstr "当前校样需要有效的作者确认。"
+#: publishing/production_views.py:156
+msgid "Production is closed or unavailable."
+msgstr "制作流程已关闭或不可用。"
 
-#: publishing/production_views.py:261
-msgid "Fictional article published in the local test environment."
-msgstr "虚构文章已在本地测试环境中发表。"
+#: publishing/production_views.py:168
+msgid "Production assignment recorded."
+msgstr "已记录制作任务分配。"
 
-#: publishing/views.py:163 publishing/views.py:173
-msgid "Choose an eligible editor."
-msgstr "请选择符合条件的编辑。"
+#: publishing/production_views.py:168
+msgid "This production editor is already assigned."
+msgstr "该制作编辑已被分配。"
 
-#: publishing/views.py:178
-msgid "Editor assignment recorded."
-msgstr "已记录编辑分配。"
-
-#: publishing/views.py:178
-msgid "This editor is already assigned."
-msgstr "该编辑已被分配。"
-
-#: publishing/views.py:201
+#: publishing/production_views.py:193 publishing/views.py:231
 msgid "This assignment is no longer active."
 msgstr "该分配已不再有效。"
 
-#: publishing/views.py:219
+#: publishing/production_views.py:212 publishing/views.py:249
 msgid "Confirm your recusal."
 msgstr "请确认回避。"
 
-#: publishing/views.py:223
+#: publishing/production_views.py:216
+msgid "Your recusal was recorded and production access ended."
+msgstr "已记录您的回避，制作访问权限已终止。"
+
+#: publishing/production_views.py:258 publishing/production_views.py:292
+msgid "Production changed or is closed; reload the page."
+msgstr "制作内容已变更或已关闭，请重新加载页面。"
+
+#: publishing/production_views.py:342 publishing/production_views.py:369
+msgid "Production changed or is incomplete; reload the page."
+msgstr "制作内容已变更或尚不完整，请重新加载页面。"
+
+#: publishing/production_views.py:345 publishing/production_views.py:349
+msgid "The proof or metadata changed; review it again."
+msgstr "校样或元数据已变更，请重新核对。"
+
+#: publishing/production_views.py:374
+msgid "The current proof needs a valid author confirmation."
+msgstr "当前校样需要有效的作者确认。"
+
+#: publishing/production_views.py:378
+msgid "Fictional article published in the local test environment."
+msgstr "虚构文章已在本地测试环境中发表。"
+
+#: publishing/views.py:189 publishing/views.py:200
+msgid "Choose an eligible editor."
+msgstr "请选择符合条件的编辑。"
+
+#: publishing/views.py:205
+msgid "Editor assignment recorded."
+msgstr "已记录编辑分配。"
+
+#: publishing/views.py:205
+msgid "This editor is already assigned."
+msgstr "该编辑已被分配。"
+
+#: publishing/views.py:253
 msgid "Your recusal was recorded and editorial access ended."
 msgstr "已记录您的回避，编辑访问权限已终止。"
 
-#: publishing/views.py:254
+#: publishing/views.py:284
 msgid "Draft created. Review it before submitting."
 msgstr "草稿已创建，请核对后再提交。"
 
-#: publishing/views.py:291
+#: publishing/views.py:326
 msgid "This draft has already been submitted."
 msgstr "该草稿已经提交。"
 
-#: publishing/views.py:294 publishing/views.py:296
+#: publishing/views.py:329 publishing/views.py:331
 msgid "The manuscript version is unavailable."
 msgstr "稿件版本不可用。"
 
-#: publishing/views.py:298
+#: publishing/views.py:333
 msgid "The review file policy is unavailable."
 msgstr "审稿文件策略不可用。"
 
-#: publishing/views.py:300 publishing/views.py:400
+#: publishing/views.py:335 publishing/views.py:436
 msgid "A confirmed reviewer copy is required."
 msgstr "需要已确认的独立审稿文件。"
 
-#: publishing/views.py:306
+#: publishing/views.py:341
 msgid "Submission received for editorial screening."
 msgstr "投稿已收到，等待编辑初审。"
 
-#: publishing/views.py:390
+#: publishing/views.py:426
 msgid "Confirm the manual checks before continuing."
 msgstr "请确认完成人工核查后再继续。"
 
-#: publishing/views.py:397
+#: publishing/views.py:433
 msgid "There is no reviewer copy awaiting checks."
 msgstr "没有等待核查的审稿文件。"
 
-#: publishing/views.py:406 templates/publishing/submission_detail.html:13
+#: publishing/views.py:442 templates/publishing/submission_detail.html:13
 msgid "Manual check recorded for this version."
 msgstr "已记录对本版本的人工核查。"
 
-#: publishing/views.py:419 publishing/views.py:433 publishing/views.py:568
-#: publishing/views.py:577
+#: publishing/views.py:455 publishing/views.py:469 publishing/views.py:605
+#: publishing/views.py:614
 msgid "There is no open review round."
 msgstr "当前没有进行中的审稿轮次。"
 
-#: publishing/views.py:421 publishing/views.py:435
+#: publishing/views.py:457 publishing/views.py:471
 #: templates/publishing/submission_detail.html:14
 msgid "The reviewer file must be available and checked before inviting reviewers."
 msgstr "邀请审稿人之前，审稿文件须可用并已核查。"
 
-#: publishing/views.py:424
+#: publishing/views.py:460
 msgid "Choose an eligible reviewer for this journal."
 msgstr "请选择具备本刊审稿权限的审稿人。"
 
-#: publishing/views.py:451
+#: publishing/views.py:488
 msgid "Reviewer invitation recorded; no email was sent."
 msgstr "审稿邀请已记录；系统未发送邮件。"
 
-#: publishing/views.py:451
+#: publishing/views.py:488
 msgid "This reviewer was already invited."
 msgstr "该审稿人已受邀。"
 
-#: publishing/views.py:473
+#: publishing/views.py:510
 msgid "Choose an available response."
 msgstr "请选择可用的处理方式。"
 
-#: publishing/views.py:475
+#: publishing/views.py:512
 msgid "Confirm that you have no conflict before continuing."
 msgstr "继续前请确认不存在利益冲突。"
 
-#: publishing/views.py:478
+#: publishing/views.py:515
 msgid "Provide a conflict explanation of up to 2000 characters."
 msgstr "请填写不超过 2000 字符的利益冲突说明。"
 
-#: publishing/views.py:491 publishing/views.py:512
+#: publishing/views.py:528 publishing/views.py:549
 msgid "This review round is closed."
 msgstr "本轮审稿已结束。"
 
-#: publishing/views.py:494
+#: publishing/views.py:531
 msgid "This conflict has already been recorded."
 msgstr "该利益冲突已记录。"
 
-#: publishing/views.py:505
+#: publishing/views.py:542
 msgid "A declaration has already been recorded."
 msgstr "声明已记录。"
 
-#: publishing/views.py:514
+#: publishing/views.py:551
 msgid "This invitation has already been answered."
 msgstr "该邀请已作答。"
 
-#: publishing/views.py:536 publishing/views.py:549
+#: publishing/views.py:573 publishing/views.py:586
 msgid "A report can only be sent after accepting an invitation."
 msgstr "接受邀请后才能提交审稿意见。"
 
-#: publishing/views.py:556
+#: publishing/views.py:593
 msgid "Report saved for the editor."
 msgstr "审稿意见已保存，供编辑查看。"
 
-#: publishing/views.py:580
+#: publishing/views.py:617
 msgid "This decision requires a submitted review with no conflict declared."
 msgstr "此决定需要至少一份已声明无利益冲突的审稿意见。"
 
-#: publishing/views.py:595
+#: publishing/views.py:632
 msgid "Decision recorded. No email was sent."
 msgstr "编辑决定已记录；系统未发送邮件。"
 
-#: publishing/views.py:608
+#: publishing/views.py:645
 msgid "A revision has not been requested."
 msgstr "编辑尚未要求修回。"
 
-#: publishing/views.py:618
+#: publishing/views.py:655
 msgid "A revision has already been submitted."
 msgstr "修回稿已经提交。"
 
-#: publishing/views.py:622
+#: publishing/views.py:659
 msgid "The previous version is unavailable."
 msgstr "上一版本不可用。"
 
-#: publishing/views.py:640
+#: publishing/views.py:677
 msgid "Revision submitted for a new review round."
 msgstr "修回稿已提交，并已开启新一轮审稿。"
 
@@ -696,6 +728,7 @@ msgid "No AI requests yet."
 msgstr "尚无 AI 请求。"
 
 #: templates/publishing/coordination_workspace.html:3
+#: templates/publishing/production_detail.html:3
 #: templates/publishing/review_detail.html:3
 #: templates/publishing/submission_detail.html:3
 #: templates/publishing/submission_form.html:3
@@ -828,94 +861,171 @@ msgid "Only fictional materials may be used. Test publication makes the title, a
 msgstr "只能使用虚构材料。测试发表后，任何能够访问本地服务器的人均可查看题目、作者、摘要和最终 PDF。"
 
 #: templates/publishing/production_detail.html:6
+msgid "Production access"
+msgstr "制作权限"
+
+#: templates/publishing/production_detail.html:6
+msgid "You can access the accepted source and production files, but this role does not grant access to confidential reviews."
+msgstr "您可以访问录用原稿和制作文件；该角色不会授予保密审稿意见的访问权。"
+
+#: templates/publishing/production_detail.html:6
+msgid "Download accepted source PDF"
+msgstr "下载录用原稿 PDF"
+
+#: templates/publishing/production_detail.html:6
+msgid "Recusal blocks future production, editorial and coordination requests for this manuscript; downloads in progress cannot be recalled. Earlier decisions and author confirmations remain recorded."
+msgstr "回避后，系统将阻止您对该稿的后续制作、编辑及协调请求；已开始的下载无法撤回。既往决定和作者确认仍保留。"
+
+#: templates/publishing/production_detail.html:6
+msgid "I need to recuse myself from this production task."
+msgstr "我需要对这项制作任务回避。"
+
+#: templates/publishing/production_detail.html:6
+#: templates/publishing/submission_detail.html:7
+msgid "Record recusal"
+msgstr "记录回避"
+
+#: templates/publishing/production_detail.html:7
 msgid "Public metadata preview"
 msgstr "公开元数据预览"
 
-#: templates/publishing/production_detail.html:7
+#: templates/publishing/production_detail.html:8
 msgid "Download current proof"
 msgstr "下载当前校样"
 
-#: templates/publishing/production_detail.html:7
+#: templates/publishing/production_detail.html:8
 msgid "No publication PDF has been uploaded."
 msgstr "尚未上传发表用 PDF。"
 
-#: templates/publishing/production_detail.html:8
+#: templates/publishing/production_detail.html:9
 msgid "Submitting author confirmed this version"
 msgstr "提交作者已确认此版本"
 
-#: templates/publishing/production_detail.html:8
+#: templates/publishing/production_detail.html:9
 msgid "Current metadata and proof are not yet confirmed by the submitting author."
 msgstr "提交作者尚未确认当前元数据和校样。"
 
-#: templates/publishing/production_detail.html:9
+#: templates/publishing/production_detail.html:10
+#: templates/publishing/workspace.html:21
 msgid "Published in the local test environment"
 msgstr "已在本地测试环境发表"
 
-#: templates/publishing/production_detail.html:9
+#: templates/publishing/production_detail.html:10
 msgid "View fictional test article"
 msgstr "查看虚构测试文章"
 
-#: templates/publishing/production_detail.html:10
+#: templates/publishing/production_detail.html:11
 msgid "Edit public metadata"
 msgstr "编辑公开元数据"
 
-#: templates/publishing/production_detail.html:10
+#: templates/publishing/production_detail.html:11
 msgid "Any change requires a fresh author confirmation."
 msgstr "任何变更后均需作者重新确认。"
 
-#: templates/publishing/production_detail.html:10
+#: templates/publishing/production_detail.html:11
 msgid "Save public metadata"
 msgstr "保存公开元数据"
 
-#: templates/publishing/production_detail.html:11
+#: templates/publishing/production_detail.html:12
 msgid "Upload publication proof"
 msgstr "上传发表校样"
 
-#: templates/publishing/production_detail.html:11
+#: templates/publishing/production_detail.html:12
 msgid "Upload a separate PDF prepared for public viewing. Uploading a new proof requires a fresh author confirmation."
 msgstr "请上传专门用于公开展示的独立 PDF。上传新校样后需要作者重新确认。"
 
-#: templates/publishing/production_detail.html:11
+#: templates/publishing/production_detail.html:12
 msgid "Upload proof"
 msgstr "上传校样"
 
-#: templates/publishing/production_detail.html:12
+#: templates/publishing/production_detail.html:13
 msgid "Submitting author confirmation"
 msgstr "提交作者确认"
 
-#: templates/publishing/production_detail.html:12
+#: templates/publishing/production_detail.html:13
 msgid "Review the metadata above and download the current PDF before confirming. This records confirmation by the submitting account only."
 msgstr "确认前请核对以上元数据并下载当前 PDF。此操作仅记录投稿账户的确认。"
 
-#: templates/publishing/production_detail.html:12
+#: templates/publishing/production_detail.html:13
 msgid "I confirm this exact metadata and PDF for the local test."
 msgstr "我确认本地测试使用上述元数据和 PDF。"
 
-#: templates/publishing/production_detail.html:12
 #: templates/publishing/production_detail.html:13
+#: templates/publishing/production_detail.html:14
 #: templates/publishing/submission_detail.html:6
 msgid "I confirm that these materials are fictional test data."
 msgstr "我确认这些材料均为虚构测试数据。"
 
-#: templates/publishing/production_detail.html:12
+#: templates/publishing/production_detail.html:13
 msgid "Confirm this proof"
 msgstr "确认此校样"
 
-#: templates/publishing/production_detail.html:13
+#: templates/publishing/production_detail.html:14
 msgid "Test publication"
 msgstr "测试发表"
 
-#: templates/publishing/production_detail.html:13
+#: templates/publishing/production_detail.html:14
 msgid "Review the final metadata and PDF. This does not register a DOI or send messages."
 msgstr "请核对最终元数据和 PDF。此操作不会注册 DOI 或发送消息。"
 
-#: templates/publishing/production_detail.html:13
+#: templates/publishing/production_detail.html:14
 msgid "Publish this exact fictional article on the local server."
 msgstr "在本地服务器发表此虚构测试文章。"
 
-#: templates/publishing/production_detail.html:13
+#: templates/publishing/production_detail.html:14
 msgid "Publish test article"
 msgstr "发表测试文章"
+
+#: templates/publishing/production_team.html:3
+msgid "Back to editor assignments"
+msgstr "返回编辑分配"
+
+#: templates/publishing/production_team.html:4
+#: templates/publishing/submission_editors.html:5
+msgid "Manage production assignments"
+msgstr "管理制作任务分配"
+
+#: templates/publishing/production_team.html:5
+msgid "Assign a production editor"
+msgstr "分配制作编辑"
+
+#: templates/publishing/production_team.html:5
+msgid "Only eligible journal production editors may be assigned. The author, any reviewer, anyone who recused, and the assigning coordinator are excluded. Other conflicts require human assessment."
+msgstr "仅可分配本刊符合条件的制作编辑。作者、审稿人、已回避人员和执行分配的协调员不得被分配；其他利益冲突须人工核查。"
+
+#: templates/publishing/production_team.html:5
+msgid "This test article has been published; new production assignments are closed."
+msgstr "此测试文章已发表，不能再新增制作任务分配。"
+
+#: templates/publishing/production_team.html:5
+msgid "Select a production editor"
+msgstr "选择制作编辑"
+
+#: templates/publishing/production_team.html:5
+msgid "Assign production editor"
+msgstr "分配制作编辑"
+
+#: templates/publishing/production_team.html:5
+msgid "No eligible production editors are available."
+msgstr "暂无符合条件的制作编辑。"
+
+#: templates/publishing/production_team.html:6
+#: templates/publishing/submission_editors.html:8
+msgid "Assignment history"
+msgstr "分配记录"
+
+#: templates/publishing/production_team.html:6
+msgid "Removing access blocks future private requests; it cannot recall downloads in progress or withdraw a published test article."
+msgstr "移除权限将阻止后续私有访问，但不能撤回已开始的下载，也不会撤销已发表的测试文章。"
+
+#: templates/publishing/production_team.html:6
+#: templates/publishing/submission_editors.html:8
+msgid "Remove access"
+msgstr "移除访问权限"
+
+#: templates/publishing/production_team.html:6
+msgid "No production editor has been assigned yet."
+msgstr "尚未分配制作编辑。"
 
 #: templates/publishing/review_detail.html:4
 msgid "REVIEW TASK"
@@ -1056,6 +1166,10 @@ msgid "Open production workspace"
 msgstr "打开制作工作台"
 
 #: templates/publishing/submission_detail.html:6
+msgid "Production has started. A coordinator assigns production editors separately."
+msgstr "制作已开始，协调员需另行分配制作编辑。"
+
+#: templates/publishing/submission_detail.html:6
 msgid "Start production"
 msgstr "开始制作"
 
@@ -1074,10 +1188,6 @@ msgstr "回避后您将立即失去访问权限。既往决定仍保留，协调
 #: templates/publishing/submission_detail.html:7
 msgid "I need to recuse myself from this submission."
 msgstr "我需要对这篇投稿回避。"
-
-#: templates/publishing/submission_detail.html:7
-msgid "Record recusal"
-msgstr "记录回避"
 
 #: templates/publishing/submission_detail.html:9
 msgid "Local checks and optional AI suggestions"
@@ -1169,35 +1279,27 @@ msgstr "返回编辑协调"
 msgid "Assign only editors who are independent and eligible for this manuscript."
 msgstr "仅分配对该稿件独立且符合条件的编辑。"
 
-#: templates/publishing/submission_editors.html:5
+#: templates/publishing/submission_editors.html:6
 msgid "Assign an editor"
 msgstr "分配编辑"
 
-#: templates/publishing/submission_editors.html:5
+#: templates/publishing/submission_editors.html:6
 msgid "An author, an invited reviewer, an editor who recused, or the coordinator making the assignment cannot be assigned. Additional conflicts still require human review."
 msgstr "作者、受邀审稿人、已回避的编辑或执行分配的协调员不能被分配；其他利益冲突仍需人工核查。"
 
-#: templates/publishing/submission_editors.html:6
+#: templates/publishing/submission_editors.html:7
 msgid "Select an editor"
 msgstr "选择编辑"
 
-#: templates/publishing/submission_editors.html:6
+#: templates/publishing/submission_editors.html:7
 msgid "Assign editor"
 msgstr "分配编辑"
 
-#: templates/publishing/submission_editors.html:6
+#: templates/publishing/submission_editors.html:7
 msgid "No eligible editors are available."
 msgstr "暂无符合条件的编辑。"
 
-#: templates/publishing/submission_editors.html:7
-msgid "Assignment history"
-msgstr "分配记录"
-
-#: templates/publishing/submission_editors.html:7
-msgid "Remove access"
-msgstr "移除访问权限"
-
-#: templates/publishing/submission_editors.html:7
+#: templates/publishing/submission_editors.html:8
 msgid "No editor has been assigned yet."
 msgstr "尚未分配编辑。"
 
@@ -1300,6 +1402,26 @@ msgstr "这里只显示分配给您账户的任务。"
 #: templates/publishing/workspace.html:19
 msgid "No review tasks assigned."
 msgstr "暂无审稿任务。"
+
+#: templates/publishing/workspace.html:21
+msgid "PRODUCTION"
+msgstr "制作"
+
+#: templates/publishing/workspace.html:21
+msgid "Production tasks"
+msgstr "制作任务"
+
+#: templates/publishing/workspace.html:21
+msgid "Only production tasks assigned to you are shown."
+msgstr "仅显示已分配给您的制作任务。"
+
+#: templates/publishing/workspace.html:21
+msgid "In production"
+msgstr "制作中"
+
+#: templates/publishing/workspace.html:21
+msgid "No production tasks assigned."
+msgstr "尚未分配制作任务。"
 
 #: templates/registration/login.html:6
 msgid "Welcome back"

@@ -22,6 +22,7 @@ class Command(BaseCommand):
                 ("author", journal_a, Membership.Role.AUTHOR),
                 ("editor", journal_a, Membership.Role.EDITOR),
                 ("coordinator", journal_a, Membership.Role.COORDINATOR),
+                ("producer", journal_a, Membership.Role.PRODUCER),
                 ("reviewer", journal_a, Membership.Role.REVIEWER),
                 ("other_editor", journal_b, Membership.Role.EDITOR),
             ]:
@@ -35,4 +36,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING("Synthetic data only. These generated credentials are shown once; keep them private."))
         for role, username, password in credentials:
             self.stdout.write(f"{role}: {username}  password: {password}")
-        self.stdout.write("Start the local server; submit as author, assign an editor as coordinator, then continue as editor and reviewer.")
+        self.stdout.write("Start the local server; after acceptance, the coordinator may assign the production editor in the local test workspace.")

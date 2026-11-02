@@ -123,6 +123,42 @@ except IrreversibleError:
     assert Submission6.objects.filter(pk=submission.pk).exists()
 else:
     raise AssertionError('Production history must not be silently discarded')
+# Preserve an existing fictional production draft and author confirmation, but
+# never infer who may operate it under the new production-role policy.
+Version6 = apps.get_model('publishing', 'SubmissionVersion')
+Round6 = apps.get_model('publishing', 'ReviewRound')
+Decision6 = apps.get_model('publishing', 'EditorialDecision')
+Proof6 = apps.get_model('publishing', 'PublicationProof')
+Approval6 = apps.get_model('publishing', 'PublicationApproval')
+accepted6 = Submission6.objects.create(journal_id=journal.pk, author_id=author.pk, title='Accepted test',
+    abstract='Fictional', manuscript='manuscripts/accepted.pdf', status='accepted')
+version6 = Version6.objects.create(submission_id=accepted6.pk, number=1,
+    manuscript='manuscripts/accepted.pdf', uploaded_by_id=author.pk)
+round6 = Round6.objects.create(submission_id=accepted6.pk, version_id=version6.pk, number=1, status='closed')
+decision6 = Decision6.objects.create(submission_id=accepted6.pk, round_id=round6.pk, outcome='accept',
+    author_message='Fictional', decided_by_id=editor.pk)
+draft6 = Draft6.objects.create(submission_id=accepted6.pk, decision_id=decision6.pk, title='Test publication',
+    authors='Imaginary author', abstract='Fictional', created_by_id=editor.pk)
+proof6 = Proof6.objects.create(draft_id=draft6.pk, file='publication-proofs/old.pdf', sha256='a'*64, uploaded_by_id=editor.pk)
+Approval6.objects.create(draft_id=draft6.pk, proof_id=proof6.pk, revision=1, fingerprint='b'*64, approved_by_id=author.pk)
+production_scope = ('publishing', '0007_alter_membership_role_productionassignment')
+executor = MigrationExecutor(connection)
+executor.migrate([production_scope])
+apps = executor.loader.project_state([production_scope]).apps
+Submission7 = apps.get_model('publishing', 'Submission')
+ProductionAssignment7 = apps.get_model('publishing', 'ProductionAssignment')
+Draft7 = apps.get_model('publishing', 'PublicationDraft')
+Approval7 = apps.get_model('publishing', 'PublicationApproval')
+assert Submission7.objects.get(pk=submission.pk).title == 'Synthetic'
+assert not ProductionAssignment7.objects.exists(), 'No producer assignment should be inferred'
+assert Draft7.objects.get(pk=draft6.pk).title == 'Test publication'
+assert Approval7.objects.filter(draft_id=draft6.pk, proof_id=proof6.pk, approved_by_id=author.pk).exists()
+try:
+    MigrationExecutor(connection).migrate([production])
+except IrreversibleError:
+    assert Submission7.objects.filter(pk=submission.pk).exists()
+else:
+    raise AssertionError('Production assignment history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

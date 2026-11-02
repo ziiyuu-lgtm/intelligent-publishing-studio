@@ -193,3 +193,4 @@ class EditorialAssignmentTests(TestCase):
         call_command("seed_demo", stdout=output)
         journal = Journal.objects.get(name="AIRES (fictional test)")
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.COORDINATOR, active=True).exists())
+        self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.PRODUCER, active=True).exists())
