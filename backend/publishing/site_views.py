@@ -14,15 +14,16 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .forms import JournalAppearanceForm, JournalSiteForm
+from .forms import JournalAppearanceForm, JournalSectionFormSet, JournalSiteForm
 from .ai_views import _policy, _provider_configured
 from .models import Journal, JournalSiteDraft, JournalSiteEvent, JournalSiteRelease, Membership
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, SAMPLES, appearance_for, legacy_to_blueprint, sample_by_id, validate_blueprint
+from .site_sections import InvalidSections, default_sections, validate_sections, visible_sections
 from .views import _has_role
 
 TEXT_FIELDS = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
-SITE_FIELDS = (*TEXT_FIELDS, "design_config")
+SITE_FIELDS = (*TEXT_FIELDS, "design_config", "sections_config")
 
 
 def _managed_journal(user, slug, locked=False):
@@ -43,6 +44,8 @@ def _fingerprint(site):
     payload = {"site": site.pk, "revision": site.revision, **{key: getattr(site, key) for key in TEXT_FIELDS}}
     if site.design_config:
         payload["design_config"] = site.design_config
+    if site.sections_config:
+        payload["sections_config"] = site.sections_config
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -54,20 +57,27 @@ def _appearance(site):
 
 
 def _render_site(request, journal, design, **context):
+    try:
+        sections = visible_sections(design.sections_config) if design.sections_config else []
+    except InvalidSections as exc:
+        raise Http404 from exc
     return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": design,
-        "appearance": _appearance(design), **context}))
+        "appearance": _appearance(design), "sections": sections,
+        "has_about_section": any(item["kind"] == "about" for item in sections), **context}))
 
 
-def _context(journal, site, form=None, user=None, appearance_form=None):
+def _context(journal, site, form=None, user=None, appearance_form=None, section_formset=None):
     policy = _policy(journal)
     try:
         initial = validate_blueprint(site.design_config) if site.design_config else legacy_to_blueprint(site.theme, site.layout)
         samples = [{**sample, "appearance": appearance_for(sample["config"])} for sample in SAMPLES]
-    except InvalidDesign as exc:
+        section_initial = validate_sections(site.sections_config) if site.sections_config else default_sections(site)
+    except (InvalidDesign, InvalidSections) as exc:
         raise Http404 from exc
     return {"journal": journal, "site": site, "form": form if form is not None else JournalSiteForm(instance=site),
             "appearance_form": appearance_form if appearance_form is not None else JournalAppearanceForm(initial=initial),
             "design_samples": samples,
+            "section_formset": section_formset if section_formset is not None else JournalSectionFormSet(prefix="sections", initial=section_initial),
             "fingerprint": _fingerprint(site), "releases": site.releases.select_related("published_by"),
             "ai_design_enabled": bool(policy and policy.site_design_enabled), "ai_provider_configured": _provider_configured(),
             "ai_policy_revision": policy.revision if policy else 0, "ai_model_name": settings.IPS_OPENAI_MODEL,
@@ -208,6 +218,36 @@ def edit_site_appearance(request, slug):
 @login_required
 @never_cache
 @require_POST
+def edit_site_sections(request, slug):
+    _enabled()
+    journal = _managed_journal(request.user, slug)
+    site = _site(journal)
+    try:
+        if site.design_config:
+            validate_blueprint(site.design_config)
+        initial = validate_sections(site.sections_config) if site.sections_config else default_sections(site)
+    except (InvalidDesign, InvalidSections) as exc:
+        raise Http404 from exc
+    formset = JournalSectionFormSet(request.POST, prefix="sections", initial=initial)
+    if not formset.is_valid():
+        return render(request, "publishing/manage_journal_site.html", _context(journal, site, user=request.user, section_formset=formset), status=400)
+    with transaction.atomic():
+        journal = _managed_journal(request.user, slug, locked=True)
+        site = _site(journal, locked=True)
+        if _stale(request, site) or request.POST.get("fingerprint") != _fingerprint(site):
+            return HttpResponse(_("The site draft changed; reload the page."), status=409)
+        if site.sections_config != formset.cleaned_sections:
+            site.sections_config = formset.cleaned_sections
+            site.revision += 1
+            site.save(update_fields=["sections_config", "revision"])
+            JournalSiteEvent.objects.create(site=site, actor=request.user, action="site_sections_updated", revision=site.revision)
+    messages.success(request, _("Page modules saved to the draft. Preview them before publishing."))
+    return redirect("manage_journal_site", slug=slug)
+
+
+@login_required
+@never_cache
+@require_POST
 def publish_journal_site(request, slug):
     _enabled()
     if request.POST.get("confirm") != "yes" or request.POST.get("synthetic") != "yes":
@@ -225,6 +265,11 @@ def publish_journal_site(request, slug):
                 validate_blueprint(site.design_config)
             except InvalidDesign:
                 return HttpResponse(_("The site design is invalid."), status=409)
+        if site.sections_config:
+            try:
+                validate_sections(site.sections_config)
+            except InvalidSections:
+                return HttpResponse(_("The page modules are invalid."), status=409)
         if site.current_release_id and (site.current_release.site_id != site.pk or site.current_release.revision == site.revision):
             return HttpResponse(_("This version is already published or unavailable."), status=409)
         release = JournalSiteRelease.objects.create(site=site, revision=site.revision, published_by=request.user,
@@ -256,6 +301,11 @@ def restore_journal_site(request, slug, release_id):
                 validate_blueprint(release.design_config)
             except InvalidDesign:
                 return HttpResponse(_("The site design is invalid."), status=409)
+        if release.sections_config:
+            try:
+                validate_sections(release.sections_config)
+            except InvalidSections:
+                return HttpResponse(_("The page modules are invalid."), status=409)
         changed = any(getattr(site, key) != getattr(release, key) for key in SITE_FIELDS)
         if changed:
             for key in SITE_FIELDS:

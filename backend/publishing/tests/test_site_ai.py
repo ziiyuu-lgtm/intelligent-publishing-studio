@@ -161,7 +161,8 @@ class SiteAITests(TestCase):
         self.assertEqual(len(run.options), 2)
 
     def test_ai_receives_saved_visual_settings_for_iterative_design(self):
-        JournalSiteDraft.objects.filter(pk=self.site.pk).update(design_config=FIRST_DESIGN)
+        JournalSiteDraft.objects.filter(pk=self.site.pk).update(design_config=FIRST_DESIGN,
+            sections_config=[{"kind":"custom", "heading":"PRIVATE MODULE HEADING", "body":"PRIVATE MODULE BODY", "visible":True}])
         self.transport.side_effect = None
         self.transport.return_value = provider_response()
         self.assertEqual(self.request_design(brief="Keep these colours but change the layout.").status_code, 302)
@@ -170,6 +171,8 @@ class SiteAITests(TestCase):
         self.assertEqual(sent["current_appearance"], FIRST_DESIGN)
         self.assertEqual(sent["design_brief"], "Keep these colours but change the layout.")
         self.assertNotIn(self.site.headline, req.data.decode())
+        self.assertNotIn("PRIVATE MODULE HEADING", req.data.decode())
+        self.assertNotIn("PRIVATE MODULE BODY", req.data.decode())
 
     def test_preview_apply_and_separate_publish_leave_existing_release_unchanged(self):
         self.site.refresh_from_db()
@@ -248,6 +251,16 @@ class SiteAITests(TestCase):
         self.assertEqual(self.client.post(self.apply_url(run), {"revision":"1", "confirm":"yes"}).status_code, 302)
         self.site.refresh_from_db()
         self.assertEqual((self.site.theme, self.site.layout, self.site.design_config), ("ink", "magazine", {}))
+
+    def test_empty_module_configuration_preserves_older_draft_fingerprints(self):
+        fields = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
+        original = {"site":self.site.pk, "revision":self.site.revision,
+                    **{field:getattr(self.site, field) for field in fields}}
+        digest = lambda payload: hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False,
+            separators=(",", ":")).encode()).hexdigest()
+        self.assertEqual(_fingerprint(self.site), digest(original))
+        self.site.design_config = FIRST_DESIGN
+        self.assertEqual(_fingerprint(self.site), digest({**original, "design_config":FIRST_DESIGN}))
 
     def test_new_design_accepts_custom_colours_and_rejects_css_or_extra_fields(self):
         design = {**FIRST_DESIGN, "primary":"#a1b2c3", "background":"#001122"}

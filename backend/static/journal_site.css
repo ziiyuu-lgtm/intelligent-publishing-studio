@@ -35,3 +35,13 @@
 .has-design.order-archive_first .journal-site__explore{grid-column:1;grid-row:1}.has-design.order-archive_first .journal-site__about{grid-column:2;grid-row:1}
 @media(max-width:720px){.has-design .journal-site__hero,.has-design.composition-editorial .journal-site__hero,.has-design.composition-split .journal-site__hero,.has-design.composition-grid .journal-site__hero,.has-design .journal-site__body{grid-template-columns:1fr}.has-design.composition-immersive .journal-site__hero,.has-design.composition-minimal .journal-site__hero{padding-top:50px;padding-bottom:50px}.has-design.order-archive_first .journal-site__explore,.has-design.order-archive_first .journal-site__about{grid-column:auto;grid-row:auto}.has-design.order-archive_first .journal-site__explore{order:-1}}
 .has-design.feature-hidden .journal-site__hero{grid-template-columns:1fr}
+/* Module order follows the saved sequence; legacy two-column ordering stays unchanged. */
+.journal-site.has-modules .journal-site__modules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;padding:58px 6%}
+.journal-site.has-modules .journal-site__module{min-width:0;padding:28px;border:1px solid currentColor;border-radius:10px;overflow-wrap:anywhere}
+.journal-site.has-modules .journal-site__module h2{font-size:1.6rem;margin:12px 0}
+.journal-site.has-modules .journal-site__module p{line-height:1.7}
+.journal-site.has-modules .journal-site__module a{font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.journal-site.has-modules .module-archive{background:var(--site-tint);color:var(--site-surface-text,var(--site-text))}
+.journal-site.has-modules.corners-square .journal-site__module{border-radius:0}
+.journal-site.has-modules.density-compact .journal-site__modules{padding-top:32px;padding-bottom:32px;gap:14px}
+@media(max-width:720px){.journal-site.has-modules .journal-site__modules{grid-template-columns:1fr;gap:16px;padding:36px 6%}.journal-site.has-modules .journal-site__module{padding:22px}}

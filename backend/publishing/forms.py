@@ -1,8 +1,11 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.forms import BaseFormSet, formset_factory
 from django.utils.translation import gettext_lazy as _
 from .models import EditorialDecision, Journal, JournalAIPolicy, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
 from .site_design import ALIGNMENTS, COMPOSITIONS, CORNERS, DENSITIES, FONTS, HERO_STYLES, SECTION_ORDERS
+from .site_sections import (MAX_BODY_LENGTH, MAX_HEADING_LENGTH, MAX_SECTIONS, SECTION_CHOICES,
+                            InvalidSections, validate_sections)
 
 MAX_MANUSCRIPT_BYTES = 10 * 1024 * 1024
 
@@ -175,6 +178,39 @@ class JournalAppearanceForm(forms.Form):
             except InvalidDesign as exc:
                 raise forms.ValidationError(_("The site design is invalid.")) from exc
         return data
+
+
+class JournalSectionForm(forms.Form):
+    kind = forms.ChoiceField(label=_("Module type"), choices=(("", _("Select a module type")), *SECTION_CHOICES))
+    heading = forms.CharField(label=_("Custom heading"), max_length=MAX_HEADING_LENGTH, required=False,
+        help_text=_("Leave blank to use the module's default heading; custom modules need a heading."))
+    body = forms.CharField(label=_("Module text"), max_length=MAX_BODY_LENGTH, required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text=_("Plain text only. Leave the journal introduction blank to use the saved introduction."))
+    visible = forms.BooleanField(label=_("Show this module"), required=False)
+
+
+class BaseJournalSectionFormSet(BaseFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        active = []
+        for index, form in enumerate(self.forms):
+            data = getattr(form, "cleaned_data", {})
+            if not data or data.get("DELETE") or not data.get("kind"):
+                continue
+            order = data.get("ORDER")
+            active.append(((order is None, order if order is not None else 0, index),
+                           {key:data[key] for key in ("kind", "heading", "body", "visible")}))
+        try:
+            self.cleaned_sections = validate_sections([item for _, item in sorted(active, key=lambda row: row[0])])
+        except InvalidSections as exc:
+            raise forms.ValidationError(_("Keep at least one visible module, use About and Articles at most once, and name every custom module.")) from exc
+
+
+JournalSectionFormSet = formset_factory(JournalSectionForm, formset=BaseJournalSectionFormSet, extra=1,
+    can_order=True, can_delete=True, max_num=MAX_SECTIONS, absolute_max=MAX_SECTIONS * 2, validate_max=True)
 
 
 class JournalAIPolicyForm(forms.ModelForm):

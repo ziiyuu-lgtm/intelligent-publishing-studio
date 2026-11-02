@@ -260,6 +260,23 @@ except IrreversibleError:
     assert Release12.objects.filter(pk=release11.pk).exists()
 else:
     raise AssertionError('Saved design blueprints must not be silently discarded')
+modular_scope = ('publishing', '0013_journalsitedraft_sections_config_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([modular_scope])
+apps = executor.loader.project_state([modular_scope]).apps
+Site13 = apps.get_model('publishing', 'JournalSiteDraft')
+Release13 = apps.get_model('publishing', 'JournalSiteRelease')
+Run13 = apps.get_model('publishing', 'JournalSiteAIDesignRun')
+assert Site13.objects.get(pk=site11.pk).sections_config == []
+assert Site13.objects.get(pk=site11.pk).current_release_id == release11.pk
+assert Release13.objects.get(pk=release11.pk).sections_config == []
+assert Run13.objects.get(pk=run11.pk).options == [{'theme':'ink', 'layout':'magazine'}]
+try:
+    MigrationExecutor(connection).migrate([blueprint_scope])
+except IrreversibleError:
+    assert Release13.objects.filter(pk=release11.pk).exists()
+else:
+    raise AssertionError('Saved page modules must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

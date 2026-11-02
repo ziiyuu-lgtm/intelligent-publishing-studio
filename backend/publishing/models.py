@@ -71,6 +71,7 @@ class JournalSiteDraft(models.Model):
     theme = models.CharField(_("Colour theme"), max_length=16, choices=Theme.choices, default=Theme.FOREST)
     layout = models.CharField(_("Page layout"), max_length=16, choices=Layout.choices, default=Layout.CLASSIC)
     design_config = models.JSONField(default=dict, blank=True)
+    sections_config = models.JSONField(default=list, blank=True)
     revision = models.PositiveIntegerField(default=1)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_sites_created")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -87,6 +88,7 @@ class JournalSiteRelease(models.Model):
     theme = models.CharField(_("Colour theme"), max_length=16, choices=JournalSiteDraft.Theme.choices)
     layout = models.CharField(_("Page layout"), max_length=16, choices=JournalSiteDraft.Layout.choices)
     design_config = models.JSONField(default=dict, blank=True)
+    sections_config = models.JSONField(default=list, blank=True)
     published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_site_releases")
     published_at = models.DateTimeField(auto_now_add=True)
 
