@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from .models import EditorialDecision, Journal, JournalAIPolicy, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
+from .site_design import ALIGNMENTS, COMPOSITIONS, CORNERS, DENSITIES, FONTS, HERO_STYLES, SECTION_ORDERS
 
 MAX_MANUSCRIPT_BYTES = 10 * 1024 * 1024
 
@@ -147,6 +148,33 @@ class JournalSiteForm(forms.ModelForm):
         model = JournalSiteDraft
         fields = ["brand_name", "headline", "tagline", "introduction", "theme", "layout"]
         widgets = {"introduction": forms.Textarea(attrs={"rows": 7})}
+
+
+class JournalAppearanceForm(forms.Form):
+    primary = forms.RegexField(label=_("Primary colour"), regex=r"^#[0-9a-fA-F]{6}$", max_length=7,
+        widget=forms.TextInput(attrs={"type":"color"}))
+    surface = forms.RegexField(label=_("Panel colour"), regex=r"^#[0-9a-fA-F]{6}$", max_length=7,
+        widget=forms.TextInput(attrs={"type":"color"}))
+    background = forms.RegexField(label=_("Page colour"), regex=r"^#[0-9a-fA-F]{6}$", max_length=7,
+        widget=forms.TextInput(attrs={"type":"color"}))
+    composition = forms.ChoiceField(label=_("Page composition"), choices=COMPOSITIONS)
+    font = forms.ChoiceField(label=_("Typography"), choices=FONTS)
+    hero_style = forms.ChoiceField(label=_("Hero background"), choices=HERO_STYLES)
+    alignment = forms.ChoiceField(label=_("Hero alignment"), choices=ALIGNMENTS)
+    density = forms.ChoiceField(label=_("Spacing"), choices=DENSITIES)
+    corners = forms.ChoiceField(label=_("Corners"), choices=CORNERS)
+    section_order = forms.ChoiceField(label=_("Section order"), choices=SECTION_ORDERS)
+    show_feature = forms.BooleanField(label=_("Show feature panel"), required=False)
+
+    def clean(self):
+        from .site_design import InvalidDesign, validate_blueprint
+        data = super().clean()
+        if not self.errors:
+            try:
+                return validate_blueprint(data)
+            except InvalidDesign as exc:
+                raise forms.ValidationError(_("The site design is invalid.")) from exc
+        return data
 
 
 class JournalAIPolicyForm(forms.ModelForm):

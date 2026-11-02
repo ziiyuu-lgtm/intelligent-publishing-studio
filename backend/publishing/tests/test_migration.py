@@ -232,6 +232,34 @@ except IrreversibleError:
     assert Policy11.objects.filter(pk=policy10.pk).exists()
 else:
     raise AssertionError('AI design history must not be silently discarded')
+import uuid
+Site11 = apps.get_model('publishing', 'JournalSiteDraft')
+Release11 = apps.get_model('publishing', 'JournalSiteRelease')
+site11 = Site11.objects.get(pk=site9.pk)
+release11 = Release11.objects.create(site_id=site11.pk, revision=site11.revision, brand_name=site11.brand_name,
+    headline=site11.headline, tagline=site11.tagline, introduction=site11.introduction, theme=site11.theme,
+    layout=site11.layout, published_by_id=editor.pk)
+Site11.objects.filter(pk=site11.pk).update(current_release_id=release11.pk)
+run11 = Run11.objects.create(id=uuid.uuid4(), site_id=site11.pk, requested_by_id=editor.pk, model_name='legacy',
+    prompt_version='site-design-presets-v1', policy_revision=1, site_revision=1, site_fingerprint='a' * 64,
+    brief_fingerprint='b' * 64, status='completed', options=[{'theme':'ink', 'layout':'magazine'}])
+blueprint_scope = ('publishing', '0012_journalsitedraft_design_config_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([blueprint_scope])
+apps = executor.loader.project_state([blueprint_scope]).apps
+Site12 = apps.get_model('publishing', 'JournalSiteDraft')
+Release12 = apps.get_model('publishing', 'JournalSiteRelease')
+Run12 = apps.get_model('publishing', 'JournalSiteAIDesignRun')
+assert Site12.objects.get(pk=site11.pk).design_config == {}
+assert Site12.objects.get(pk=site11.pk).current_release_id == release11.pk
+assert Release12.objects.get(pk=release11.pk).design_config == {}
+assert Run12.objects.get(pk=run11.pk).options == [{'theme':'ink', 'layout':'magazine'}]
+try:
+    MigrationExecutor(connection).migrate([design_scope])
+except IrreversibleError:
+    assert Release12.objects.filter(pk=release11.pk).exists()
+else:
+    raise AssertionError('Saved design blueprints must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

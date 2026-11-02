@@ -11,13 +11,19 @@ from django.urls import reverse
 from publishing.ai_provider import OPENAI_RESPONSES_URL, ProviderError
 from publishing.models import (AIConsent, AIAssistanceRun, Journal, JournalAIPolicy, JournalSiteAIDesignRun,
     JournalSiteDraft, JournalSiteEvent, JournalSiteRelease, Membership, Organisation, Submission, SubmissionVersion)
-from publishing.site_ai_provider import parse_response
+from publishing.site_ai_provider import LEGACY_PROMPT_VERSION, parse_response
+from publishing.site_design import blueprint, legacy_to_blueprint
+from publishing.site_views import _fingerprint
+
+
+FIRST_DESIGN = blueprint("#23468a", "#eee7d9", "#fefcf5", "editorial", "literary", corners="square")
+SECOND_DESIGN = legacy_to_blueprint("forest", "classic")
 
 
 def provider_response(options=None):
     return {"status":"completed", "output":[{"type":"message", "role":"assistant", "content":[
         {"type":"output_text", "text":json.dumps({"options": options if options is not None else [
-            {"theme":"ink", "layout":"magazine"}, {"theme":"forest", "layout":"classic"}]})}]}]}
+            FIRST_DESIGN, SECOND_DESIGN]})}]}]}
 
 
 @override_settings(DEBUG=True, IPS_LOCAL_PUBLICATION_ENABLED=True, IPS_OPENAI_ENABLED=True,
@@ -131,7 +137,7 @@ class SiteAITests(TestCase):
         self.transport.assert_not_called()
         self.assertFalse(JournalSiteAIDesignRun.objects.exists())
 
-    def test_provider_receives_only_brief_request_is_idempotent(self):
+    def test_provider_receives_brief_and_visual_settings_request_is_idempotent(self):
         self.transport.side_effect = None
         self.transport.return_value = provider_response()
         data = self.data()
@@ -142,7 +148,7 @@ class SiteAITests(TestCase):
         req = self.transport.call_args.args[0]
         self.assertEqual(req.full_url, OPENAI_RESPONSES_URL)
         payload = json.loads(req.data)
-        self.assertEqual(json.loads(payload["input"]), {"design_brief":data["brief"]})
+        self.assertEqual(json.loads(payload["input"]), {"design_brief":data["brief"], "current_appearance":SECOND_DESIGN})
         self.assertFalse(payload["store"])
         self.assertTrue(payload["text"]["format"]["strict"])
         for secret in (self.site.brand_name, self.site.headline, self.site.introduction, self.submission.title,
@@ -153,6 +159,17 @@ class SiteAITests(TestCase):
         self.assertNotIn(data["brief"], str(JournalSiteAIDesignRun.objects.values().get()))
         self.assertNotIn(data["brief"], str(list(JournalSiteEvent.objects.values())))
         self.assertEqual(len(run.options), 2)
+
+    def test_ai_receives_saved_visual_settings_for_iterative_design(self):
+        JournalSiteDraft.objects.filter(pk=self.site.pk).update(design_config=FIRST_DESIGN)
+        self.transport.side_effect = None
+        self.transport.return_value = provider_response()
+        self.assertEqual(self.request_design(brief="Keep these colours but change the layout.").status_code, 302)
+        req = self.transport.call_args.args[0]
+        sent = json.loads(json.loads(req.data)["input"])
+        self.assertEqual(sent["current_appearance"], FIRST_DESIGN)
+        self.assertEqual(sent["design_brief"], "Keep these colours but change the layout.")
+        self.assertNotIn(self.site.headline, req.data.decode())
 
     def test_preview_apply_and_separate_publish_leave_existing_release_unchanged(self):
         self.site.refresh_from_db()
@@ -168,7 +185,8 @@ class SiteAITests(TestCase):
         self.assertContains(page, "AI design suggestions")
         self.assertEqual(page["X-Robots-Tag"], "noindex, nofollow, noarchive")
         preview = self.client.get(self.preview_url(run))
-        self.assertContains(preview, "theme-ink layout-magazine")
+        self.assertContains(preview, "composition-editorial font-literary")
+        self.assertContains(preview, "--site-accent:#23468a")
         self.assertIn("no-store", preview["Cache-Control"])
         self.assertEqual(preview["X-Robots-Tag"], "noindex, nofollow, noarchive")
         self.site.refresh_from_db()
@@ -177,7 +195,8 @@ class SiteAITests(TestCase):
         self.assertEqual(self.client.post(self.apply_url(run), {"revision":"1", "confirm":"yes"}).status_code, 302)
         self.site.refresh_from_db()
         run.refresh_from_db()
-        self.assertEqual((self.site.theme, self.site.layout, self.site.revision), ("ink", "magazine", 2))
+        self.assertEqual((self.site.theme, self.site.layout, self.site.revision), ("forest", "classic", 2))
+        self.assertEqual(self.site.design_config, FIRST_DESIGN)
         self.assertEqual((run.applied_option, run.applied_revision), (0, 2))
         self.assertContains(self.client.get(self.result_url(run)), "This suggestion has already been applied.")
         self.assertEqual(JournalSiteRelease.objects.filter(site=self.site).count(), 1)
@@ -186,7 +205,8 @@ class SiteAITests(TestCase):
         page = self.client.get(reverse("manage_journal_site", args=[self.journal.slug]))
         publication.update(revision="2", fingerprint=page.context["fingerprint"])
         self.assertEqual(self.client.post(publish_url, publication).status_code, 302)
-        self.assertContains(public.get(public_url), "theme-ink layout-magazine")
+        self.assertContains(public.get(public_url), "composition-editorial font-literary")
+        self.assertContains(public.get(public_url), "--site-accent:#23468a")
 
     def test_stale_draft_even_without_revision_change_blocks_preview_and_apply(self):
         run = self.completed()
@@ -197,6 +217,7 @@ class SiteAITests(TestCase):
         self.assertEqual(self.site.theme, "forest")
 
     def test_noop_option_is_recorded_without_increment(self):
+        JournalSiteDraft.objects.filter(pk=self.site.pk).update(design_config=SECOND_DESIGN)
         run = self.completed()
         self.assertEqual(self.client.post(self.apply_url(run, 1), {"revision":"1", "confirm":"yes"}).status_code, 302)
         self.site.refresh_from_db()
@@ -217,6 +238,24 @@ class SiteAITests(TestCase):
         self.assertEqual(self.client.post(self.apply_url(run), {"revision":"1", "confirm":"yes"}).status_code, 404)
         self.site.refresh_from_db()
         self.assertEqual(self.site.revision, 1)
+
+    def test_legacy_design_suggestions_remain_available_after_upgrade(self):
+        run = JournalSiteAIDesignRun.objects.create(id=uuid.uuid4(), site=self.site, requested_by=self.manager,
+            model_name="legacy-model", prompt_version=LEGACY_PROMPT_VERSION, policy_revision=1, site_revision=1,
+            site_fingerprint=_fingerprint(self.site), brief_fingerprint="b" * 64, status="completed",
+            options=[{"theme":"ink", "layout":"magazine"}])
+        self.assertContains(self.client.get(self.preview_url(run)), "theme-ink layout-magazine")
+        self.assertEqual(self.client.post(self.apply_url(run), {"revision":"1", "confirm":"yes"}).status_code, 302)
+        self.site.refresh_from_db()
+        self.assertEqual((self.site.theme, self.site.layout, self.site.design_config), ("ink", "magazine", {}))
+
+    def test_new_design_accepts_custom_colours_and_rejects_css_or_extra_fields(self):
+        design = {**FIRST_DESIGN, "primary":"#a1b2c3", "background":"#001122"}
+        self.assertEqual(parse_response(provider_response([design])), [design])
+        for bad in ({**design, "primary":"red; background:url(evil)"}, {**design, "font":"<script>"},
+                    {**design, "show_feature":"true"}, {**design, "script":"alert(1)"}):
+            with self.subTest(bad=bad), self.assertRaises(ProviderError):
+                parse_response(provider_response([bad]))
 
     def test_failure_does_not_leak_or_retry(self):
         response = self.request_design()

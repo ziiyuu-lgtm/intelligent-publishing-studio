@@ -2,6 +2,7 @@
 import hashlib
 import json
 import uuid
+from types import SimpleNamespace
 
 from django.conf import settings
 from django.contrib import messages
@@ -13,13 +14,15 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .forms import JournalSiteForm
+from .forms import JournalAppearanceForm, JournalSiteForm
 from .ai_views import _policy, _provider_configured
 from .models import Journal, JournalSiteDraft, JournalSiteEvent, JournalSiteRelease, Membership
 from .production_views import _enabled, _no_index
+from .site_design import InvalidDesign, SAMPLES, appearance_for, legacy_to_blueprint, sample_by_id, validate_blueprint
 from .views import _has_role
 
-SITE_FIELDS = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
+TEXT_FIELDS = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
+SITE_FIELDS = (*TEXT_FIELDS, "design_config")
 
 
 def _managed_journal(user, slug, locked=False):
@@ -36,13 +39,35 @@ def _site(journal, locked=False):
 
 
 def _fingerprint(site):
-    payload = {"site": site.pk, "revision": site.revision, **{key: getattr(site, key) for key in SITE_FIELDS}}
+    # Empty configuration preserves fingerprints from the earlier legacy design.
+    payload = {"site": site.pk, "revision": site.revision, **{key: getattr(site, key) for key in TEXT_FIELDS}}
+    if site.design_config:
+        payload["design_config"] = site.design_config
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
-def _context(journal, site, form=None, user=None):
+def _appearance(site):
+    try:
+        return appearance_for(site.design_config) if site.design_config else None
+    except InvalidDesign as exc:
+        raise Http404 from exc
+
+
+def _render_site(request, journal, design, **context):
+    return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": design,
+        "appearance": _appearance(design), **context}))
+
+
+def _context(journal, site, form=None, user=None, appearance_form=None):
     policy = _policy(journal)
+    try:
+        initial = validate_blueprint(site.design_config) if site.design_config else legacy_to_blueprint(site.theme, site.layout)
+        samples = [{**sample, "appearance": appearance_for(sample["config"])} for sample in SAMPLES]
+    except InvalidDesign as exc:
+        raise Http404 from exc
     return {"journal": journal, "site": site, "form": form if form is not None else JournalSiteForm(instance=site),
+            "appearance_form": appearance_form if appearance_form is not None else JournalAppearanceForm(initial=initial),
+            "design_samples": samples,
             "fingerprint": _fingerprint(site), "releases": site.releases.select_related("published_by"),
             "ai_design_enabled": bool(policy and policy.site_design_enabled), "ai_provider_configured": _provider_configured(),
             "ai_policy_revision": policy.revision if policy else 0, "ai_model_name": settings.IPS_OPENAI_MODEL,
@@ -95,12 +120,12 @@ def edit_journal_site(request, slug):
         site = _site(journal, locked=True)
         if _stale(request, site):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
-        changed = any(getattr(site, key) != form.cleaned_data[key] for key in SITE_FIELDS)
+        changed = any(getattr(site, key) != form.cleaned_data[key] for key in TEXT_FIELDS)
         if changed:
-            for key in SITE_FIELDS:
+            for key in TEXT_FIELDS:
                 setattr(site, key, form.cleaned_data[key])
             site.revision += 1
-            site.save(update_fields=[*SITE_FIELDS, "revision"])
+            site.save(update_fields=[*TEXT_FIELDS, "revision"])
             JournalSiteEvent.objects.create(site=site, actor=request.user, action="site_draft_updated", revision=site.revision)
     return redirect("manage_journal_site", slug=slug)
 
@@ -112,7 +137,72 @@ def preview_journal_site(request, slug):
     _enabled()
     journal = _managed_journal(request.user, slug)
     site = _site(journal)
-    return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": site, "preview": True}))
+    return _render_site(request, journal, site, preview=True)
+
+
+@login_required
+@never_cache
+@require_GET
+def preview_site_sample(request, slug, sample_id):
+    _enabled()
+    journal = _managed_journal(request.user, slug)
+    site = _site(journal)
+    try:
+        sample = sample_by_id(sample_id)
+    except InvalidDesign as exc:
+        raise Http404 from exc
+    design = SimpleNamespace(**{field: getattr(site, field) for field in SITE_FIELDS})
+    design.design_config = sample["config"]
+    return _render_site(request, journal, design, preview=True, sample_preview=True)
+
+
+@login_required
+@never_cache
+@require_POST
+def apply_site_sample(request, slug, sample_id):
+    _enabled()
+    if request.POST.get("confirm") != "yes":
+        return HttpResponse(_("Confirm applying this option to the draft."), status=400)
+    try:
+        sample = sample_by_id(sample_id)
+    except InvalidDesign as exc:
+        raise Http404 from exc
+    with transaction.atomic():
+        journal = _managed_journal(request.user, slug, locked=True)
+        site = _site(journal, locked=True)
+        if _stale(request, site) or request.POST.get("fingerprint") != _fingerprint(site):
+            return HttpResponse(_("The site draft changed; reload the page."), status=409)
+        if site.design_config != sample["config"]:
+            site.design_config = sample["config"]
+            site.revision += 1
+            site.save(update_fields=["design_config", "revision"])
+            JournalSiteEvent.objects.create(site=site, actor=request.user, action="site_sample_applied", revision=site.revision)
+    messages.success(request, _("Template applied to the draft. You can customise it before publishing."))
+    return redirect("manage_journal_site", slug=slug)
+
+
+@login_required
+@never_cache
+@require_POST
+def edit_site_appearance(request, slug):
+    _enabled()
+    journal = _managed_journal(request.user, slug)
+    site = _site(journal)
+    form = JournalAppearanceForm(request.POST)
+    if not form.is_valid():
+        return render(request, "publishing/manage_journal_site.html", _context(journal, site, user=request.user, appearance_form=form), status=400)
+    with transaction.atomic():
+        journal = _managed_journal(request.user, slug, locked=True)
+        site = _site(journal, locked=True)
+        if _stale(request, site) or request.POST.get("fingerprint") != _fingerprint(site):
+            return HttpResponse(_("The site draft changed; reload the page."), status=409)
+        if site.design_config != form.cleaned_data:
+            site.design_config = form.cleaned_data
+            site.revision += 1
+            site.save(update_fields=["design_config", "revision"])
+            JournalSiteEvent.objects.create(site=site, actor=request.user, action="site_appearance_updated", revision=site.revision)
+    messages.success(request, _("Design saved to the draft. Preview it before publishing."))
+    return redirect("manage_journal_site", slug=slug)
 
 
 @login_required
@@ -130,6 +220,11 @@ def publish_journal_site(request, slug):
         if (site.theme not in JournalSiteDraft.Theme.values or site.layout not in JournalSiteDraft.Layout.values or
                 not site.brand_name.strip() or not site.headline.strip() or not site.introduction.strip()):
             return HttpResponse(_("The site design is invalid."), status=409)
+        if site.design_config:
+            try:
+                validate_blueprint(site.design_config)
+            except InvalidDesign:
+                return HttpResponse(_("The site design is invalid."), status=409)
         if site.current_release_id and (site.current_release.site_id != site.pk or site.current_release.revision == site.revision):
             return HttpResponse(_("This version is already published or unavailable."), status=409)
         release = JournalSiteRelease.objects.create(site=site, revision=site.revision, published_by=request.user,
@@ -156,6 +251,11 @@ def restore_journal_site(request, slug, release_id):
             return HttpResponse(_("Confirm the draft restoration."), status=400)
         if release.theme not in JournalSiteDraft.Theme.values or release.layout not in JournalSiteDraft.Layout.values:
             return HttpResponse(_("The site design is invalid."), status=409)
+        if release.design_config:
+            try:
+                validate_blueprint(release.design_config)
+            except InvalidDesign:
+                return HttpResponse(_("The site design is invalid."), status=409)
         changed = any(getattr(site, key) != getattr(release, key) for key in SITE_FIELDS)
         if changed:
             for key in SITE_FIELDS:
@@ -175,4 +275,4 @@ def public_journal_site(request, slug):
     if (site.current_release.site_id != site.pk or site.current_release.theme not in JournalSiteDraft.Theme.values or
             site.current_release.layout not in JournalSiteDraft.Layout.values):
         raise Http404
-    return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": site.current_release, "preview": False}))
+    return _render_site(request, journal, site.current_release, preview=False)

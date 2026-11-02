@@ -21,10 +21,11 @@ from .ai_gateway import OPENAI, SITE_DESIGN, run_ai_task
 from .ai_provider import ProviderError
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since
 from .ai_views import _policy, _provider_configured
-from .models import JournalSiteAIDesignRun, JournalSiteDraft, JournalSiteEvent
+from .models import JournalSiteAIDesignRun, JournalSiteEvent
 from .production_views import _enabled, _no_index
-from .site_ai_provider import MAX_BRIEF_LENGTH, PROMPT_VERSION, validate_options
-from .site_views import SITE_FIELDS, _fingerprint, _managed_journal, _site
+from .site_ai_provider import LEGACY_PROMPT_VERSION, MAX_BRIEF_LENGTH, PROMPT_VERSION, validate_options
+from .site_design import COMPOSITIONS, FONTS, InvalidDesign, appearance_for, legacy_to_blueprint, validate_blueprint
+from .site_views import SITE_FIELDS, _fingerprint, _managed_journal, _render_site, _site
 
 
 def _active(policy):
@@ -43,8 +44,10 @@ def _run(journal, user, run_id, locked=False):
 def _options(run):
     if run.status != JournalSiteAIDesignRun.Status.COMPLETED:
         raise Http404
+    if run.prompt_version not in (LEGACY_PROMPT_VERSION, PROMPT_VERSION):
+        raise Http404
     try:
-        return validate_options(run.options)
+        return validate_options(run.options, legacy=run.prompt_version == LEGACY_PROMPT_VERSION)
     except ProviderError as exc:
         raise Http404 from exc
 
@@ -95,6 +98,10 @@ def request_site_ai_design(request, slug):
             return redirect("site_ai_result", slug=slug, run_id=previous.pk)
         if request.POST.get("revision") != str(site.revision) or request.POST.get("fingerprint") != _fingerprint(site):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
+        try:
+            current_appearance = validate_blueprint(site.design_config) if site.design_config else legacy_to_blueprint(site.theme, site.layout)
+        except InvalidDesign:
+            return HttpResponse(_("The site design is invalid."), status=409)
         since = timezone.now() - timedelta(hours=24)
         if account_requests_since(request.user, since) >= DAILY_REQUEST_LIMIT:
             return HttpResponse(_("The local test request limit has been reached."), status=429)
@@ -123,7 +130,7 @@ def request_site_ai_design(request, slug):
         return redirect("site_ai_result", slug=slug, run_id=run.pk)
     try:
         result = run_ai_task(task=SITE_DESIGN, provider=OPENAI, api_key=os.environ.get("OPENAI_API_KEY", ""),
-                             model=run.model_name, payload={"brief": brief})
+                             model=run.model_name, payload={"brief": brief, "appearance":current_appearance})
     except Exception:
         run.status, run.error_code, run.finished_at = JournalSiteAIDesignRun.Status.FAILED, "provider_unavailable", timezone.now()
         run.save(update_fields=["status", "error_code", "finished_at"])
@@ -143,10 +150,10 @@ def site_ai_result(request, slug, run_id):
     run = _run(journal, request.user, run_id)
     choices = []
     if run.status == JournalSiteAIDesignRun.Status.COMPLETED:
-        themes, layouts = dict(JournalSiteDraft.Theme.choices), dict(JournalSiteDraft.Layout.choices)
-        choices = [{"index": i, "theme": option["theme"], "theme_label": themes[option["theme"]],
-                    "layout": option["layout"], "layout_label": layouts[option["layout"]]}
-                   for i, option in enumerate(_options(run))]
+        for i, option in enumerate(_options(run)):
+            config = legacy_to_blueprint(option["theme"], option["layout"]) if run.prompt_version == LEGACY_PROMPT_VERSION else option
+            choices.append({"index": i, "appearance": appearance_for(config),
+                "composition_label": dict(COMPOSITIONS)[config["composition"]], "font_label": dict(FONTS)[config["font"]]})
     return _no_index(render(request, "publishing/site_ai_result.html", {"journal": journal, "site": site, "run": run,
         "choices": choices, "current": _current(site, run)}))
 
@@ -165,9 +172,11 @@ def preview_site_ai_option(request, slug, run_id, index):
     if index >= len(options):
         raise Http404
     design = SimpleNamespace(**{field: getattr(site, field) for field in SITE_FIELDS})
-    design.theme, design.layout = options[index]["theme"], options[index]["layout"]
-    return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": design,
-        "preview": True, "ai_proposal_preview": True}))
+    if run.prompt_version == LEGACY_PROMPT_VERSION:
+        design.theme, design.layout = options[index]["theme"], options[index]["layout"]
+    else:
+        design.design_config = options[index]
+    return _render_site(request, journal, design, preview=True, ai_proposal_preview=True)
 
 
 @login_required
@@ -189,10 +198,17 @@ def apply_site_ai_option(request, slug, run_id, index):
         if request.POST.get("revision") != str(site.revision) or not _current(site, run):
             return HttpResponse(_("The site draft changed; request new suggestions."), status=409)
         option = options[index]
-        if site.theme != option["theme"] or site.layout != option["layout"]:
+        if run.prompt_version == LEGACY_PROMPT_VERSION:
+            changed = site.theme != option["theme"] or site.layout != option["layout"]
             site.theme, site.layout = option["theme"], option["layout"]
+            changed_fields = ["theme", "layout"]
+        else:
+            changed = site.design_config != option
+            site.design_config = option
+            changed_fields = ["design_config"]
+        if changed:
             site.revision += 1
-            site.save(update_fields=["theme", "layout", "revision"])
+            site.save(update_fields=[*changed_fields, "revision"])
         run.applied_option, run.applied_revision = index, site.revision
         run.save(update_fields=["applied_option", "applied_revision"])
         JournalSiteEvent.objects.create(site=site, actor=request.user, action="site_ai_option_applied", revision=site.revision)
