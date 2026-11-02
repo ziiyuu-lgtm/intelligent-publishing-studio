@@ -25,7 +25,7 @@ from .ai_views import _provider_configured
 from .models import JournalSiteEvent
 from .module_images import images_valid
 from .page_block_ai_forms import ReviewedBlockFormSet, validate_reviewed_blocks
-from .page_block_ai_provider import MAX_BRIEF_LENGTH, PROMPT_VERSION, validate_options
+from .page_block_ai_provider import LEGACY_PROMPT_VERSION, MAX_BRIEF_LENGTH, MAX_OPTIONS, PROMPT_VERSION, validate_options
 from .page_blocks import MAX_PAGE_BLOCKS
 from .portal_views import _event as portal_event
 from .production_views import _enabled, _no_index
@@ -51,7 +51,8 @@ def _snapshot(policy, kind):
 
 def _run(site, user, run_id, kind, locked=False):
     qs = _model(kind).objects.select_for_update() if locked else _model(kind).objects
-    return get_object_or_404(qs, pk=run_id, site=site, requested_by=user, prompt_version=PROMPT_VERSION)
+    return get_object_or_404(qs, pk=run_id, site=site, requested_by=user,
+                             prompt_version__in=(LEGACY_PROMPT_VERSION, PROMPT_VERSION))
 
 
 def _previous(run_id, site, user, page_slug, kind):
@@ -59,7 +60,7 @@ def _previous(run_id, site, user, page_slug, kind):
     if previous:
         if previous.site_id != site.pk or previous.requested_by_id != user.pk:
             raise Http404
-        if previous.prompt_version != PROMPT_VERSION or previous.target_page_slug != page_slug:
+        if previous.prompt_version not in (LEGACY_PROMPT_VERSION, PROMPT_VERSION) or previous.target_page_slug != page_slug:
             return False
     return previous
 
@@ -72,7 +73,7 @@ def _options(run, page):
     if run.status != type(run).Status.COMPLETED:
         raise Http404
     try:
-        return validate_options(run.options, _slots(page))
+        return validate_options(run.options, _slots(page), legacy=run.prompt_version == LEGACY_PROMPT_VERSION)
     except ProviderError as exc:
         raise Http404 from exc
 
@@ -98,6 +99,12 @@ def _request(request, slug, page_slug, kind):
     brief = request.POST.get("brief", "").strip()
     if not brief or len(brief) > MAX_BRIEF_LENGTH:
         return HttpResponse(_("Provide a fictional page brief of at most 800 characters."), status=400)
+    try:
+        requested_options = int(request.POST.get("requested_options", "3"))
+    except ValueError:
+        requested_options = 0
+    if not 1 <= requested_options <= MAX_OPTIONS:
+        return HttpResponse(_("Choose between 1 and 6 suggested designs."), status=400)
     policy = _policy(owner, kind)
     if not _provider_configured() or not _active(policy, kind):
         return HttpResponse(_("AI page-block suggestions are not enabled for this site and test environment."), status=409)
@@ -157,8 +164,8 @@ def _request(request, slug, page_slug, kind):
     try:
         result = run_ai_task(task=SITE_PAGE_BLOCKS if kind == "journal" else PUBLISHER_PAGE_BLOCKS, provider=OPENAI,
             api_key=os.environ.get("OPENAI_API_KEY", ""), model=run.model_name,
-            payload={"brief":brief, "available_slots":available_slots})
-        result = validate_options(result, available_slots)
+            payload={"brief":brief, "available_slots":available_slots, "requested_options":requested_options})
+        result = validate_options(result, available_slots, max_options=requested_options)
     except Exception:
         run.status, run.error_code, run.finished_at = _model(kind).Status.FAILED, "provider_unavailable", timezone.now()
         run.save(update_fields=["status", "error_code", "finished_at"])
@@ -244,7 +251,8 @@ def _edit(request, slug, run_id, index, kind):
             raise ValueError("too many reviewed blocks")
     except (ValueError, TypeError):
         return HttpResponse(_("The suggested blocks are invalid or exceed the page limit."), status=400)
-    initial = [{key:block[key] for key in ("kind", "heading", "body", "visible")} for block in blocks]
+    initial = [{**{key:block[key] for key in ("kind", "heading", "body", "visible")},
+                **({"design":block["design"]} if "design" in block else {})} for block in blocks]
     formset = ReviewedBlockFormSet(prefix=f"choice_{index}", initial=initial)
     return _result(request, slug, run_id, kind, edit_error=(index, formset))
 

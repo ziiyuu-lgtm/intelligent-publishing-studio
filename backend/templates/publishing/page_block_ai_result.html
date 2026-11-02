@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load i18n %}
+{% extends "base.html" %}{% load i18n static %}
 {% block title %}{% translate "AI page-block suggestions" %} | {{ site.brand_name }}{% endblock %}
 {% block content %}
 <a class="back" href="{% url manage_route owner.slug run.target_page_slug %}">← {% translate "Back to page content blocks" %}</a>
@@ -12,6 +12,7 @@
 <h2>{% translate "Target page" %}: {{ page.title }}</h2>
 {% for choice in choices %}<article class="module-card"><h2>{% translate "Suggestion" %} {{ forloop.counter }}</h2><p class="muted">{% translate "Edit the proposed blocks, enter order numbers or mark blocks for removal, then preview them on the page." %}</p>
 <form method="post" action="{% url preview_route owner.slug run.pk choice.index %}" class="stack">{% csrf_token %}<input type="hidden" name="revision" value="{{ site.revision }}">{{ choice.formset.management_form }}{{ choice.formset.non_form_errors }}
-{% for block_form in choice.formset %}<fieldset><legend>{% translate "Suggested block" %} {{ forloop.counter }}</legend>{{ block_form.non_field_errors }}<div class="module-fields"><div class="field">{{ block_form.kind.label_tag }}{{ block_form.kind }}{{ block_form.kind.errors }}</div><div class="field">{{ block_form.heading.label_tag }}{{ block_form.heading }}{{ block_form.heading.errors }}</div></div><div class="field">{{ block_form.body.label_tag }}{{ block_form.body }}{{ block_form.body.errors }}</div><div class="module-controls"><label class="check">{{ block_form.visible }} {{ block_form.visible.label }}</label><div class="field module-order">{{ block_form.ORDER.label_tag }}{{ block_form.ORDER }}{{ block_form.ORDER.errors }}</div><label class="check">{{ block_form.DELETE }} {% translate "Remove this suggestion" %}</label></div></fieldset>{% endfor %}
+{% for block_form in choice.formset %}<fieldset><legend>{% translate "Suggested block" %} {{ forloop.counter }}</legend>{{ block_form.non_field_errors }}<div class="module-fields"><div class="field">{{ block_form.kind.label_tag }}{{ block_form.kind }}{{ block_form.kind.errors }}</div><div class="field">{{ block_form.heading.label_tag }}{{ block_form.heading }}{{ block_form.heading.errors }}</div></div><div class="field">{{ block_form.body.label_tag }}{{ block_form.body }}{{ block_form.body.errors }}</div>{% include 'publishing/_block_design_form.html' with block_form=block_form %}<div class="module-controls"><label class="check">{{ block_form.visible }} {{ block_form.visible.label }}</label><div class="field module-order">{{ block_form.ORDER.label_tag }}{{ block_form.ORDER }}{{ block_form.ORDER.errors }}</div><label class="check">{{ block_form.DELETE }} {% translate "Remove this suggestion" %}</label></div></fieldset>{% endfor %}
 <button class="button secondary" type="submit">{% translate "Preview reviewed blocks" %}</button></form></article>{% endfor %}{% endif %}</section>
+<script src="{% static 'block_design_editor.js' %}" defer></script>
 {% endblock %}

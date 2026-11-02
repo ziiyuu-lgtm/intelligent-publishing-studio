@@ -3619,3 +3619,66 @@ msgstr "该独立策略覆盖出版社门户视觉设计、模块编排、独立
 
 msgid "Return to edit reviewed blocks"
 msgstr "返回修改已审核区块"
+
+msgid "Customise this block's visual design"
+msgstr "自定义此区块的视觉设计"
+
+msgid "Block image layout"
+msgstr "区块图文布局"
+
+msgid "Block width (%)"
+msgstr "区块宽度（%）"
+
+msgid "Block background colour"
+msgstr "区块背景颜色"
+
+msgid "Block accent colour"
+msgstr "区块强调颜色"
+
+msgid "Block text alignment"
+msgstr "区块文字对齐方式"
+
+msgid "Inner spacing (px)"
+msgstr "内边距（像素）"
+
+msgid "Corner radius (px)"
+msgstr "圆角半径（像素）"
+
+msgid "Image and text gap (px)"
+msgstr "图文间距（像素）"
+
+msgid "Reload the block editor before changing a styled block."
+msgstr "请重新加载区块编辑器后再修改带样式的区块。"
+
+msgid "Complete every custom block design setting."
+msgstr "请完整填写所有自定义区块设计设置。"
+
+msgid "Block visual design"
+msgstr "区块视觉设计"
+
+msgid "Leave unchecked to inherit the existing style. Custom designs can use any six-digit hexadecimal colours."
+msgstr "不勾选则沿用原有样式；自定义设计可输入任意六位十六进制颜色。"
+
+msgid "Choose between 1 and 6 suggested designs."
+msgstr "请选择 1 至 6 组设计建议。"
+
+msgid "Maximum designs for this request"
+msgstr "本次最多生成的设计方案数"
+
+msgid "Choose 1–6 designs per request in this prototype. More designs may cost more and take longer."
+msgstr "此原型每次可选择 1–6 组设计。方案越多，费用和等待时间可能越高。"
+
+msgid "Only your brief, the site type, the number of available block slots and the requested number of designs are sent to OpenAI. Existing page and block text, names, images, links and manuscripts are not sent automatically. Use fictional information only. API use may incur charges and provider retention may apply; generated suggestions are stored in this test database."
+msgstr "仅向 OpenAI 发送您的需求、网站类型、可添加区块数量和请求的方案数量。现有页面与区块正文、名称、图片、链接和稿件不会自动发送。请只使用虚构信息。API 可能产生费用，服务商可能保留数据；生成的建议保存在此测试数据库中。"
+
+msgid "Describe what you want this page to communicate. AI can propose new editable blocks and visual settings. Existing blocks remain unchanged and new blocks are appended after review."
+msgstr "描述页面要传达的内容，AI 可以提出可编辑的新区块及视觉设置。已有区块保持不变，新区块经审核后追加。"
+
+msgid "Pick background colour"
+msgstr "选择背景颜色"
+
+msgid "Pick accent colour"
+msgstr "选择强调颜色"
+
+msgid "Enter hexadecimal colours directly when JavaScript is disabled."
+msgstr "未启用 JavaScript 时，请直接输入十六进制颜色。"

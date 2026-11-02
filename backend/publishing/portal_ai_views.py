@@ -27,7 +27,7 @@ from .portal_views import CONTENT_FIELDS, _draft_journals, _event, _fingerprint,
 from .production_views import _enabled, _no_index
 from .site_ai_provider import MAX_BRIEF_LENGTH, PUBLISHER_PROMPT_VERSION, validate_options
 from .page_ai_provider import PROMPT_VERSION as PAGE_PROMPT_VERSION
-from .page_block_ai_provider import PROMPT_VERSION as BLOCK_PROMPT_VERSION
+from .page_block_ai_provider import LEGACY_PROMPT_VERSION as LEGACY_BLOCK_PROMPT_VERSION, PROMPT_VERSION as BLOCK_PROMPT_VERSION
 from .site_design import COMPOSITIONS, FONTS, InvalidDesign, appearance_for, validate_blueprint
 
 
@@ -156,7 +156,7 @@ def result(request, slug, run_id):
     run = _run(organisation, request.user, run_id)
     if run.prompt_version == PAGE_PROMPT_VERSION:
         return redirect("publisher_page_ai_result", slug=slug, run_id=run.pk)
-    if run.prompt_version == BLOCK_PROMPT_VERSION:
+    if run.prompt_version in (LEGACY_BLOCK_PROMPT_VERSION, BLOCK_PROMPT_VERSION):
         return redirect("publisher_page_block_ai_result", slug=slug, run_id=run.pk)
     if run.prompt_version != PUBLISHER_PROMPT_VERSION:
         raise Http404

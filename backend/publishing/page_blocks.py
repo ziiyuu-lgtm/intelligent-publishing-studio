@@ -8,6 +8,7 @@ from django.forms import BaseFormSet, formset_factory
 from django.utils.translation import gettext_lazy as _
 
 from .module_images import IMAGE_FIELDS, SectionImageForm, form_image_fields, validate_image_fields
+from .block_design import BlockDesignForm, validate_block_design
 
 MAX_PAGE_BLOCKS = 20
 KINDS = (("text", _("Text")), ("image", _("Image and text")),
@@ -42,7 +43,7 @@ def validate_blocks(blocks):
     result = []
     for item in blocks:
         if (not isinstance(item, dict) or not BLOCK_FIELDS.issubset(item) or
-                set(item) - BLOCK_FIELDS - IMAGE_FIELDS):
+                set(item) - BLOCK_FIELDS - IMAGE_FIELDS - {"design"}):
             raise ValueError("invalid block fields")
         kind, heading, body, visible, label, url = (item[key] for key in
             ("kind", "heading", "body", "visible", "link_label", "link_url"))
@@ -53,17 +54,18 @@ def validate_blocks(blocks):
             raise ValueError("invalid block content")
         heading, body, label, url = heading.strip(), body.strip(), label.strip(), url.strip()
         image = validate_image_fields(item)
+        design = {"design":validate_block_design(item["design"])} if "design" in item else {}
         if bool(label) != bool(url) or (kind == "link" and not url):
             raise ValueError("incomplete link")
         url = validate_link(url)
         if not (heading or body or image or url):
             raise ValueError("empty block")
         result.append({"kind":kind, "heading":heading, "body":body, "visible":visible,
-                       "link_label":label, "link_url":url, **image})
+                       "link_label":label, "link_url":url, **image, **design})
     return result
 
 
-class PageBlockForm(SectionImageForm):
+class PageBlockForm(SectionImageForm, BlockDesignForm):
     kind = forms.ChoiceField(label=_("Block style"), choices=(("", _("Choose a style")), *KINDS))
     heading = forms.CharField(label=_("Block heading"), max_length=120, required=False)
     body = forms.CharField(label=_("Block text"), max_length=10000, required=False,
@@ -107,6 +109,8 @@ class BasePageBlockFormSet(BaseFormSet):
                 continue
             block = {**{key:data[key] for key in ("kind", "heading", "body", "visible", "link_label", "link_url")},
                      **form_image_fields(data)}
+            if data.get("design_enabled"):
+                block["design"] = data["design"]
             order = data.get("ORDER")
             active.append(((order is None, order if order is not None else 0, index), block))
         try:

@@ -16,6 +16,7 @@ from .portal_sections import InvalidSections as InvalidPortalSections, validate_
 from .portal_views import (_event as portal_event, _fingerprint as portal_fingerprint, _organisation,
                            _site as portal_site, _valid_snapshot)
 from .page_design import page_appearance
+from .block_design import block_appearance
 from .page_block_ai_forms import validate_reviewed_blocks
 from .page_blocks import MAX_PAGE_BLOCKS
 from .page_ai_provider import PROMPT_VERSION
@@ -184,6 +185,7 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
         if block["visible"]:
             block = dict(block)
             block["image_url"] = reverse(image_route, args=[slug, block["image_asset_id"]]) if block.get("image_asset_id") else ""
+            block["appearance"] = block_appearance(block["design"]) if block.get("design") else None
             blocks.append(block)
     home_route = ("preview_journal_site" if kind == "journal" else "preview_publisher_portal") if preview else (
         "public_journal_site" if kind == "journal" else "public_publisher_portal")

@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .page_block_ai_provider import AI_KINDS
 from .page_blocks import KINDS, MAX_PAGE_BLOCKS, validate_blocks
+from .block_design import BlockDesignForm
 
 
 def validate_reviewed_blocks(blocks, available_slots):
@@ -13,13 +14,13 @@ def validate_reviewed_blocks(blocks, available_slots):
     if not isinstance(blocks, list) or not 1 <= len(blocks) <= available_slots:
         raise ValueError("invalid block count")
     for block in blocks:
-        if (not isinstance(block, dict) or set(block) != {"kind", "heading", "body", "visible", "link_label", "link_url"} or
+        if (not isinstance(block, dict) or set(block) - {"design"} != {"kind", "heading", "body", "visible", "link_label", "link_url"} or
                 block.get("kind") not in AI_KINDS or block.get("link_label") != "" or block.get("link_url") != ""):
             raise ValueError("invalid reviewed block")
     return validate_blocks(blocks)
 
 
-class ReviewedBlockForm(forms.Form):
+class ReviewedBlockForm(BlockDesignForm):
     kind = forms.ChoiceField(label=_("Block style"), choices=tuple(item for item in KINDS if item[0] in AI_KINDS))
     heading = forms.CharField(label=_("Block heading"), max_length=120, required=False)
     body = forms.CharField(label=_("Block text"), max_length=10000, required=False, widget=forms.Textarea(attrs={"rows":4}))
@@ -45,6 +46,8 @@ class BaseReviewedBlockFormSet(BaseFormSet):
             order = data.get("ORDER")
             block = {key:data[key] for key in ("kind", "heading", "body", "visible")}
             block.update(link_label="", link_url="")
+            if data.get("design_enabled"):
+                block["design"] = data["design"]
             rows.append(((order is None, order if order is not None else 0, index), block))
         try:
             self.reviewed_blocks = validate_reviewed_blocks([block for _, block in sorted(rows, key=lambda row:row[0])],

@@ -77,3 +77,12 @@
 .journal-site__page-block--quote{padding:12px 24px;border-left:4px solid var(--page-accent,var(--site-accent,currentColor));font:italic 1.1rem/1.8 Georgia,serif}
 .journal-site__page-block a{color:inherit;text-decoration:underline;text-underline-offset:4px;font-weight:700}
 @media(max-width:720px){.journal-site__page-block--image.has-image{grid-template-columns:1fr}.journal-site__page-blocks{max-width:100%}}
+/* Every styled block uses separately validated values; legacy blocks retain their appearance. */
+.journal-site__page-block.has-block-design{box-sizing:border-box;width:var(--block-width);margin-inline:auto;padding:var(--block-padding);border:0;border-left:4px solid var(--block-accent);border-radius:var(--block-radius);background:var(--block-bg);color:var(--block-text)}
+.journal-site__page-block.has-block-design .journal-site__page-block-image{margin:0 0 var(--block-gap);border-radius:var(--block-radius)}
+.journal-site__page-block.has-block-design.block-layout-stack.has-image{display:block}
+.journal-site__page-block.has-block-design.block-layout-image_left.has-image,.journal-site__page-block.has-block-design.block-layout-image_right.has-image{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:var(--block-gap)}
+.journal-site__page-block.has-block-design.block-layout-image_left.has-image .journal-site__page-block-image,.journal-site__page-block.has-block-design.block-layout-image_right.has-image .journal-site__page-block-image{margin:0}
+.journal-site__page-block.has-block-design.block-layout-image_right.has-image .journal-site__page-block-image{grid-column:2;grid-row:1}
+.journal-site__page-block.has-block-design.block-layout-image_right.has-image>div{grid-column:1;grid-row:1}
+@media(max-width:720px){.journal-site__page-block.has-block-design{width:100%}.journal-site__page-block.has-block-design.block-layout-image_left.has-image,.journal-site__page-block.has-block-design.block-layout-image_right.has-image{grid-template-columns:1fr}.journal-site__page-block.has-block-design.block-layout-image_right.has-image .journal-site__page-block-image,.journal-site__page-block.has-block-design.block-layout-image_right.has-image>div{grid-column:auto;grid-row:auto}}

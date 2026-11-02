@@ -12,9 +12,11 @@ from publishing.models import (JournalAIPolicy, JournalSiteAIDesignRun, Organisa
 from publishing.page_block_ai_provider import parse_response, validate_options
 from . import test_page_blocks as helpers
 
-OPTIONS = [{"blocks":[{"kind":"callout", "heading":"Suggested focus", "body":"[Verify policy details]"},
-                      {"kind":"image", "heading":"Suggested image area", "body":"[Choose a fictional image]"}]},
-           {"blocks":[{"kind":"text", "heading":"Alternative", "body":"[Verify introduction]"}]}]
+DESIGN = {"layout":"image_left", "width":82, "background":"#edf4fa", "accent":"#274563",
+          "alignment":"left", "padding":24, "radius":12, "gap":16}
+OPTIONS = [{"blocks":[{"kind":"callout", "heading":"Suggested focus", "body":"[Verify policy details]", "design":DESIGN},
+                      {"kind":"image", "heading":"Suggested image area", "body":"[Choose a fictional image]", "design":DESIGN}]},
+           {"blocks":[{"kind":"text", "heading":"Alternative", "body":"[Verify introduction]", "design":DESIGN}]}]
 
 
 def response(options=OPTIONS):
@@ -64,18 +66,24 @@ class PageBlockAITests(TestCase):
         self.assertEqual(page.status_code, 200)
         return {"revision":str(page.context["site"].revision), "fingerprint":page.context["fingerprint"],
                 "policy_revision":str(page.context["ai_policy_revision"]), "model":"test-model", "request_id":str(uuid.uuid4()),
-                "brief":"Create a fictional author information page", "confirm":"yes", "synthetic":"yes"}
+                "brief":"Create a fictional author information page", "requested_options":"4", "confirm":"yes", "synthetic":"yes"}
 
     def preview_data(self, kind, run_id, *, edited=True):
         page = self.client.get(self.ai_url(kind, "result", run_id))
         self.assertEqual(page.status_code, 200)
         site = page.context["site"]
-        return {"revision":str(site.revision), "choice_0-TOTAL_FORMS":"2", "choice_0-INITIAL_FORMS":"2",
+        data = {"revision":str(site.revision), "choice_0-TOTAL_FORMS":"2", "choice_0-INITIAL_FORMS":"2",
                 "choice_0-MIN_NUM_FORMS":"0", "choice_0-MAX_NUM_FORMS":"20",
                 "choice_0-0-kind":"callout", "choice_0-0-heading":"Reviewed focus" if edited else "Suggested focus",
                 "choice_0-0-body":"Reviewed fictional text", "choice_0-0-visible":"on", "choice_0-0-ORDER":"2",
                 "choice_0-1-kind":"image", "choice_0-1-heading":"Reviewed image area",
                 "choice_0-1-body":"Choose an image", "choice_0-1-visible":"on", "choice_0-1-ORDER":"1"}
+        for i in range(2):
+            data[f"choice_0-{i}-design_form_present"] = "yes"
+            data[f"choice_0-{i}-design_enabled"] = "on"
+            for key, value in DESIGN.items():
+                data[f"choice_0-{i}-design_{key}"] = str(value)
+        return data
 
     def test_generated_blocks_are_reviewable_private_append_only_and_snapshotted(self):
         for kind in ("journal", "portal"):
@@ -97,17 +105,21 @@ class PageBlockAITests(TestCase):
                 payload = json.loads(wire)
                 self.assertFalse(payload["store"])
                 self.assertTrue(payload["text"]["format"]["strict"])
-                self.assertEqual(json.loads(payload["input"]), {"brief":data["brief"], "available_slots":19,
+                self.assertEqual(json.loads(payload["input"]), {"brief":data["brief"], "available_slots":19, "requested_options":4,
                     "site_kind":"journal" if kind == "journal" else "publisher"})
                 for secret in ("PRIVATE", "private-link", "author-guidelines", str(asset.pk)):
                     self.assertNotIn(secret, wire)
                 self.assertNotIn(data["brief"], str(model.objects.filter(pk=run.pk).values().get()))
                 preview_url = self.ai_url(kind, "preview", run.pk, 0)
                 self.assertEqual(Client().post(preview_url, self.preview_data(kind, run.pk)).status_code, 302)
-                preview = self.client.post(preview_url, self.preview_data(kind, run.pk))
+                edits = self.preview_data(kind, run.pk)
+                edits["choice_0-0-design_background"] = "#502E77"
+                preview = self.client.post(preview_url, edits)
                 self.assertContains(preview, "PRIVATE ORIGINAL BLOCK")
                 self.assertContains(preview, "Reviewed focus")
                 self.assertContains(preview, "Reviewed image area")
+                self.assertContains(preview, "--block-bg:#edf4fa")
+                self.assertContains(preview, "--block-bg:#502e77")
                 self.assertLess(preview.content.index(b"Reviewed image area"), preview.content.index(b"Reviewed focus"))
                 self.assertIn("no-store", preview["Cache-Control"])
                 back = self.client.post(self.ai_url(kind, "edit", run.pk, 0),
@@ -115,6 +127,8 @@ class PageBlockAITests(TestCase):
                 self.assertEqual(back.status_code, 200)
                 self.assertEqual(back.context["choices"][0]["formset"].forms[0].initial["heading"], "Reviewed image area")
                 self.assertEqual(back.context["choices"][0]["formset"].forms[1].initial["heading"], "Reviewed focus")
+                self.assertEqual(back.context["choices"][0]["formset"].forms[0].initial["design"], DESIGN)
+                self.assertEqual(back.context["choices"][0]["formset"].forms[1].initial["design"]["background"], "#502e77")
                 public = Client()
                 self.assertNotContains(public.get(self.page_url(kind, "public", "author-guidelines")), "Reviewed focus")
                 site = self.owner(kind)[2]; site.refresh_from_db()
@@ -125,6 +139,8 @@ class PageBlockAITests(TestCase):
                 self.assertEqual([b["heading"] for b in site.pages_config[0]["blocks"]],
                                  ["PRIVATE ORIGINAL BLOCK", "Reviewed image area", "Reviewed focus"])
                 self.assertEqual(site.pages_config[0]["blocks"][0]["image_asset_id"], str(asset.pk))
+                self.assertEqual(site.pages_config[0]["blocks"][1]["design"], DESIGN)
+                self.assertEqual(site.pages_config[0]["blocks"][2]["design"]["background"], "#502e77")
                 self.assertEqual(run.applied_option_content["blocks"][1]["heading"], "Reviewed focus")
                 self.assertEqual(self.client.post(self.ai_url(kind, "apply", run.pk, 0),
                     {"revision":str(site.revision), "reviewed_blocks":preview.context["block_reviewed"], "confirm":"yes"}).status_code, 409)

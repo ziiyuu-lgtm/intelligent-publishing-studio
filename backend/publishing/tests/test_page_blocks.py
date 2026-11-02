@@ -50,8 +50,13 @@ class PageBlockTests(TestCase):
                 "sections-TOTAL_FORMS":str(len(entries)), "sections-INITIAL_FORMS":str(len(response.context["page"].get("blocks", []))),
                 "sections-MIN_NUM_FORMS":"0", "sections-MAX_NUM_FORMS":"20"}
         for i, entry in enumerate(entries):
+            data[f"sections-{i}-design_form_present"] = "yes"
             for key in ("kind", "heading", "body", "image_asset_id", "image_alt", "image_fit", "image_position", "link_label", "link_url"):
                 data[f"sections-{i}-{key}"] = str(entry.get(key, ""))
+            if entry.get("design"):
+                data[f"sections-{i}-design_enabled"] = "on"
+                for key, value in entry["design"].items():
+                    data[f"sections-{i}-design_{key}"] = str(value)
             data[f"sections-{i}-ORDER"] = str(entry.get("ORDER", i + 1))
             if entry.get("visible"):
                 data[f"sections-{i}-visible"] = "on"
@@ -187,6 +192,8 @@ class PageBlockTests(TestCase):
                 self.assertContains(response, "页面内容区块")
                 self.assertContains(response, "区块图片描述")
                 self.assertContains(response, "链接地址")
+                self.assertContains(response, "区块视觉设计")
+                self.assertContains(response, "选择背景颜色")
 
     @override_settings(IPS_OPENAI_ENABLED=True, IPS_OPENAI_MODEL="test-model")
     @patch.dict(os.environ, {"OPENAI_API_KEY":"fictional-key"})
