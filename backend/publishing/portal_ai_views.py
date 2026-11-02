@@ -72,6 +72,8 @@ def request_design(request, slug):
     if previous:
         if previous.site_id != site.pk or previous.requested_by_id != request.user.pk:
             raise Http404
+        if previous.prompt_version != PUBLISHER_PROMPT_VERSION:
+            return HttpResponse(_("This request identifier belongs to a different AI task."), status=409)
         return redirect("publisher_ai_result", slug=slug, run_id=previous.pk)
     brief = request.POST.get("brief", "").strip()
     if not brief or len(brief) > MAX_BRIEF_LENGTH:
@@ -94,6 +96,8 @@ def request_design(request, slug):
         if previous:
             if previous.site_id != site.pk or previous.requested_by_id != request.user.pk:
                 raise Http404
+            if previous.prompt_version != PUBLISHER_PROMPT_VERSION:
+                return HttpResponse(_("This request identifier belongs to a different AI task."), status=409)
             return redirect("publisher_ai_result", slug=slug, run_id=previous.pk)
         if request.POST.get("revision") != str(site.revision) or request.POST.get("fingerprint") != _fingerprint(site):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
@@ -148,6 +152,8 @@ def result(request, slug, run_id):
     organisation = _organisation(request.user, slug)
     site = _site(organisation)
     run = _run(organisation, request.user, run_id)
+    if run.prompt_version != PUBLISHER_PROMPT_VERSION:
+        raise Http404
     choices = []
     if run.status == OrganisationPortalAIDesignRun.Status.COMPLETED:
         for index, option in enumerate(_options(run)):
@@ -170,7 +176,8 @@ def preview_option(request, slug, run_id, index):
     options = _options(run)
     if index >= len(options):
         raise Http404
-    design = SimpleNamespace(**{field:getattr(site, field) for field in CONTENT_FIELDS}, design_config=options[index])
+    design = SimpleNamespace(**{field:getattr(site, field) for field in CONTENT_FIELDS},
+                             design_config=options[index], sections_config=site.sections_config)
     return _render(request, organisation, design, _draft_journals(site), preview=True, ai_proposal_preview=True)
 
 

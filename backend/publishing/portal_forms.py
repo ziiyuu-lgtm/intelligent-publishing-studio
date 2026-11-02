@@ -1,8 +1,11 @@
 from django import forms
+from django.forms import BaseFormSet, formset_factory
 from django.utils.translation import gettext_lazy as _
 
 from .forms import JournalAppearanceForm
 from .models import Journal, OrganisationAIPolicy
+from .portal_sections import (MAX_BODY_LENGTH, MAX_HEADING_LENGTH, MAX_SECTIONS, SECTION_CHOICES,
+                              InvalidSections, validate_sections)
 
 MAX_JOURNALS = 50
 
@@ -38,4 +41,37 @@ class PortalAppearanceForm(JournalAppearanceForm):
 class OrganisationAIPolicyForm(forms.ModelForm):
     class Meta:
         model = OrganisationAIPolicy
-        fields = ["portal_design_enabled", "portal_daily_limit"]
+        fields = ["portal_design_enabled", "portal_modules_enabled", "portal_daily_limit"]
+
+
+class PortalSectionForm(forms.Form):
+    kind = forms.ChoiceField(label=_("Module type"), choices=(("", _("Select a module type")), *SECTION_CHOICES))
+    heading = forms.CharField(label=_("Custom heading"), max_length=MAX_HEADING_LENGTH, required=False,
+        help_text=_("Leave blank to use the module's default heading; custom modules need a heading."))
+    body = forms.CharField(label=_("Module text"), max_length=MAX_BODY_LENGTH, required=False,
+        widget=forms.Textarea(attrs={"rows":3}),
+        help_text=_("Plain text only. Leave the publisher introduction blank to use the saved introduction."))
+    visible = forms.BooleanField(label=_("Show this module"), required=False)
+
+
+class BasePortalSectionFormSet(BaseFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        active = []
+        for index, form in enumerate(self.forms):
+            data = getattr(form, "cleaned_data", {})
+            if not data or data.get("DELETE") or not data.get("kind"):
+                continue
+            order = data.get("ORDER")
+            active.append(((order is None, order if order is not None else 0, index),
+                           {key:data[key] for key in ("kind", "heading", "body", "visible")}))
+        try:
+            self.cleaned_sections = validate_sections([item for _, item in sorted(active, key=lambda row:row[0])])
+        except InvalidSections as exc:
+            raise forms.ValidationError(_("Keep at least one visible module, use About and Journals at most once, and name every custom module.")) from exc
+
+
+PortalSectionFormSet = formset_factory(PortalSectionForm, formset=BasePortalSectionFormSet, extra=1,
+    can_order=True, can_delete=True, max_num=MAX_SECTIONS, absolute_max=MAX_SECTIONS * 2, validate_max=True)

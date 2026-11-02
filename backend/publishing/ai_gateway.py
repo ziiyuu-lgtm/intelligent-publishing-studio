@@ -7,6 +7,8 @@ Unknown tasks, providers or input fields are rejected instead of forwarded.
 from .ai_provider import request_metadata_suggestions
 from .site_ai_provider import request_design_suggestions, request_publisher_design_suggestions
 from .site_ai_modules import request_module_suggestions, validate_descriptors
+from .portal_ai_modules import (request_module_suggestions as request_publisher_module_suggestions,
+                                validate_descriptors as validate_publisher_descriptors)
 from .ai_provider import ProviderError
 from .site_design import InvalidDesign, validate_blueprint
 
@@ -14,6 +16,7 @@ METADATA_WRITING = "metadata_writing"
 SITE_DESIGN = "site_design"
 SITE_MODULES = "site_modules"
 PUBLISHER_DESIGN = "publisher_design"
+PUBLISHER_MODULES = "publisher_modules"
 OPENAI = "openai"
 
 
@@ -22,16 +25,18 @@ class GatewayRejected(ValueError):
 
 
 def run_ai_task(*, task, provider, model, api_key, payload):
-    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN):
+    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES):
         raise GatewayRejected("unsupported_task_or_provider")
-    if task == SITE_MODULES:
+    if task in (SITE_MODULES, PUBLISHER_MODULES):
         if not isinstance(payload, dict) or set(payload) != {"brief", "modules"} or not isinstance(payload["brief"], str):
             raise GatewayRejected("unsupported_input_fields")
         try:
-            modules = validate_descriptors(payload["modules"])
+            validator = validate_descriptors if task == SITE_MODULES else validate_publisher_descriptors
+            modules = validator(payload["modules"])
         except ProviderError as exc:
             raise GatewayRejected("invalid_modules") from exc
-        return request_module_suggestions(api_key=api_key, model=model, brief=payload["brief"], modules=modules)
+        adapter = request_module_suggestions if task == SITE_MODULES else request_publisher_module_suggestions
+        return adapter(api_key=api_key, model=model, brief=payload["brief"], modules=modules)
     if task in (SITE_DESIGN, PUBLISHER_DESIGN):
         if not isinstance(payload, dict) or set(payload) != {"brief", "appearance"} or not isinstance(payload["brief"], str):
             raise GatewayRejected("unsupported_input_fields")

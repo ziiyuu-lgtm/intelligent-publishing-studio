@@ -2980,3 +2980,57 @@ msgstr "例如：保留当前颜色，设计一个现代、亲切的学术出版
 
 msgid "Manage AI design permissions and request limits for a publisher portal."
 msgstr "管理出版社门户的 AI 设计权限与请求上限。"
+
+msgid "Research integrity"
+msgstr "科研诚信"
+
+msgid "Events"
+msgstr "活动"
+
+msgid "Partnerships"
+msgstr "合作伙伴"
+
+msgid "For example: place the journal list first and add an empty news module."
+msgstr "例如：将期刊列表置前，并新增一个空白新闻栏目。"
+
+msgid "Enable publisher portal AI module arrangement"
+msgstr "启用出版社门户 AI 模块编排"
+
+msgid "AI module arrangement is not enabled for this publisher and test environment."
+msgstr "此出版社或测试环境尚未启用 AI 模块编排。"
+
+msgid "Plain text only. Leave the publisher introduction blank to use the saved introduction."
+msgstr "仅支持纯文本；出版社介绍模块留空时使用已保存的介绍。"
+
+msgid "Keep at least one visible module, use About and Journals at most once, and name every custom module."
+msgstr "请至少保留一个可见模块，出版社介绍和期刊列表最多各出现一次，并为每个自定义模块填写标题。"
+
+msgid "Our journals"
+msgstr "旗下期刊"
+
+msgid "Publishing services"
+msgstr "出版服务"
+
+msgid "Page modules saved to the draft."
+msgstr "页面模块已保存到草稿。"
+
+msgid "Control AI design and module suggestions for this fictional publisher portal."
+msgstr "管理虚构出版社门户的 AI 视觉设计和模块编排建议。"
+
+msgid "This separate policy covers publisher portal visual design and module arrangement. It does not change journal AI policies or grant manuscript access."
+msgstr "此独立策略控制出版社门户的视觉设计和模块编排，不会改变期刊 AI 策略，也不授予稿件访问权限。"
+
+msgid "AI publisher portal module arrangement"
+msgstr "AI 出版社门户模块编排"
+
+msgid "Describe a fictional publisher portal. AI can suggest module order, visibility and additional empty standard modules for review."
+msgstr "描述虚构出版社门户，AI 可提出模块顺序、显示状态和新增空白标准模块建议，供您审核。"
+
+msgid "The brief and current module types, order, visibility and temporary IDs are sent to OpenAI. Module headings, text, journal names and manuscripts are not sent automatically. Use fictional information only; API use may incur charges and provider retention may apply."
+msgstr "设计需求以及当前模块类型、顺序、显示状态和临时编号将发送至 OpenAI；系统不会自动发送模块标题、正文、期刊名称或稿件。请仅使用虚构信息；API 调用可能收费，服务商可能保留数据。"
+
+msgid "The publisher has not enabled AI module arrangement in its AI policy."
+msgstr "出版社尚未在 AI 策略中启用模块编排。"
+
+msgid "Send this brief and the current module structure to OpenAI for one request."
+msgstr "本次请求将设计需求和当前模块结构发送给 OpenAI。"

@@ -78,6 +78,7 @@ class OrganisationPortalDraft(models.Model):
     tagline = models.CharField(_("Site tagline"), max_length=240, blank=True)
     introduction = models.TextField(_("Publisher introduction"), max_length=4000)
     design_config = models.JSONField(default=dict)
+    sections_config = models.JSONField(default=list, blank=True)
     journal_ids = models.JSONField(default=list)
     revision = models.PositiveIntegerField(default=1)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_portals_created")
@@ -93,6 +94,7 @@ class OrganisationPortalRelease(models.Model):
     tagline = models.CharField(_("Site tagline"), max_length=240, blank=True)
     introduction = models.TextField(_("Publisher introduction"), max_length=4000)
     design_config = models.JSONField(default=dict)
+    sections_config = models.JSONField(default=list, blank=True)
     journals = models.JSONField(default=list)
     published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_portal_releases")
     published_at = models.DateTimeField(auto_now_add=True)
@@ -117,6 +119,7 @@ class OrganisationPortalEvent(models.Model):
 class OrganisationAIPolicy(models.Model):
     organisation = models.OneToOneField(Organisation, on_delete=models.PROTECT, related_name="ai_policy")
     portal_design_enabled = models.BooleanField(_("Enable publisher portal AI design"), default=False)
+    portal_modules_enabled = models.BooleanField(_("Enable publisher portal AI module arrangement"), default=False)
     portal_daily_limit = models.PositiveSmallIntegerField(_("Publisher portal AI request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)

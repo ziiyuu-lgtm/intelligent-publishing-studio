@@ -18,10 +18,11 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .models import (Journal, JournalSiteDraft, Organisation, OrganisationAIPolicy, OrganisationMembership,
                      OrganisationPortalDraft, OrganisationPortalEvent, OrganisationPortalRelease)
-from .portal_forms import MAX_JOURNALS, PortalAppearanceForm, PortalContentForm
+from .portal_forms import MAX_JOURNALS, PortalAppearanceForm, PortalContentForm, PortalSectionFormSet
+from .portal_sections import InvalidSections as InvalidPortalSections, default_sections, validate_sections, visible_sections
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, SAMPLES, appearance_for, sample_by_id, validate_blueprint
-from .site_sections import InvalidSections, visible_sections
+from .site_sections import InvalidSections as InvalidJournalSections, visible_sections as visible_journal_sections
 
 CONTENT_FIELDS = ("brand_name", "headline", "tagline", "introduction")
 
@@ -63,8 +64,8 @@ def _linked_journal_ids(organisation, journal_ids):
             if release.design_config:
                 validate_blueprint(release.design_config)
             if release.sections_config:
-                visible_sections(release.sections_config)
-        except (InvalidDesign, InvalidSections):
+                visible_journal_sections(release.sections_config)
+        except (InvalidDesign, InvalidJournalSections):
             continue
         available.add(site.journal_id)
     return available
@@ -94,6 +95,9 @@ def _fingerprint(site):
         journals = None
     payload = {"site":site.pk, "revision":site.revision, "design":site.design_config, "ids":site.journal_ids,
                "journals":journals, **{key:getattr(site, key) for key in CONTENT_FIELDS}}
+    # Keep existing saved fingerprints valid until a modular layout is saved.
+    if site.sections_config:
+        payload["sections_config"] = site.sections_config
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -131,16 +135,20 @@ def _draft_journals(site):
 def _render(request, organisation, design, journals, **extra):
     try:
         appearance = appearance_for(design.design_config)
-    except InvalidDesign as exc:
+        sections = visible_sections(design.sections_config) if design.sections_config else []
+    except (InvalidDesign, InvalidPortalSections) as exc:
         raise Http404 from exc
     return _no_index(render(request, "publishing/publisher_portal.html", {
-        "organisation":organisation, "design":design, "appearance":appearance, "journals":journals, **extra}))
+        "organisation":organisation, "design":design, "appearance":appearance, "journals":journals,
+        "sections":sections, "has_about_section":not sections or any(item["kind"] == "about" for item in sections),
+        "has_journals_section":not sections or any(item["kind"] == "journals" for item in sections), **extra}))
 
 
-def _context(organisation, site, content_form=None, appearance_form=None, user=None):
+def _context(organisation, site, content_form=None, appearance_form=None, section_formset=None, user=None):
     try:
         design = validate_blueprint(site.design_config)
-    except InvalidDesign as exc:
+        section_initial = validate_sections(site.sections_config) if site.sections_config else default_sections(site)
+    except (InvalidDesign, InvalidPortalSections) as exc:
         raise Http404 from exc
     initial = {key:getattr(site, key) for key in CONTENT_FIELDS}
     initial["journals"] = site.journal_ids if _valid_ids(site.journal_ids) else []
@@ -149,11 +157,14 @@ def _context(organisation, site, content_form=None, appearance_form=None, user=N
     return {"organisation":organisation, "site":site, "fingerprint":_fingerprint(site),
         "form":content_form if content_form is not None else PortalContentForm(organisation=organisation, initial=initial),
         "appearance_form":appearance_form if appearance_form is not None else PortalAppearanceForm(initial=design),
+        "section_formset":section_formset if section_formset is not None else PortalSectionFormSet(prefix="sections", initial=section_initial),
         "samples":[{**sample, "appearance":appearance_for(sample["config"])} for sample in SAMPLES],
         "releases":site.releases.select_related("published_by"),
-        "ai_design_enabled":bool(policy and policy.portal_design_enabled), "ai_provider_configured":_provider_configured(),
+        "ai_design_enabled":bool(policy and policy.portal_design_enabled),
+        "ai_modules_enabled":bool(policy and policy.portal_modules_enabled), "ai_provider_configured":_provider_configured(),
         "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
-        "ai_request_id":uuid.uuid4(), "ai_design_runs":site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
+        "ai_request_id":uuid.uuid4(), "ai_module_request_id":uuid.uuid4(),
+        "ai_design_runs":site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
 
 
 def _stale(request, site):
@@ -244,7 +255,8 @@ def preview_sample(request, slug, sample_id):
         sample = sample_by_id(sample_id)
     except InvalidDesign as exc:
         raise Http404 from exc
-    design = SimpleNamespace(**{field:getattr(site, field) for field in CONTENT_FIELDS}, design_config=sample["config"])
+    design = SimpleNamespace(**{field:getattr(site, field) for field in CONTENT_FIELDS},
+                             design_config=sample["config"], sections_config=site.sections_config)
     return _render(request, organisation, design, _draft_journals(site), preview=True, sample_preview=True)
 
 
@@ -299,6 +311,36 @@ def edit_appearance(request, slug):
 @login_required
 @never_cache
 @require_POST
+def edit_sections(request, slug):
+    _enabled()
+    organisation = _organisation(request.user, slug)
+    site = _site(organisation)
+    try:
+        validate_blueprint(site.design_config)
+        initial = validate_sections(site.sections_config) if site.sections_config else default_sections(site)
+    except (InvalidDesign, InvalidPortalSections) as exc:
+        raise Http404 from exc
+    formset = PortalSectionFormSet(request.POST, prefix="sections", initial=initial)
+    if not formset.is_valid():
+        return render(request, "publishing/manage_publisher_portal.html",
+                      _context(organisation, site, section_formset=formset, user=request.user), status=400)
+    with transaction.atomic():
+        organisation = _organisation(request.user, slug, locked=True)
+        site = _site(organisation, locked=True)
+        if _stale(request, site):
+            return HttpResponse(_("The site draft changed; reload the page."), status=409)
+        if site.sections_config != formset.cleaned_sections:
+            site.sections_config = formset.cleaned_sections
+            site.revision += 1
+            site.save(update_fields=["sections_config", "revision"])
+            _event(site, request.user, "portal_sections_updated")
+    messages.success(request, _("Page modules saved to the draft."))
+    return redirect("manage_publisher_portal", slug=slug)
+
+
+@login_required
+@never_cache
+@require_POST
 def publish_portal(request, slug):
     _enabled()
     if request.POST.get("confirm") != "yes" or request.POST.get("synthetic") != "yes":
@@ -309,7 +351,9 @@ def publish_portal(request, slug):
         try:
             journals = _selected(site, locked=True)
             config = validate_blueprint(site.design_config)
-        except (ValueError, InvalidDesign):
+            if site.sections_config:
+                validate_sections(site.sections_config)
+        except (ValueError, InvalidDesign, InvalidPortalSections):
             return HttpResponse(_("The portal draft or journal selection is invalid."), status=409)
         if _stale(request, site):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
@@ -319,7 +363,7 @@ def publish_portal(request, slug):
             return HttpResponse(_("This version is already published or unavailable."), status=409)
         snapshots = [{"id":j.pk, "slug":j.slug, "name":j.name} for j in journals]
         release = OrganisationPortalRelease.objects.create(site=site, revision=site.revision,
-            published_by=request.user, design_config=config, journals=snapshots,
+            published_by=request.user, design_config=config, sections_config=site.sections_config, journals=snapshots,
             **{key:getattr(site, key) for key in CONTENT_FIELDS})
         site.current_release = release
         site.save(update_fields=["current_release"])
@@ -343,23 +387,26 @@ def restore_portal(request, slug, release_id):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
         try:
             config = validate_blueprint(release.design_config)
+            if release.sections_config:
+                validate_sections(release.sections_config)
             if not _valid_snapshot(release.journals):
                 raise ValueError
             ids = [item["id"] for item in release.journals]
             available = {j.pk:j for j in _journal_queryset(organisation).filter(pk__in=ids)}
             if len(available) != len(ids) or any(available[item["id"]].slug != item["slug"] for item in release.journals):
                 raise ValueError
-        except (ValueError, InvalidDesign):
+        except (ValueError, InvalidDesign, InvalidPortalSections):
             return HttpResponse(_("Some journals in this version are unavailable. Update the draft manually."), status=409)
         changed = any(getattr(site, key) != getattr(release, key) for key in CONTENT_FIELDS)
-        changed = changed or site.design_config != config or site.journal_ids != ids
+        changed = changed or site.design_config != config or site.journal_ids != ids or site.sections_config != release.sections_config
         if changed:
             for key in CONTENT_FIELDS:
                 setattr(site, key, getattr(release, key))
             site.design_config = config
+            site.sections_config = release.sections_config
             site.journal_ids = ids
             site.revision += 1
-            site.save(update_fields=[*CONTENT_FIELDS, "design_config", "journal_ids", "revision"])
+            site.save(update_fields=[*CONTENT_FIELDS, "design_config", "sections_config", "journal_ids", "revision"])
             _event(site, request.user, "portal_draft_restored", release)
     messages.success(request, _("Version restored to the draft; publish separately after review."))
     return redirect("manage_publisher_portal", slug=slug)

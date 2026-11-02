@@ -106,7 +106,7 @@ class PublisherPortalAITests(TestCase):
         self.policy.refresh_from_db()
         self.assertEqual((self.policy.revision, self.policy.portal_daily_limit), (2, 4))
         self.assertEqual(OrganisationAIPolicyEvent.objects.get(policy=self.policy).configuration,
-                         {"portal_design_enabled":True, "portal_daily_limit":4})
+                         {"portal_design_enabled":True, "portal_modules_enabled":False, "portal_daily_limit":4})
         self.assertFalse(JournalAIPolicy.objects.exists())
         self.assertEqual(self.client.post(url, {**data, "revision":"2"}).status_code, 302)
         self.assertEqual(OrganisationAIPolicyEvent.objects.count(), 1)
@@ -218,6 +218,24 @@ class PublisherPortalAITests(TestCase):
         self.assertEqual(self.request_design(brief="Keep the fictional style, but use a different accent").status_code, 302)
         payload = json.loads(self.transport.call_args.args[0].data)
         self.assertEqual(json.loads(payload["input"])["current_appearance"], FIRST)
+
+    def test_visual_design_preview_and_apply_preserve_portal_modules(self):
+        sections = [
+            {"kind":"about", "heading":"Our fictional press", "body":"Fictional content", "visible":True},
+            {"kind":"journals", "heading":"", "body":"", "visible":True},
+            {"kind":"custom", "heading":"Hidden title", "body":"Hidden fictional text", "visible":False},
+        ]
+        OrganisationPortalDraft.objects.filter(pk=self.site.pk).update(sections_config=sections)
+        run = self.completed()
+        page = self.client.get(self.url("preview_publisher_ai_option", run.pk, 0))
+        self.assertContains(page, "Fictional content")
+        self.assertContains(page, self.journal.name)
+        self.assertNotContains(page, "Hidden fictional text")
+        self.assertEqual(self.client.post(self.url("apply_publisher_ai_option", run.pk, 0),
+            {"confirm":"yes", "revision":"1"}).status_code, 302)
+        self.site.refresh_from_db()
+        self.assertEqual(self.site.sections_config, sections)
+        self.assertEqual(self.site.journal_ids, [self.journal.pk])
 
     def test_stale_drafts_or_journal_change_prevent_preview_and_apply(self):
         run = self.completed()

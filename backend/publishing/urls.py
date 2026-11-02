@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, issue_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_views, views
+from . import ai_policy_views, ai_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -13,6 +13,11 @@ urlpatterns = [
     path("publishers/<slug:slug>/site/samples/<slug:sample_id>/preview/", portal_views.preview_sample, name="preview_publisher_sample"),
     path("publishers/<slug:slug>/site/samples/<slug:sample_id>/apply/", portal_views.apply_sample, name="apply_publisher_sample"),
     path("publishers/<slug:slug>/site/appearance/", portal_views.edit_appearance, name="edit_publisher_appearance"),
+    path("publishers/<slug:slug>/site/sections/", portal_views.edit_sections, name="edit_publisher_sections"),
+    path("publishers/<slug:slug>/site/ai-modules/", portal_ai_module_views.request_modules, name="request_publisher_ai_modules"),
+    path("publishers/<slug:slug>/site/ai-modules/<uuid:run_id>/", portal_ai_module_views.module_result, name="publisher_ai_module_result"),
+    path("publishers/<slug:slug>/site/ai-modules/<uuid:run_id>/preview/<int:index>/", portal_ai_module_views.preview_modules, name="preview_publisher_ai_modules"),
+    path("publishers/<slug:slug>/site/ai-modules/<uuid:run_id>/apply/<int:index>/", portal_ai_module_views.apply_modules, name="apply_publisher_ai_modules"),
     path("publishers/<slug:slug>/site/ai-design/", portal_ai_views.request_design, name="request_publisher_ai_design"),
     path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/", portal_ai_views.result, name="publisher_ai_result"),
     path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/preview/<int:index>/", portal_ai_views.preview_option, name="preview_publisher_ai_option"),

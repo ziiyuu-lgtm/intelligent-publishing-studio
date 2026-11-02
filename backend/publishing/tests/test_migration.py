@@ -331,6 +331,27 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.filter(pk=release15.pk).exists()
 else:
     raise AssertionError('Publisher AI history must not be silently discarded')
+Policy16 = apps.get_model('publishing', 'OrganisationAIPolicy')
+policy16 = Policy16.objects.create(organisation_id=org.pk, portal_design_enabled=True, portal_daily_limit=6)
+PortalRun16 = apps.get_model('publishing', 'OrganisationPortalAIDesignRun')
+portal_run16 = PortalRun16.objects.create(id=uuid.uuid4(), site_id=portal15.pk, requested_by_id=editor.pk,
+    model_name='legacy', prompt_version='publisher-site-blueprints-v1', policy_revision=1, site_revision=1,
+    site_fingerprint='c'*64, brief_fingerprint='d'*64, status='completed', options=[])
+portal_modules_scope = ('publishing', '0017_publisher_portal_modules')
+executor = MigrationExecutor(connection)
+executor.migrate([portal_modules_scope])
+apps = executor.loader.project_state([portal_modules_scope]).apps
+policy17 = apps.get_model('publishing', 'OrganisationAIPolicy').objects.get(pk=policy16.pk)
+assert policy17.portal_design_enabled and not policy17.portal_modules_enabled and policy17.portal_daily_limit == 6
+assert apps.get_model('publishing', 'OrganisationPortalDraft').objects.get(pk=portal15.pk).sections_config == []
+assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.get(pk=release15.pk).sections_config == []
+assert apps.get_model('publishing', 'OrganisationPortalAIDesignRun').objects.get(pk=portal_run16.pk).site_fingerprint == 'c'*64
+try:
+    MigrationExecutor(connection).migrate([portal_ai_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.filter(pk=release15.pk).exists()
+else:
+    raise AssertionError('Publisher modules must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
