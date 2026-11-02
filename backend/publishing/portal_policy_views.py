@@ -16,7 +16,7 @@ from .models import Organisation, OrganisationAIPolicy, OrganisationAIPolicyEven
 from .portal_forms import OrganisationAIPolicyForm
 from .production_views import _enabled
 
-POLICY_FIELDS = ("portal_design_enabled", "portal_modules_enabled", "portal_pages_enabled", "portal_daily_limit")
+POLICY_FIELDS = ("portal_design_enabled", "portal_modules_enabled", "portal_pages_enabled", "portal_page_blocks_enabled", "portal_daily_limit")
 
 
 def _managed_organisation(user, slug, locked=False):

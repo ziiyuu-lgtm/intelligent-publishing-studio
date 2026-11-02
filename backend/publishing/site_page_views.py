@@ -16,6 +16,8 @@ from .portal_sections import InvalidSections as InvalidPortalSections, validate_
 from .portal_views import (_event as portal_event, _fingerprint as portal_fingerprint, _organisation,
                            _site as portal_site, _valid_snapshot)
 from .page_design import page_appearance
+from .page_block_ai_forms import validate_reviewed_blocks
+from .page_blocks import MAX_PAGE_BLOCKS
 from .page_ai_provider import PROMPT_VERSION
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, appearance_for, validate_blueprint
@@ -128,7 +130,8 @@ def _save(request, slug, kind):
     return redirect("manage_journal_pages" if kind == "journal" else "manage_publisher_pages", slug=slug)
 
 
-def _page(request, slug, page_slug, kind, preview, page_override=None, expected=None, ai_apply_url="", ai_revision=None):
+def _page(request, slug, page_slug, kind, preview, page_override=None, expected=None, ai_apply_url="", ai_revision=None,
+          block_suggestion=None, block_apply_url="", block_edit_url="", block_reviewed=""):
     _enabled()
     if preview:
         owner, site = _managed(request.user, slug, kind)
@@ -163,6 +166,14 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
             raise Http404
         page = candidate
         pages = [candidate if entry["slug"] == page_slug else entry for entry in pages]
+    if block_suggestion is not None:
+        if not preview or page_override is not None:
+            raise Http404
+        try:
+            additions = validate_reviewed_blocks(block_suggestion, MAX_PAGE_BLOCKS - len(page.get("blocks", [])))
+        except (ValueError, TypeError) as exc:
+            raise Http404 from exc
+        page = {**page, "blocks":[*page.get("blocks", []), *additions]}
     image_route = ("private_journal_image" if kind == "journal" else "private_portal_image") if preview else (
         "public_journal_image" if kind == "journal" else "public_portal_image")
     image_url = ""
@@ -179,7 +190,9 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
     return _no_index(render(request, "publishing/site_page.html", {
         "owner":owner, "design":design, "page":page, "preview":preview, "kind":kind,
         "ai_page_preview":page_override is not None,
+        "ai_block_preview":block_suggestion is not None,
         "ai_apply_url":ai_apply_url, "ai_revision":ai_revision,
+        "block_apply_url":block_apply_url, "block_edit_url":block_edit_url, "block_reviewed":block_reviewed,
         "page_appearance":page_appearance(page["design"]) if page.get("design") else None,
         "appearance":appearance_for(design.design_config) if design.design_config else None,
         "home_url":reverse(home_route, args=[slug]), "image_url":image_url,

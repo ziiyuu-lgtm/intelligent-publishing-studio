@@ -437,6 +437,20 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'JournalSiteAIDesignRun').objects.filter(pk=run11.pk).exists()
 else:
     raise AssertionError('Page AI history must not be silently discarded')
+block_ai_scope = ('publishing', '0022_journalaipolicy_site_page_blocks_enabled_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([block_ai_scope])
+apps = executor.loader.project_state([block_ai_scope]).apps
+assert not apps.get_model('publishing', 'JournalAIPolicy').objects.get(pk=policy10.pk).site_page_blocks_enabled
+assert not apps.get_model('publishing', 'OrganisationAIPolicy').objects.get(pk=policy16.pk).portal_page_blocks_enabled
+assert apps.get_model('publishing', 'JournalSiteDraft').objects.get(pk=site20.pk).pages_config == legacy_pages
+assert apps.get_model('publishing', 'OrganisationPortalDraft').objects.get(pk=portal20.pk).pages_config == legacy_pages
+try:
+    MigrationExecutor(connection).migrate([page_ai_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'JournalSiteAIDesignRun').objects.filter(pk=run11.pk).exists()
+else:
+    raise AssertionError('Page block AI policy must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

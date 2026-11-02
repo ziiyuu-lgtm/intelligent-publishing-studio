@@ -135,6 +135,7 @@ class OrganisationAIPolicy(models.Model):
     portal_design_enabled = models.BooleanField(_("Enable publisher portal AI design"), default=False)
     portal_modules_enabled = models.BooleanField(_("Enable publisher portal AI module arrangement"), default=False)
     portal_pages_enabled = models.BooleanField(_("Enable AI independent-page suggestions"), default=False)
+    portal_page_blocks_enabled = models.BooleanField(_("Enable AI page-block suggestions"), default=False)
     portal_daily_limit = models.PositiveSmallIntegerField(_("Publisher portal AI request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)
@@ -305,6 +306,7 @@ class JournalAIPolicy(models.Model):
     site_design_enabled = models.BooleanField(_("Enable journal site design suggestions"), default=False)
     site_modules_enabled = models.BooleanField(_("Enable AI module arrangement suggestions"), default=False)
     site_pages_enabled = models.BooleanField(_("Enable AI independent-page suggestions"), default=False)
+    site_page_blocks_enabled = models.BooleanField(_("Enable AI page-block suggestions"), default=False)
     journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)

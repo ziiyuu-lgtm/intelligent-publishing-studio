@@ -106,7 +106,7 @@ class PublisherPortalAITests(TestCase):
         self.policy.refresh_from_db()
         self.assertEqual((self.policy.revision, self.policy.portal_daily_limit), (2, 4))
         self.assertEqual(OrganisationAIPolicyEvent.objects.get(policy=self.policy).configuration,
-                         {"portal_design_enabled":True, "portal_modules_enabled":False, "portal_pages_enabled":False, "portal_daily_limit":4})
+                         {"portal_design_enabled":True, "portal_modules_enabled":False, "portal_pages_enabled":False, "portal_page_blocks_enabled":False, "portal_daily_limit":4})
         self.assertFalse(JournalAIPolicy.objects.exists())
         self.assertEqual(self.client.post(url, {**data, "revision":"2"}).status_code, 302)
         self.assertEqual(OrganisationAIPolicyEvent.objects.count(), 1)
@@ -136,6 +136,7 @@ class PublisherPortalAITests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(OrganisationAIPolicy.objects.get(organisation=self.org).portal_design_enabled)
         self.assertFalse(OrganisationAIPolicy.objects.get(organisation=self.org).portal_pages_enabled)
+        self.assertFalse(OrganisationAIPolicy.objects.get(organisation=self.org).portal_page_blocks_enabled)
         self.client.force_login(self.manager)
         self.assertContains(self.client.get(self.url("manage_publisher_portal")),
                             "The publisher has not enabled AI portal design")
@@ -154,6 +155,15 @@ class PublisherPortalAITests(TestCase):
         self.client.force_login(self.manager)
         self.assertEqual(self.request_design().status_code, 409)
         self.transport.assert_not_called()
+
+    def test_page_block_suggestions_have_a_separate_publisher_policy_switch(self):
+        self.client.force_login(self.ai_manager)
+        data = {"revision":"1", "portal_page_blocks_enabled":"on", "portal_daily_limit":"5", "confirm":"yes", "synthetic":"yes"}
+        self.assertEqual(self.client.post(self.url("manage_publisher_ai_policy"), data).status_code, 302)
+        self.policy.refresh_from_db()
+        self.assertTrue(self.policy.portal_page_blocks_enabled)
+        self.assertFalse(self.policy.portal_pages_enabled)
+        self.assertTrue(OrganisationAIPolicyEvent.objects.get(policy=self.policy).configuration["portal_page_blocks_enabled"])
 
     def test_confirmation_staleness_and_model_are_checked_before_network(self):
         url = self.url("request_publisher_ai_design")

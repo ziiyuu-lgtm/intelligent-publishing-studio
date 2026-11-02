@@ -42,7 +42,7 @@ class PortalAppearanceForm(JournalAppearanceForm):
 class OrganisationAIPolicyForm(forms.ModelForm):
     class Meta:
         model = OrganisationAIPolicy
-        fields = ["portal_design_enabled", "portal_modules_enabled", "portal_pages_enabled", "portal_daily_limit"]
+        fields = ["portal_design_enabled", "portal_modules_enabled", "portal_pages_enabled", "portal_page_blocks_enabled", "portal_daily_limit"]
 
 
 class PortalSectionForm(SectionImageForm):

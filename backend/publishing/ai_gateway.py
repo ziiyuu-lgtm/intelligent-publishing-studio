@@ -12,6 +12,8 @@ from .portal_ai_modules import (request_module_suggestions as request_publisher_
 from .ai_provider import ProviderError
 from .site_design import InvalidDesign, validate_blueprint
 from .page_ai_provider import request_page_suggestions
+from .page_block_ai_provider import request_block_suggestions
+from .page_blocks import MAX_PAGE_BLOCKS
 
 METADATA_WRITING = "metadata_writing"
 SITE_DESIGN = "site_design"
@@ -20,6 +22,8 @@ PUBLISHER_DESIGN = "publisher_design"
 PUBLISHER_MODULES = "publisher_modules"
 SITE_PAGE = "site_page"
 PUBLISHER_PAGE = "publisher_page"
+SITE_PAGE_BLOCKS = "site_page_blocks"
+PUBLISHER_PAGE_BLOCKS = "publisher_page_blocks"
 OPENAI = "openai"
 
 
@@ -28,8 +32,15 @@ class GatewayRejected(ValueError):
 
 
 def run_ai_task(*, task, provider, model, api_key, payload):
-    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES, SITE_PAGE, PUBLISHER_PAGE):
+    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES, SITE_PAGE, PUBLISHER_PAGE, SITE_PAGE_BLOCKS, PUBLISHER_PAGE_BLOCKS):
         raise GatewayRejected("unsupported_task_or_provider")
+    if task in (SITE_PAGE_BLOCKS, PUBLISHER_PAGE_BLOCKS):
+        if (not isinstance(payload, dict) or set(payload) != {"brief", "available_slots"} or
+                not isinstance(payload["brief"], str) or type(payload["available_slots"]) is not int or
+                not 1 <= payload["available_slots"] <= MAX_PAGE_BLOCKS):
+            raise GatewayRejected("unsupported_input_fields")
+        return request_block_suggestions(api_key=api_key, model=model, brief=payload["brief"],
+            available_slots=payload["available_slots"], site_kind="journal" if task == SITE_PAGE_BLOCKS else "publisher")
     if task in (SITE_PAGE, PUBLISHER_PAGE):
         if (not isinstance(payload, dict) or set(payload) != {"brief", "has_image"} or
                 not isinstance(payload["brief"], str) or type(payload["has_image"]) is not bool):

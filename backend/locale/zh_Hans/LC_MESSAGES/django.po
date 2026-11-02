@@ -3520,3 +3520,102 @@ msgstr "仅向 OpenAI 发送您输入的需求、页面是否有主图以及网�
 
 msgid "AI may invent or misstate facts. Check every statement, especially policies, names, indexing, fees and dates. Applying replaces this page's draft title, body and page-specific design; it preserves its URL, image, content blocks and visibility. Publishing requires a separate confirmation."
 msgstr "AI 可能虚构或误述事实。请核实每一项内容，尤其是政策、名称、收录、费用和日期。应用将替换此页面草稿的标题、正文及页面设计，但保留网址、图片、内容区块和可见状态。发布需要另行确认。"
+
+msgid "Enable AI page-block suggestions"
+msgstr "启用 AI 页面区块建议"
+
+msgid "AI page-block suggestions"
+msgstr "AI 页面区块建议"
+
+msgid "Add a heading or text to this block."
+msgstr "请为区块填写标题或正文。"
+
+msgid "Keep at least one valid suggested block."
+msgstr "请至少保留一个有效的建议区块。"
+
+msgid "AI page-block suggestions are not enabled for this site and test environment."
+msgstr "此网站或测试环境尚未启用 AI 页面区块建议。"
+
+msgid "This page has reached the block limit. Remove a block before requesting suggestions."
+msgstr "此页面已达到区块数量上限，请先删除区块再请求建议。"
+
+msgid "The suggestion form is out of date; reload the page."
+msgstr "建议表单已过期，请重新加载页面。"
+
+msgid "The suggested blocks are invalid or exceed the page limit."
+msgstr "建议区块无效或超过页面数量上限。"
+
+msgid "Suggested blocks added to the draft. Edit them before publishing."
+msgstr "建议区块已添加至草稿，请在发布前编辑。"
+
+msgid "Back to page content blocks"
+msgstr "返回页面内容区块"
+
+msgid "Reviewed blocks applied at that time"
+msgstr "当时应用的已审核区块"
+
+msgid "AI may invent facts. Check every statement, particularly names, policies, indexing and fees. Suggestions add new blocks after existing ones; they never replace existing content. Images and links must be added manually after applying."
+msgstr "AI 可能虚构事实。请核对每项内容，尤其是名称、政策、收录和费用。建议会追加到现有区块之后，不会替换已有内容。图片和链接需在应用后手动添加。"
+
+msgid "Target page"
+msgstr "目标页面"
+
+msgid "Edit the proposed blocks, enter order numbers or mark blocks for removal, then preview them on the page."
+msgstr "请编辑建议区块、填写顺序编号或勾选移除，然后在页面中预览。"
+
+msgid "Suggested block"
+msgstr "建议区块"
+
+msgid "Remove this suggestion"
+msgstr "移除该建议"
+
+msgid "Preview reviewed blocks"
+msgstr "预览已审核区块"
+
+msgid "Private AI block preview. Check the proposed content before adding it to the draft."
+msgstr "AI 区块的私密预览。请检查建议内容，再将其添加到草稿。"
+
+msgid "Add these reviewed blocks to the draft page."
+msgstr "将这些已审核区块添加到页面草稿。"
+
+msgid "Add to draft"
+msgstr "添加到草稿"
+
+msgid "Describe what you want this page to communicate. AI can propose new editable blocks. Existing blocks remain unchanged and new blocks are appended after review."
+msgstr "描述页面要传达的内容，AI 可以提出可编辑的新区块。已有区块保持不变，新区块经审核后追加。"
+
+msgid "Only your brief, the site type and the number of available block slots are sent to OpenAI. Existing page and block text, names, images, links and manuscripts are not sent automatically. Use fictional information only. API use may incur charges and provider retention may apply; generated suggestions are stored in this test database."
+msgstr "仅向 OpenAI 发送您的需求、网站类型和可添加区块数量。现有页面与区块正文、名称、图片、链接和稿件不会自动发送。请只使用虚构信息。API 可能产生费用，服务商可能保留数据；生成的建议保存在此测试数据库中。"
+
+msgid "AI suggestions may contain errors or invented facts. Images and links are not generated; add them manually after applying. Save your edits first."
+msgstr "AI 建议可能包含错误或虚构事实。图片和链接不会自动生成，应用后可手动添加。请先保存当前编辑。"
+
+msgid "The AI manager has not enabled page-block suggestions in this site's AI policy."
+msgstr "AI 管理员尚未在此网站的 AI 策略中启用页面区块建议。"
+
+msgid "Fictional block design brief"
+msgstr "虚构区块设计需求"
+
+msgid "Describe the page audience, content goals and visual direction using fictional details."
+msgstr "请使用虚构信息描述页面读者、内容目标和期望视觉方向。"
+
+msgid "Send this brief and the listed context to OpenAI for one request."
+msgstr "同意向 OpenAI 发送本次需求和上述上下文。"
+
+msgid "Request block suggestions"
+msgstr "请求区块建议"
+
+msgid "My block suggestion requests"
+msgstr "我的区块建议请求"
+
+msgid "No block suggestion requests yet."
+msgstr "暂无区块建议请求。"
+
+msgid "This policy covers OpenAI metadata, site design, module arrangement, independent-page and page-block suggestions. It does not enable other AI providers or manuscript file processing."
+msgstr "本策略覆盖 OpenAI 元数据、网站设计、模块编排、独立页面及页面区块建议；不会启用其他 AI 服务商或稿件文件处理。"
+
+msgid "This separate policy covers publisher portal visual design, module arrangement, independent-page and page-block suggestions. It does not change journal AI policies or grant manuscript access."
+msgstr "该独立策略覆盖出版社门户视觉设计、模块编排、独立页面及页面区块建议；不会改变期刊 AI 策略或授予稿件访问权限。"
+
+msgid "Return to edit reviewed blocks"
+msgstr "返回修改已审核区块"

@@ -1,4 +1,7 @@
 """Build independent pages from scoped, snapshotted content blocks."""
+import uuid
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -10,8 +13,11 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .models import JournalSiteEvent
 from .module_images import image_choices, images_valid, sync_image_references
-from .page_blocks import PageBlockFormSet
+from .page_blocks import MAX_PAGE_BLOCKS, PageBlockFormSet
+from .page_block_ai_provider import PROMPT_VERSION
 from .portal_views import _event as portal_event
+from .portal_policy_views import _policy as publisher_policy
+from .ai_views import _policy as journal_policy, _provider_configured
 from .production_views import _enabled, _no_index
 from .site_page_views import _fingerprint, _managed, _valid_design
 
@@ -29,16 +35,25 @@ def _page(site, kind, page_slug):
 def _editor(request, slug, page_slug, kind, formset=None, status=200):
     _enabled()
     owner, site = _managed(request.user, slug, kind)
-    _, page = _page(site, kind, page_slug)
+    pages, page = _page(site, kind, page_slug)
     if formset is None:
         formset = PageBlockFormSet(prefix="sections", initial=page.get("blocks", []),
                                    form_kwargs={"image_choices":image_choices(site)})
+    policy = journal_policy(owner) if kind == "journal" else publisher_policy(owner)
+    enabled = bool(policy and (policy.site_page_blocks_enabled if kind == "journal" else policy.portal_page_blocks_enabled))
     return _no_index(render(request, "publishing/manage_page_blocks.html", {
         "owner":owner, "site":site, "page":page, "block_formset":formset,
         "fingerprint":_fingerprint(site, kind),
         "save_route":"save_journal_page_blocks" if kind == "journal" else "save_publisher_page_blocks",
         "pages_route":"manage_journal_pages" if kind == "journal" else "manage_publisher_pages",
         "preview_route":"preview_journal_page" if kind == "journal" else "preview_publisher_page",
+        "ai_enabled":enabled, "ai_provider_configured":_provider_configured(),
+        "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
+        "ai_request_id":uuid.uuid4(), "available_slots":MAX_PAGE_BLOCKS - len(page.get("blocks", [])),
+        "ai_runs":site.ai_design_runs.filter(requested_by=request.user, target_page_slug=page_slug,
+                                              prompt_version=PROMPT_VERSION)[:10],
+        "ai_request_route":"request_journal_page_block_ai" if kind == "journal" else "request_publisher_page_block_ai",
+        "ai_result_route":"journal_page_block_ai_result" if kind == "journal" else "publisher_page_block_ai_result",
     }, status=status))
 
 
