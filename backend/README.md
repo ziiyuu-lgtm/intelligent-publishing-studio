@@ -195,3 +195,9 @@ New review invitations and actual deadline changes create private in-app notices
 ## Local submission notifications
 
 The submitting account receives in-app notices for initial submission, an editorial decision, and a reviewed author-list change request. Each notice remains bound to the original submitting account and is visible only while that account still owns the submission and the journal and organisation are active. The author can filter unread notices, open the submission and mark individual notices read. Notices do not reproduce review reports, reviewer identities, decision text or editor notes; the author opens the submission to review permitted details. Existing records receive no inferred notifications in migration 0030. No coauthor accounts, scheduled reminders, emails, external messages or AI requests are created by this feature. Use fictional data in an isolated test environment.
+
+## Author submission tracking
+
+A private, read-only overview lists an active account's own submissions across active journals. Authors can search the title or journal, filter by the recorded submission status, and page through results. The summary counts include all of their visible submissions, independent of the current search. The submitting account retains access if its author membership is removed, consistent with the submission detail view; deactivation of the account, journal or organisation blocks access.
+
+The progress page shows the submission's current recorded status and a timeline of recorded draft, submission, revision and editorial-decision milestones. It does not infer missing historical milestones or report reviewer identities, review assignments, report contents or confidential activity. The author can open the existing submission and, when requested, the revision form. The page does not send messages, call AI, update the submission or publish content. Use fictional data in isolated local testing only.

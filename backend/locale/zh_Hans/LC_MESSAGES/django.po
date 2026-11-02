@@ -4774,3 +4774,117 @@ msgstr "打开投稿"
 
 msgid "No submission notifications match this filter."
 msgstr "没有符合筛选条件的投稿通知。"
+
+msgid "Track my submissions"
+msgstr "追踪我的投稿"
+
+msgid "View submission progress"
+msgstr "查看投稿进度"
+
+msgid "Follow your manuscripts across journals and see what needs your attention."
+msgstr "跨期刊查看稿件进度，了解需要您处理的事项。"
+
+msgid "Fictional test data only. This private view contains submissions owned by your account."
+msgstr "仅使用虚构测试数据。此私密页面只显示本账户拥有的投稿。"
+
+msgid "Submission overview"
+msgstr "投稿概览"
+
+msgid "All submissions"
+msgstr "全部投稿"
+
+msgid "Across your journals"
+msgstr "涵盖您的各个期刊"
+
+msgid "Needs your attention"
+msgstr "需要您处理"
+
+msgid "Current status"
+msgstr "当前状态"
+
+msgid "Drafts"
+msgstr "草稿"
+
+msgid "Not yet submitted"
+msgstr "尚未投稿"
+
+msgid "YOUR MANUSCRIPTS"
+msgstr "我的稿件"
+
+msgid "shown in results"
+msgstr "条匹配结果"
+
+msgid "Filter submissions"
+msgstr "筛选投稿"
+
+msgid "Search title or journal"
+msgstr "搜索标题或期刊"
+
+msgid "Search your submissions"
+msgstr "搜索我的投稿"
+
+msgid "All statuses"
+msgstr "全部状态"
+
+msgid "Apply filters"
+msgstr "应用筛选"
+
+msgid "Clear"
+msgstr "清除"
+
+msgid "Created"
+msgstr "创建"
+
+msgid "View progress"
+msgstr "查看进度"
+
+msgid "No submissions match these filters."
+msgstr "没有符合筛选条件的投稿。"
+
+msgid "Submission pages"
+msgstr "投稿分页"
+
+msgid "Submission progress"
+msgstr "投稿进度"
+
+msgid "Back to my submissions"
+msgstr "返回我的投稿"
+
+msgid "Your submission progress"
+msgstr "您的投稿进度"
+
+msgid "Fictional test data only. The timeline shows recorded milestones and does not expose reviewer activity."
+msgstr "仅使用虚构测试数据。时间线显示已记录的里程碑，不显示审稿人活动。"
+
+msgid "CURRENT STATUS"
+msgstr "当前状态"
+
+msgid "Complete your draft when you are ready to submit."
+msgstr "准备投稿时，请先完善您的草稿。"
+
+msgid "Your submission is awaiting the next editorial action."
+msgstr "您的投稿正在等待下一步编辑处理。"
+
+msgid "Your submission is being considered in the review process."
+msgstr "您的投稿正在审稿流程中。"
+
+msgid "Review the decision and submit a revised version."
+msgstr "请查看编辑决定并提交修订稿。"
+
+msgid "The editorial decision is available in your submission."
+msgstr "您可以打开投稿查看编辑决定。"
+
+msgid "RECORDED MILESTONES"
+msgstr "已记录的里程碑"
+
+msgid "Submission timeline"
+msgstr "投稿时间线"
+
+msgid "Newest first · Times shown in UTC"
+msgstr "按时间倒序 · 时间为 UTC"
+
+msgid "Draft created"
+msgstr "已创建草稿"
+
+msgid "Revised version submitted"
+msgstr "已提交修订稿"

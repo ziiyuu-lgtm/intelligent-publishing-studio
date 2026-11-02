@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load i18n tz %}
+{% block title %}{% translate "My submissions" %} | Intelligent Publishing Studio{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'workspace' %}">← {% translate "Back to workspace" %}</a>
+<div class="page-intro tracking-intro"><div><span class="eyebrow">{% translate "AUTHOR WORKSPACE" %}</span><h1>{% translate "My submissions" %}</h1><p>{% translate "Follow your manuscripts across journals and see what needs your attention." %}</p></div><a class="button secondary small" href="{% url 'author_notice_inbox' %}">{% translate "Submission notifications" %} →</a></div>
+<div class="notice">{% translate "Fictional test data only. This private view contains submissions owned by your account." %}</div>
+<div class="submission-stats" aria-label="{% translate 'Submission overview' %}">
+  <a href="?status=all" class="submission-stat"><span>{% translate "All submissions" %}</span><strong>{{ counts.total }}</strong><small>{% translate "Across your journals" %}</small></a>
+  <a href="?status=revision_requested" class="submission-stat attention"><span>{% translate "Revision requested" %}</span><strong>{{ counts.revision }}</strong><small>{% translate "Needs your attention" %}</small></a>
+  <a href="?status=under_review" class="submission-stat"><span>{% translate "Under review" %}</span><strong>{{ counts.review }}</strong><small>{% translate "Current status" %}</small></a>
+  <a href="?status=draft" class="submission-stat"><span>{% translate "Drafts" %}</span><strong>{{ counts.drafts }}</strong><small>{% translate "Not yet submitted" %}</small></a>
+</div>
+<section class="card panel submission-panel">
+<div class="panel-heading submission-panel__heading"><div><span class="eyebrow">{% translate "YOUR MANUSCRIPTS" %}</span><h2>{% translate "Submission overview" %}</h2></div><span class="muted">{{ page.paginator.count }} {% translate "shown in results" %}</span></div>
+<form method="get" class="submission-filters" aria-label="{% translate 'Filter submissions' %}">
+  <label>{% translate "Search title or journal" %}<input type="search" name="q" maxlength="100" value="{{ query }}" placeholder="{% translate 'Search your submissions' %}"></label>
+  <label>{% translate "Status" %}<select name="status"><option value="all">{% translate "All statuses" %}</option>{% for value,label in status_choices %}<option value="{{ value }}"{% if selected == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <button class="button" type="submit">{% translate "Apply filters" %}</button><a class="back" href="{% url 'author_submissions' %}">{% translate "Clear" %}</a>
+</form>
+<div class="submission-items">{% for submission in page.object_list %}<article class="submission-card" data-status="{{ submission.status }}">
+  <div class="submission-card__main"><span class="eyebrow">{{ submission.journal.name }}</span><h3>{{ submission.title }}</h3><p class="muted">{% translate "Created" %} · {% timezone 'UTC' %}{{ submission.created_at|date:'Y-m-d' }}{% endtimezone %} UTC{% if submission.submitted_at %} &nbsp;·&nbsp; {% translate "Submitted" %} · {% timezone 'UTC' %}{{ submission.submitted_at|date:'Y-m-d' }}{% endtimezone %} UTC{% endif %}</p></div>
+  <div class="submission-card__side"><span class="submission-state state-{{ submission.status }}">{{ submission.get_status_display }}</span><a class="button secondary small" href="{% url 'author_submission_progress' submission.pk %}">{% translate "View progress" %} →</a></div>
+</article>{% empty %}<p class="empty-text">{% translate "No submissions match these filters." %}</p>{% endfor %}</div>
+{% if page.has_other_pages %}<nav class="submission-pagination" aria-label="{% translate 'Submission pages' %}">{% if page.has_previous %}<a href="?status={{ selected|urlencode }}&amp;q={{ query|urlencode }}&amp;page={{ page.previous_page_number }}">← {% translate "Previous" %}</a>{% endif %}<span>{% translate "Page" %} {{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?status={{ selected|urlencode }}&amp;q={{ query|urlencode }}&amp;page={{ page.next_page_number }}">{% translate "Next" %} →</a>{% endif %}</nav>{% endif %}
+</section>
+{% endblock %}

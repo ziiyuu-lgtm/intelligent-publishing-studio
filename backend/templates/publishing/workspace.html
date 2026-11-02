@@ -12,7 +12,7 @@
 <div class="workspace-grid">
   <section class="card panel"><div class="panel-heading"><div><span class="eyebrow">01 / {% translate "AUTHOR" %}</span><h2>{% translate "My submissions" %}</h2></div></div>
     <p class="muted">{% translate "Start a draft for an authorised journal." %}</p>
-    {% if authored %}<p><a class="button secondary small" href="{% url 'author_notice_inbox' %}">{% translate "Submission notifications" %}{% if unread_author_notice_count %} · {{ unread_author_notice_count }} {% translate "unread" %}{% endif %} →</a></p>{% endif %}
+    {% if authored %}<p><a class="button secondary small" href="{% url 'author_submissions' %}">{% translate "Track my submissions" %} →</a> <a class="button secondary small" href="{% url 'author_notice_inbox' %}">{% translate "Submission notifications" %}{% if unread_author_notice_count %} · {{ unread_author_notice_count }} {% translate "unread" %}{% endif %} →</a></p>{% endif %}
     <div class="actions">{% for journal in author_journals %}<a class="button small" href="{% url 'submission_create' journal.slug %}">+ {{ journal.name }}</a>{% empty %}<span class="muted">{% translate "No author roles assigned." %}</span>{% endfor %}</div>
     <div class="list">{% for submission in authored %}<a class="list-row" href="{% url 'submission_detail' submission.pk %}"><span><strong>{{ submission.title }}</strong><small>{{ submission.journal.name }}</small></span><span class="status">{{ submission.get_status_display }}</span></a>{% empty %}<p class="empty-text">{% translate "No submissions yet." %}</p>{% endfor %}</div>
   </section>

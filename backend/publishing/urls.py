@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -7,6 +7,7 @@ urlpatterns = [
     path("workspace/author-changes/", author_dashboard_views.author_change_dashboard, name="author_change_dashboard"),
     path("workspace/review-progress/", review_deadline_views.review_progress, name="review_progress"),
     path("workspace/author-notices/", author_notice_views.author_notice_inbox, name="author_notice_inbox"),
+    path("workspace/submissions/", author_submission_views.author_submissions, name="author_submissions"),
     path("author-notices/<uuid:pk>/read/", author_notice_views.read_author_notice, name="read_author_notice"),
     path("workspace/review-notices/", review_notice_views.review_notice_inbox, name="review_notice_inbox"),
     path("review-notices/<uuid:pk>/read/", review_notice_views.read_review_notice, name="read_review_notice"),
@@ -117,6 +118,7 @@ urlpatterns = [
     path("journals/<slug:slug>/test-articles/<uuid:pk>/pdf/", production_views.test_article_pdf, name="test_article_pdf"),
     path("journals/<slug:slug>/test-issues/<uuid:pk>/", issue_views.test_issue, name="test_issue"),
     path("submissions/<uuid:pk>/", views.submission_detail, name="submission_detail"),
+    path("submissions/<uuid:pk>/progress/", author_submission_views.author_submission_progress, name="author_submission_progress"),
     path("submissions/<uuid:pk>/authors/", views.submission_contributors, name="submission_contributors"),
     path("submissions/<uuid:pk>/author-changes/new/", views.request_contributor_change, name="request_contributor_change"),
     path("submissions/<uuid:pk>/author-changes/<uuid:change_id>/", views.contributor_change_detail, name="contributor_change_detail"),
