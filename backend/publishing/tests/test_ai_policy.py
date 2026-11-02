@@ -73,6 +73,15 @@ class JournalAIPolicyTests(TestCase):
         self.assertFalse(policy.metadata_enabled)
         self.assertTrue(JournalAIPolicyEvent.objects.get(policy=policy).configuration["site_modules_enabled"])
 
+    def test_page_suggestions_have_their_own_policy_switch(self):
+        response = self.save(metadata_enabled="", allow_author="", allow_editor="", site_pages_enabled="on")
+        self.assertEqual(response.status_code, 302)
+        policy = JournalAIPolicy.objects.get(journal=self.journal)
+        self.assertTrue(policy.site_pages_enabled)
+        self.assertFalse(policy.site_design_enabled)
+        self.assertFalse(policy.site_modules_enabled)
+        self.assertTrue(JournalAIPolicyEvent.objects.get(policy=policy).configuration["site_pages_enabled"])
+
     def test_create_change_history_and_stale_update(self):
         self.assertEqual(self.save().status_code, 302)
         policy = JournalAIPolicy.objects.get(journal=self.journal)
@@ -80,7 +89,7 @@ class JournalAIPolicyTests(TestCase):
         self.assertTrue(policy.metadata_enabled)
         self.assertEqual(policy.journal_daily_limit, 4)
         event = JournalAIPolicyEvent.objects.get(policy=policy)
-        self.assertEqual(event.configuration, {"metadata_enabled":True, "allow_author":True, "allow_editor":True, "site_design_enabled":False, "site_modules_enabled":False, "journal_daily_limit":4})
+        self.assertEqual(event.configuration, {"metadata_enabled":True, "allow_author":True, "allow_editor":True, "site_design_enabled":False, "site_modules_enabled":False, "site_pages_enabled":False, "journal_daily_limit":4})
         self.assertNotIn(self.submission.title, str(event.configuration))
         self.assertFalse(Journal.objects.get(pk=self.journal.pk).allow_openai_metadata)
         self.assertEqual(self.save(revision="0", journal_daily_limit="5").status_code, 409)

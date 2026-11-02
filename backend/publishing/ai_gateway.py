@@ -11,12 +11,15 @@ from .portal_ai_modules import (request_module_suggestions as request_publisher_
                                 validate_descriptors as validate_publisher_descriptors)
 from .ai_provider import ProviderError
 from .site_design import InvalidDesign, validate_blueprint
+from .page_ai_provider import request_page_suggestions
 
 METADATA_WRITING = "metadata_writing"
 SITE_DESIGN = "site_design"
 SITE_MODULES = "site_modules"
 PUBLISHER_DESIGN = "publisher_design"
 PUBLISHER_MODULES = "publisher_modules"
+SITE_PAGE = "site_page"
+PUBLISHER_PAGE = "publisher_page"
 OPENAI = "openai"
 
 
@@ -25,8 +28,14 @@ class GatewayRejected(ValueError):
 
 
 def run_ai_task(*, task, provider, model, api_key, payload):
-    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES):
+    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES, SITE_PAGE, PUBLISHER_PAGE):
         raise GatewayRejected("unsupported_task_or_provider")
+    if task in (SITE_PAGE, PUBLISHER_PAGE):
+        if (not isinstance(payload, dict) or set(payload) != {"brief", "has_image"} or
+                not isinstance(payload["brief"], str) or type(payload["has_image"]) is not bool):
+            raise GatewayRejected("unsupported_input_fields")
+        return request_page_suggestions(api_key=api_key, model=model, brief=payload["brief"],
+            has_image=payload["has_image"], site_kind="journal" if task == SITE_PAGE else "publisher")
     if task in (SITE_MODULES, PUBLISHER_MODULES):
         if not isinstance(payload, dict) or set(payload) != {"brief", "modules"} or not isinstance(payload["brief"], str):
             raise GatewayRejected("unsupported_input_fields")

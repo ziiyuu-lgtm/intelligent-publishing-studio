@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from .module_images import IMAGE_FIELDS, SectionImageForm, form_image_fields, validate_image_fields
+from .page_design import ALIGNMENTS, LAYOUTS, InvalidPageDesign, validate_page_design
 
 MAX_PAGES = 20
 MAX_BODY_LENGTH = 20000
@@ -23,7 +24,8 @@ def validate_pages(pages):
         raise InvalidPages("invalid_count")
     result, slugs = [], set()
     for item in pages:
-        if not isinstance(item, dict) or set(item) not in (PAGE_FIELDS, PAGE_FIELDS | IMAGE_FIELDS):
+        if (not isinstance(item, dict) or not PAGE_FIELDS.issubset(item) or
+                set(item) - PAGE_FIELDS - IMAGE_FIELDS - {"design"}):
             raise InvalidPages("invalid_fields")
         slug, title, body, visible = (item[key] for key in ("slug", "title", "body", "visible"))
         if not isinstance(slug, str) or len(slug) > 60 or not SLUG_PATTERN.fullmatch(slug) or slug in slugs:
@@ -35,8 +37,12 @@ def validate_pages(pages):
             image = validate_image_fields(item)
         except ValueError as exc:
             raise InvalidPages("invalid_image") from exc
+        try:
+            design = {"design":validate_page_design(item["design"])} if "design" in item else {}
+        except InvalidPageDesign as exc:
+            raise InvalidPages("invalid_design") from exc
         slugs.add(slug)
-        result.append({"slug":slug, "title":title.strip(), "body":body.strip(), "visible":visible, **image})
+        result.append({"slug":slug, "title":title.strip(), "body":body.strip(), "visible":visible, **image, **design})
     return result
 
 
@@ -47,6 +53,14 @@ class SitePageForm(SectionImageForm):
     body = forms.CharField(label=_("Page text"), max_length=MAX_BODY_LENGTH, required=False,
                            widget=forms.Textarea(attrs={"rows":6}))
     visible = forms.BooleanField(label=_("Show this page publicly after publishing"), required=False)
+    design_enabled = forms.BooleanField(label=_("Customise this page's design"), required=False)
+    design_layout = forms.ChoiceField(label=_("Page layout"), required=False, choices=(("", _("Choose a layout")), *LAYOUTS))
+    design_width = forms.IntegerField(label=_("Content width (%)"), required=False, min_value=55, max_value=100)
+    design_background = forms.RegexField(label=_("Page background colour"), regex=r"^#[0-9a-fA-F]{6}$", max_length=7, required=False,
+                                         widget=forms.TextInput(attrs={"placeholder":"#ffffff"}))
+    design_accent = forms.RegexField(label=_("Page accent colour"), regex=r"^#[0-9a-fA-F]{6}$", max_length=7, required=False,
+                                     widget=forms.TextInput(attrs={"placeholder":"#17483f"}))
+    design_alignment = forms.ChoiceField(label=_("Page text alignment"), required=False, choices=(("", _("Choose alignment")), *ALIGNMENTS))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,6 +68,21 @@ class SitePageForm(SectionImageForm):
         self.fields["image_alt"].label = _("Page image description")
         self.fields["image_fit"].label = _("Page image display")
         self.fields["image_position"].label = _("Page image focus")
+        design = self.initial.get("design")
+        if design:
+            self.initial.update({"design_enabled":True, **{f"design_{key}":value for key, value in design.items()}})
+
+    def clean(self):
+        data = super().clean()
+        if self.initial.get("design") and self.add_prefix("design_form_present") not in self.data:
+            raise forms.ValidationError(_("Reload the page editor before changing a styled page."))
+        if data.get("design_enabled"):
+            try:
+                data["design"] = validate_page_design({key:data.get(f"design_{key}")
+                    for key in ("layout", "width", "background", "accent", "alignment")})
+            except InvalidPageDesign:
+                raise forms.ValidationError(_("Complete every custom page design setting."))
+        return data
 
 
 class BaseSitePageFormSet(BaseFormSet):
@@ -68,6 +97,8 @@ class BaseSitePageFormSet(BaseFormSet):
                 continue
             order = data.get("ORDER")
             page = {**{key:data[key] for key in ("slug", "title", "body", "visible")}, **form_image_fields(data)}
+            if data.get("design_enabled"):
+                page["design"] = data["design"]
             active.append(((order is None, order if order is not None else 0, index), page))
         try:
             self.cleaned_pages = validate_pages([page for _, page in sorted(active, key=lambda row:row[0])])

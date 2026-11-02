@@ -3247,3 +3247,162 @@ msgstr "页面图片焦点位置"
 
 msgid "Up to 20 pages are supported in this prototype. Changing a page URL name breaks links to its old address after publishing."
 msgstr "当前原型最多支持 20 个页面。更改页面网址标识后，旧链接将在发布后失效。"
+
+msgid "Enable AI independent-page suggestions"
+msgstr "启用 AI 独立页面建议"
+
+msgid "Image above text"
+msgstr "图片位于正文上方"
+
+msgid "Image to the left"
+msgstr "图片位于左侧"
+
+msgid "Image to the right"
+msgstr "图片位于右侧"
+
+msgid "Customise this page's design"
+msgstr "自定义此页面设计"
+
+msgid "Choose a layout"
+msgstr "选择页面布局"
+
+msgid "Content width (%)"
+msgstr "内容宽度（%）"
+
+msgid "Page background colour"
+msgstr "页面背景颜色"
+
+msgid "Page accent colour"
+msgstr "页面强调颜色"
+
+msgid "Page text alignment"
+msgstr "页面文字对齐方式"
+
+msgid "Choose alignment"
+msgstr "选择对齐方式"
+
+msgid "Reload the page editor before changing a styled page."
+msgstr "请重新加载页面编辑器，再修改已有独立设计的页面。"
+
+msgid "Complete every custom page design setting."
+msgstr "请完整填写页面自定义设计设置。"
+
+msgid "Page-specific design"
+msgstr "独立页面设计"
+
+msgid "Leave unchecked to inherit the site design. Enter any six-digit hexadecimal colours when customising."
+msgstr "不勾选时沿用网站设计；自定义时可输入任意六位十六进制颜色。"
+
+msgid "Suggested page title"
+msgstr "建议的页面标题"
+
+msgid "Suggested page text"
+msgstr "建议的页面正文"
+
+msgid "AI page suggestions"
+msgstr "AI 页面建议"
+
+msgid "Back to independent pages"
+msgstr "返回独立页面"
+
+msgid "Request status"
+msgstr "请求状态"
+
+msgid "The AI service did not return usable suggestions. Try a new request if appropriate."
+msgstr "AI 服务未返回可用建议；如有需要，请发起新请求。"
+
+msgid "This request was cancelled before sending because authorisation changed."
+msgstr "授权状态发生变化，请求在发送前已取消。"
+
+msgid "This request is still being processed."
+msgstr "该请求仍在处理中。"
+
+msgid "AI may invent or misstate facts. Check every statement, especially policies, names, indexing, fees and dates. Applying replaces this page's draft title, body and page-specific design; it preserves its URL, image and visibility. Publishing requires a separate confirmation."
+msgstr "AI 可能编造或错误陈述事实。请逐项核查，尤其是政策、名称、收录、费用和日期。应用建议将替换本页面草稿的标题、正文和独立页面设计，但保留网址、图片及显示状态；发布仍需另行确认。"
+
+msgid "Current saved page"
+msgstr "当前已保存页面"
+
+msgid "Edit this suggestion and preview your changes before applying."
+msgstr "可修改这份建议，并在应用前预览修改效果。"
+
+msgid "Preview original suggestion"
+msgstr "预览原始建议"
+
+msgid "Preview edited suggestion"
+msgstr "预览修改后的建议"
+
+msgid "Replace this draft page's title, text and design with this suggestion."
+msgstr "使用此建议替换页面草稿的标题、正文和设计。"
+
+msgid "Private AI suggestion preview. Review all generated statements; this suggestion has not been applied or published."
+msgstr "这是私密 AI 建议预览。请核查所有生成内容；该建议尚未应用或发布。"
+
+msgid "Apply this reviewed preview to the draft page."
+msgstr "将已审核的预览应用到页面草稿。"
+
+msgid "This request identifier belongs to a different AI task or page."
+msgstr "该请求编号已用于其他 AI 任务或页面。"
+
+msgid "Provide a fictional page brief of at most 800 characters."
+msgstr "请填写不超过 800 字符的虚构页面需求。"
+
+msgid "AI page suggestions are not enabled for this site and test environment."
+msgstr "本网站或测试环境尚未启用 AI 页面建议。"
+
+msgid "The site's local AI request limit has been reached."
+msgstr "本网站的本地 AI 测试请求次数已达上限。"
+
+msgid "AI page suggestion applied to the draft. Review and edit it before publishing."
+msgstr "AI 页面建议已应用到草稿，发布前请继续审核和编辑。"
+
+msgid "Create pages such as About, Author Guidelines, Editorial Board or Policies, or choose your own titles. Pages inherit the site design unless customised."
+msgstr "可创建介绍、投稿指南、编委会、政策等页面，也可自拟标题。未自定义的页面沿用网站设计。"
+
+msgid "Choose a saved page and describe its purpose and the style you want. AI can suggest editable titles, text and design settings."
+msgstr "选择已保存的页面，描述用途和期望风格；AI 可以提出可编辑的标题、正文和设计设置。"
+
+msgid "Only your brief, whether the page has an image, and the site type are sent to OpenAI. Existing page text, names, image bytes and manuscripts are not sent automatically. Use fictional information only. API use may incur charges and provider retention may apply; generated suggestions are stored in this test database."
+msgstr "系统仅向 OpenAI 发送您的需求、页面是否有图片及网站类型，不会自动发送已有页面文字、名称、图片内容或稿件。请只使用虚构信息。API 可能收费，服务商可能保留数据；生成的建议会保存在本地测试数据库中。"
+
+msgid "Save page changes first. AI can make mistakes or invent facts; review all output before applying and publishing."
+msgstr "请先保存页面修改。AI 可能出错或编造事实，应用和发布前请审核全部内容。"
+
+msgid "The AI manager has not enabled independent-page suggestions in this site's AI policy."
+msgstr "AI 管理员尚未在本网站的 AI 策略中启用独立页面建议。"
+
+msgid "Save an independent page before requesting suggestions."
+msgstr "请先保存一个独立页面，再请求建议。"
+
+msgid "Page to redesign"
+msgstr "需要重新设计的页面"
+
+msgid "Fictional page brief"
+msgstr "虚构页面需求"
+
+msgid "Describe the page purpose, intended audience and visual direction using fictional details."
+msgstr "请用虚构信息描述页面用途、目标读者和期望视觉风格。"
+
+msgid "Send this brief and the listed page context to OpenAI for one request."
+msgstr "同意向 OpenAI 发送本次需求及上述页面上下文。"
+
+msgid "Request page suggestions"
+msgstr "请求页面建议"
+
+msgid "My page suggestion requests"
+msgstr "我的页面建议请求"
+
+msgid "No page suggestion requests yet."
+msgstr "暂无页面建议请求。"
+
+msgid "This policy covers OpenAI metadata, site design, module arrangement and independent-page suggestions. It does not enable other AI providers or manuscript file processing."
+msgstr "本策略覆盖 OpenAI 元数据、网站设计、模块编排及独立页面建议；不会启用其他 AI 服务商或稿件文件处理。"
+
+msgid "This separate policy covers publisher portal visual design, module arrangement and independent-page suggestions. It does not change journal AI policies or grant manuscript access."
+msgstr "该独立策略覆盖出版社门户视觉设计、模块编排及独立页面建议；不会改变期刊 AI 策略或授予稿件访问权限。"
+
+msgid "Reviewed content applied at that time"
+msgstr "当时应用的已审核内容"
+
+msgid "Each suggested text is limited to 2,500 characters. You can expand the page in the editor after applying."
+msgstr "每条建议正文最多 2,500 个字符；应用后可在页面编辑器中继续扩充。"

@@ -168,7 +168,7 @@ class PublisherPortalAIModuleTests(TestCase):
         self.assertTrue(self.policy.portal_modules_enabled)
         self.assertFalse(self.policy.portal_design_enabled)
         self.assertEqual(OrganisationAIPolicyEvent.objects.get().configuration,
-                         {"portal_design_enabled":False, "portal_modules_enabled":True, "portal_daily_limit":4})
+                         {"portal_design_enabled":False, "portal_modules_enabled":True, "portal_pages_enabled":False, "portal_daily_limit":4})
         self.client.force_login(self.manager)
         self.assertEqual(self.request().status_code, 302)
         self.assertEqual(self.transport.call_count, 1)

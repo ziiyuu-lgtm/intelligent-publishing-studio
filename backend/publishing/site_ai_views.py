@@ -25,6 +25,7 @@ from .models import JournalSiteAIDesignRun, JournalSiteEvent
 from .production_views import _enabled, _no_index
 from .site_ai_provider import LEGACY_PROMPT_VERSION, MAX_BRIEF_LENGTH, PROMPT_VERSION, validate_options
 from .site_ai_modules import PROMPT_VERSION as MODULE_PROMPT_VERSION
+from .page_ai_provider import PROMPT_VERSION as PAGE_PROMPT_VERSION
 from .site_design import COMPOSITIONS, FONTS, InvalidDesign, appearance_for, legacy_to_blueprint, validate_blueprint
 from .site_views import SITE_FIELDS, _fingerprint, _managed_journal, _render_site, _site
 
@@ -155,6 +156,8 @@ def site_ai_result(request, slug, run_id):
     run = _run(journal, request.user, run_id)
     if run.prompt_version == MODULE_PROMPT_VERSION:
         return redirect("site_ai_module_result", slug=slug, run_id=run.pk)
+    if run.prompt_version == PAGE_PROMPT_VERSION:
+        return redirect("journal_page_ai_result", slug=slug, run_id=run.pk)
     choices = []
     if run.status == JournalSiteAIDesignRun.Status.COMPLETED:
         for i, option in enumerate(_options(run)):

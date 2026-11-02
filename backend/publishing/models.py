@@ -134,6 +134,7 @@ class OrganisationAIPolicy(models.Model):
     organisation = models.OneToOneField(Organisation, on_delete=models.PROTECT, related_name="ai_policy")
     portal_design_enabled = models.BooleanField(_("Enable publisher portal AI design"), default=False)
     portal_modules_enabled = models.BooleanField(_("Enable publisher portal AI module arrangement"), default=False)
+    portal_pages_enabled = models.BooleanField(_("Enable AI independent-page suggestions"), default=False)
     portal_daily_limit = models.PositiveSmallIntegerField(_("Publisher portal AI request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)
@@ -172,6 +173,7 @@ class OrganisationPortalAIDesignRun(models.Model):
     site_revision = models.PositiveIntegerField()
     site_fingerprint = models.CharField(max_length=64)
     brief_fingerprint = models.CharField(max_length=64)
+    target_page_slug = models.CharField(max_length=60, blank=True, default="")
     options = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     error_code = models.CharField(max_length=40, blank=True)
@@ -179,6 +181,7 @@ class OrganisationPortalAIDesignRun(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     applied_option = models.PositiveSmallIntegerField(null=True, blank=True)
     applied_revision = models.PositiveIntegerField(null=True, blank=True)
+    applied_option_content = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-pk"]
@@ -301,6 +304,7 @@ class JournalAIPolicy(models.Model):
     allow_editor = models.BooleanField(_("Allow assigned editors to request suggestions"), default=False)
     site_design_enabled = models.BooleanField(_("Enable journal site design suggestions"), default=False)
     site_modules_enabled = models.BooleanField(_("Enable AI module arrangement suggestions"), default=False)
+    site_pages_enabled = models.BooleanField(_("Enable AI independent-page suggestions"), default=False)
     journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)
@@ -344,6 +348,7 @@ class JournalSiteAIDesignRun(models.Model):
     site_revision = models.PositiveIntegerField()
     site_fingerprint = models.CharField(max_length=64)
     brief_fingerprint = models.CharField(max_length=64)
+    target_page_slug = models.CharField(max_length=60, blank=True, default="")
     options = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     error_code = models.CharField(max_length=40, blank=True)
@@ -351,6 +356,7 @@ class JournalSiteAIDesignRun(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     applied_option = models.PositiveSmallIntegerField(null=True, blank=True)
     applied_revision = models.PositiveIntegerField(null=True, blank=True)
+    applied_option_content = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-pk"]

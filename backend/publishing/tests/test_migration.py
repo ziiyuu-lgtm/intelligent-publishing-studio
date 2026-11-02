@@ -414,6 +414,29 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'SiteModuleImageReference').objects.filter(pk=reference19.pk).exists()
 else:
     raise AssertionError('Independent page snapshots must not be silently discarded')
+legacy_pages = [{'slug':'about', 'title':'Old page', 'body':'Old text', 'visible':True}]
+apps.get_model('publishing', 'JournalSiteDraft').objects.filter(pk=site20.pk).update(pages_config=legacy_pages)
+apps.get_model('publishing', 'OrganisationPortalDraft').objects.filter(pk=portal20.pk).update(pages_config=legacy_pages)
+page_ai_scope = ('publishing', '0021_journalaipolicy_site_pages_enabled_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([page_ai_scope])
+apps = executor.loader.project_state([page_ai_scope]).apps
+assert not apps.get_model('publishing', 'JournalAIPolicy').objects.get(pk=policy10.pk).site_pages_enabled
+assert not apps.get_model('publishing', 'OrganisationAIPolicy').objects.get(pk=policy16.pk).portal_pages_enabled
+assert apps.get_model('publishing', 'JournalSiteDraft').objects.get(pk=site20.pk).pages_config == legacy_pages
+assert apps.get_model('publishing', 'OrganisationPortalDraft').objects.get(pk=portal20.pk).pages_config == legacy_pages
+run21 = apps.get_model('publishing', 'JournalSiteAIDesignRun').objects.get(pk=run11.pk)
+portal_run21 = apps.get_model('publishing', 'OrganisationPortalAIDesignRun').objects.get(pk=portal_run16.pk)
+assert run21.target_page_slug == '' and run21.applied_option_content == {}
+assert portal_run21.target_page_slug == '' and portal_run21.applied_option_content == {}
+assert portal_run21.site_fingerprint == 'c'*64
+assert apps.get_model('publishing', 'SiteModuleImageReference').objects.filter(pk=reference19.pk).exists()
+try:
+    MigrationExecutor(connection).migrate([pages_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'JournalSiteAIDesignRun').objects.filter(pk=run11.pk).exists()
+else:
+    raise AssertionError('Page AI history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

@@ -1,5 +1,6 @@
 """Manage and render independent pages in the isolated local site simulator."""
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
@@ -14,6 +15,8 @@ from .module_images import image_choices, images_valid, sync_image_references
 from .portal_sections import InvalidSections as InvalidPortalSections, validate_sections as validate_portal_sections
 from .portal_views import (_event as portal_event, _fingerprint as portal_fingerprint, _organisation,
                            _site as portal_site, _valid_snapshot)
+from .page_design import page_appearance
+from .page_ai_provider import PROMPT_VERSION
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, appearance_for, validate_blueprint
 from .site_images import hero_reference_valid
@@ -68,12 +71,22 @@ def _editor(request, slug, kind, formset=None, status=200):
         raise Http404 from exc
     if formset is None:
         formset = SitePageFormSet(prefix="pages", initial=initial, form_kwargs={"image_choices":image_choices(site)})
+    from .ai_views import _policy as journal_policy, _provider_configured
+    from .portal_policy_views import _policy as publisher_policy
+    import uuid
+    policy = journal_policy(owner) if kind == "journal" else publisher_policy(owner)
+    enabled = bool(policy and (policy.site_pages_enabled if kind == "journal" else policy.portal_pages_enabled))
     return _no_index(render(request, "publishing/manage_site_pages.html", {
         "owner":owner, "site":site, "kind":kind, "page_formset":formset,
         "fingerprint":_fingerprint(site, kind),
         "save_route":"save_journal_pages" if kind == "journal" else "save_publisher_pages",
         "manage_route":"manage_journal_site" if kind == "journal" else "manage_publisher_portal",
         "preview_route":"preview_journal_page" if kind == "journal" else "preview_publisher_page",
+        "page_options":initial, "ai_page_enabled":enabled, "ai_provider_configured":_provider_configured(),
+        "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
+        "ai_request_id":uuid.uuid4(), "ai_page_runs":site.ai_design_runs.filter(requested_by=request.user, prompt_version=PROMPT_VERSION)[:10],
+        "ai_request_route":"request_journal_page_ai" if kind == "journal" else "request_publisher_page_ai",
+        "ai_result_route":"journal_page_ai_result" if kind == "journal" else "publisher_page_ai_result",
     }, status=status))
 
 
@@ -108,7 +121,7 @@ def _save(request, slug, kind):
     return redirect("manage_journal_pages" if kind == "journal" else "manage_publisher_pages", slug=slug)
 
 
-def _page(request, slug, page_slug, kind, preview):
+def _page(request, slug, page_slug, kind, preview, page_override=None, expected=None, ai_apply_url="", ai_revision=None):
     _enabled()
     if preview:
         owner, site = _managed(request.user, slug, kind)
@@ -123,12 +136,26 @@ def _page(request, slug, page_slug, kind, preview):
         design = site.current_release
     if not preview and design.site_id != site.pk:
         raise Http404
+    if expected is not None and (site.revision, _fingerprint(site, kind)) != expected:
+        return HttpResponse(_("The site draft changed; request new suggestions."), status=409)
     pages = _valid_design(site, design, kind, site if preview else design)
     if pages is None:
         raise Http404
     page = next((entry for entry in pages if entry["slug"] == page_slug and (preview or entry["visible"])), None)
     if page is None:
         raise Http404
+    if page_override is not None:
+        if not preview:
+            raise Http404
+        try:
+            candidate = validate_pages([page_override])[0]
+        except InvalidPages as exc:
+            raise Http404 from exc
+        protected = ("slug", "visible", "image_asset_id", "image_alt", "image_fit", "image_position")
+        if any(candidate.get(key) != page.get(key) for key in protected):
+            raise Http404
+        page = candidate
+        pages = [candidate if entry["slug"] == page_slug else entry for entry in pages]
     image_url = ""
     if page.get("image_asset_id"):
         image_route = ("private_journal_image" if kind == "journal" else "private_portal_image") if preview else (
@@ -138,6 +165,9 @@ def _page(request, slug, page_slug, kind, preview):
         "public_journal_site" if kind == "journal" else "public_publisher_portal")
     return _no_index(render(request, "publishing/site_page.html", {
         "owner":owner, "design":design, "page":page, "preview":preview, "kind":kind,
+        "ai_page_preview":page_override is not None,
+        "ai_apply_url":ai_apply_url, "ai_revision":ai_revision,
+        "page_appearance":page_appearance(page["design"]) if page.get("design") else None,
         "appearance":appearance_for(design.design_config) if design.design_config else None,
         "home_url":reverse(home_route, args=[slug]), "image_url":image_url,
         "page_navigation":page_navigation(pages, kind, slug, preview),
