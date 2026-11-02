@@ -4660,3 +4660,72 @@ msgstr "期限已发生变化，请重新加载页面后再保存。"
 
 msgid "Deadline saved locally. No email was sent."
 msgstr "期限已在本地保存，系统未发送邮件。"
+
+msgid "Review invitation"
+msgstr "审稿邀请"
+
+msgid "Review deadline changed"
+msgstr "审稿期限已调整"
+
+msgid "Review notifications"
+msgstr "审稿通知"
+
+msgid "REVIEWER WORKSPACE"
+msgstr "审稿人工作区"
+
+msgid "See invitation and deadline updates for your review tasks."
+msgstr "集中查看分配给您的审稿邀请和期限变更。"
+
+msgid "Fictional test data only. Notices are shown in this account; no email, scheduled reminder or external message is sent."
+msgstr "仅使用虚构测试数据。通知仅显示在本账户内，不发送邮件、定时提醒或站外消息。"
+
+msgid "YOUR NOTICES"
+msgstr "我的通知"
+
+msgid "Your review updates"
+msgstr "我的审稿动态"
+
+msgid "Unread"
+msgstr "未读"
+
+msgid "unread"
+msgstr "条未读"
+
+msgid "Filter notifications"
+msgstr "筛选通知"
+
+msgid "All"
+msgstr "全部"
+
+msgid "Unread only"
+msgstr "仅看未读"
+
+msgid "Your review notices"
+msgstr "您的审稿通知"
+
+msgid "Read"
+msgstr "已读"
+
+msgid "An invitation was recorded for your account. Open the task to respond and declare any conflict."
+msgstr "您的账户收到一项审稿邀请。请打开任务作出回复并声明可能的利益冲突。"
+
+msgid "The review deadline changed. Open the task for the current date and status."
+msgstr "审稿截止日期发生变化。请打开任务查看当前期限及状态。"
+
+msgid "Open review task"
+msgstr "打开审稿任务"
+
+msgid "Mark as read"
+msgstr "标记已读"
+
+msgid "No review notifications match this filter."
+msgstr "没有符合筛选条件的审稿通知。"
+
+msgid "Notification pages"
+msgstr "通知分页"
+
+msgid "Notice marked as read in this local test account."
+msgstr "通知已在本地测试账户中标记为已读。"
+
+msgid "PRIVATE REVIEWER WORKSPACE"
+msgstr "审稿人私密工作区"

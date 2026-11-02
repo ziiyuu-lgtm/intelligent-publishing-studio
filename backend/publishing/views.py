@@ -14,10 +14,11 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
 from .author_responses import author_responses_ready, is_response_participant
 from .contributor_evidence import all_confirmations_intact, confirmation_rows
+from .review_notices import visible_review_notices
 from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
                            MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
 from .models import (ConflictDeclaration, ContributorChangeRequest, ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
-                     PublicationDraft, ReviewAssignment, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
+                     PublicationDraft, ReviewAssignment, ReviewNotice, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
 CONTRIBUTOR_CHANGE_STATUSES = (*ACTIVE_REVIEW_STATUSES, Submission.Status.REVISION_REQUESTED)
@@ -199,6 +200,7 @@ def workspace(request):
         "author_journals": author_journals, "authored": authored, "editorial": editorial, "reviews": reviews,
         "production": production, "local_publication_enabled": production_enabled,
         "author_response_tasks": author_response_tasks,
+        "unread_review_notice_count": visible_review_notices(request.user).filter(read_at__isnull=True).count(),
         "site_manager_journals": site_manager_journals,
         "ai_manager_journals": ai_manager_journals,
         "portal_organisations": portal_organisations,
@@ -764,6 +766,8 @@ def review_invite(request, pk):
             submission=submission, round=review_round, reviewer=reviewer, defaults={"invited_by": request.user},
         )
         if created:
+            ReviewNotice.objects.create(assignment=assignment, recipient_id=assignment.reviewer_id,
+                                        kind=ReviewNotice.Kind.INVITATION, revision=0)
             if submission.status == Submission.Status.SUBMITTED:
                 submission.status = Submission.Status.UNDER_REVIEW
                 submission.save(update_fields=["status"])

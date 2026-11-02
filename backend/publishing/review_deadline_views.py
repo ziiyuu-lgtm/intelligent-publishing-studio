@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 
-from .models import Membership, ReviewAssignment, ReviewDeadlineEvent, ReviewRound, Submission, SubmissionVersion
+from .models import Membership, ReviewAssignment, ReviewDeadlineEvent, ReviewNotice, ReviewRound, Submission, SubmissionVersion
 from .views import ACTIVE_REVIEW_STATUSES, _editor_can_view, _editorial_submissions, _event, _open_round, _submission
 
 OPEN_TASK_STATUSES = (ReviewAssignment.Status.INVITED, ReviewAssignment.Status.ACCEPTED)
@@ -122,6 +122,8 @@ def manage_review_deadline(request, pk):
                 assignment.save(update_fields=["due_on", "deadline_revision"])
                 ReviewDeadlineEvent.objects.create(assignment=assignment, previous_date=old_date, new_date=due_on,
                     revision=assignment.deadline_revision, reason=form.cleaned_data["reason"], recorded_by=request.user)
+                ReviewNotice.objects.create(assignment=assignment, recipient_id=assignment.reviewer_id, kind=ReviewNotice.Kind.DEADLINE,
+                    revision=assignment.deadline_revision)
                 _event(submission, request.user, "review_deadline_changed")
         messages.success(request, _("Deadline saved locally. No email was sent."))
         return redirect("manage_review_deadline", pk=pk)

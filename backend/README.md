@@ -185,3 +185,8 @@ Editors can open a read-only overview of pending author-change requests for manu
 ## Review deadlines and progress
 
 An assigned editor can set, change or remove a date-only review deadline for an invited or accepted task in the current open round. Dates are UTC through the end of the named day; a past date is overdue from the next UTC day. Dates are optional and migrated tasks start without a deadline. Migration 0028 preserves existing review assignments and cannot be reversed without restoring a backup. A reason, actor, previous date, new date and revision are recorded for editors. Reviewers see only their own current date, not the private reasons. A read-only editor dashboard tracks current assigned tasks by status, overdue and missing deadline. Expiry does not decline an invitation, block a report, send a reminder or make any editorial decision. No mail, scheduled job or AI request is involved. Use only fictional test data.
+
+
+## Local review notifications
+
+New review invitations and actual deadline changes create private in-app notices for the assigned reviewer, bound to that account and assignment. The reviewer can filter unread notices, open their own task and mark individual notices read. Each access is checked against the current journal role and review-task permissions; a later reassignment does not transfer old notices. A deadline notice prompts the reviewer to view the current date rather than storing or exposing an obsolete date or the editor’s private reason. Existing assignments are preserved without inferred historical notifications by migration 0029. There are no automatic timed reminders, emails, external messages or AI requests. Use fictional data in isolated local testing only.

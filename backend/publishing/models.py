@@ -650,6 +650,31 @@ class ReviewDeadlineEvent(models.Model):
         constraints = [models.UniqueConstraint(fields=["assignment", "revision"], name="unique_review_deadline_revision")]
 
 
+class ReviewNotice(models.Model):
+    """Private in-app notice linked to one existing fictional review task."""
+    class Kind(models.TextChoices):
+        INVITATION = "invitation", _("Review invitation")
+        DEADLINE = "deadline", _("Review deadline changed")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assignment = models.ForeignKey(ReviewAssignment, on_delete=models.PROTECT, related_name="notices")
+    # Pin the recipient at creation; a later account change must not transfer history.
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_notices")
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    # Invitation uses revision zero; deadline notices use the recorded deadline revision.
+    revision = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["assignment", "kind", "revision"], name="unique_review_notice_event"),
+            models.CheckConstraint(condition=(models.Q(kind="invitation", revision=0) |
+                models.Q(kind="deadline", revision__gte=1)), name="valid_review_notice_event"),
+        ]
+
+
 class ConflictDeclaration(models.Model):
     class Choice(models.TextChoices):
         NONE = "none", _("No conflict declared")

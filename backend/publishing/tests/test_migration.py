@@ -545,6 +545,20 @@ except IrreversibleError:
     assert Assignment28.objects.filter(pk=assignment.pk).exists()
 else:
     raise AssertionError('Review deadline history must not be silently discarded')
+notice_scope = ('publishing', '0029_review_notices')
+executor = MigrationExecutor(connection)
+executor.migrate([notice_scope])
+apps = executor.loader.project_state([notice_scope]).apps
+Assignment29 = apps.get_model('publishing', 'ReviewAssignment')
+Notice29 = apps.get_model('publishing', 'ReviewNotice')
+assert Assignment29.objects.filter(pk=assignment.pk).exists()
+assert not Notice29.objects.exists(), 'No historical notices may be inferred'
+try:
+    MigrationExecutor(connection).migrate([deadline_scope])
+except IrreversibleError:
+    assert Assignment29.objects.filter(pk=assignment.pk).exists()
+else:
+    raise AssertionError('Review notice history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
