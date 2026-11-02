@@ -95,6 +95,20 @@ except IrreversibleError:
     assert Journal4.objects.get(pk=journal.pk).allow_openai_metadata is False
 else:
     raise AssertionError('AI consent migration must not silently discard records')
+editor_scope = ('publishing', '0005_alter_membership_role_editorialassignment')
+executor = MigrationExecutor(connection)
+executor.migrate([editor_scope])
+apps = executor.loader.project_state([editor_scope]).apps
+Submission5 = apps.get_model('publishing', 'Submission')
+Assignment5 = apps.get_model('publishing', 'EditorialAssignment')
+assert Submission5.objects.get(pk=submission.pk).title == 'Synthetic'
+assert not Assignment5.objects.exists(), 'No legacy editor should receive an inferred assignment'
+try:
+    MigrationExecutor(connection).migrate([ai])
+except IrreversibleError:
+    assert Submission5.objects.filter(pk=submission.pk).exists()
+else:
+    raise AssertionError('Editorial assignment history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

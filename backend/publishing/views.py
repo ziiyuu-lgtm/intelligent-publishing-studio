@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Exists, OuterRef
@@ -10,7 +11,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
-from .models import (ConflictDeclaration, EditorialDecision, Journal, Membership, ReviewAssignment, ReviewRound,
+from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, Membership, ReviewAssignment, ReviewRound,
                      Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
@@ -30,7 +31,15 @@ def _editor_can_view(user, submission):
     # Authors and any assigned reviewer cannot act as editor for this submission.
     return (submission.author_id != user.pk and submission.status != Submission.Status.DRAFT
             and _has_role(user, submission.journal, Membership.Role.EDITOR)
+            and submission.editor_assignments.filter(editor=user, status=EditorialAssignment.Status.ACTIVE).exists()
             and not submission.reviews.filter(reviewer=user).exists())
+
+
+def _can_coordinate(user, submission):
+    return (submission.status != Submission.Status.DRAFT and submission.author_id != user.pk
+            and _has_role(user, submission.journal, Membership.Role.COORDINATOR)
+            and not submission.reviews.filter(reviewer=user).exists()
+            and not submission.editor_assignments.filter(editor=user, status=EditorialAssignment.Status.RECUSED).exists())
 
 
 def _author_can_view(user, submission):
@@ -104,6 +113,7 @@ def workspace(request):
     editorial = Submission.objects.filter(
         journal__in=visible_journals, journal__memberships__user=request.user,
         journal__memberships__role=Membership.Role.EDITOR, journal__memberships__active=True,
+        editor_assignments__editor=request.user, editor_assignments__status=EditorialAssignment.Status.ACTIVE,
     ).exclude(author=request.user).exclude(reviews__reviewer=request.user).exclude(status=Submission.Status.DRAFT).select_related("journal", "author").distinct().annotate(
         has_reported_conflict=Exists(ReviewAssignment.objects.filter(submission_id=OuterRef("pk"), conflict=ReviewAssignment.Conflict.YES)))
     reviews = ReviewAssignment.objects.filter(
@@ -114,7 +124,102 @@ def workspace(request):
     ).exclude(submission__author=request.user).select_related("submission__journal", "round").distinct()
     return render(request, "publishing/workspace.html", {
         "author_journals": author_journals, "authored": authored, "editorial": editorial, "reviews": reviews,
+        "is_coordinator": Membership.objects.filter(user=request.user, role=Membership.Role.COORDINATOR,
+             active=True, journal__active=True, journal__organisation__active=True).exists(),
     })
+
+
+@login_required
+@never_cache
+@require_GET
+def coordination_workspace(request):
+    submissions = Submission.objects.filter(
+        journal__active=True, journal__organisation__active=True,
+        journal__memberships__user=request.user, journal__memberships__role=Membership.Role.COORDINATOR,
+        journal__memberships__active=True,
+    ).exclude(status=Submission.Status.DRAFT).exclude(author=request.user).exclude(
+        reviews__reviewer=request.user).exclude(
+        Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("pk"), editor=request.user,
+                                                  status=EditorialAssignment.Status.RECUSED))
+    ).select_related("journal").distinct().order_by("-submitted_at")
+    return render(request, "publishing/coordination_workspace.html", {"submissions": submissions})
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
+def submission_editors(request, pk):
+    submission = _submission(pk)
+    if not _can_coordinate(request.user, submission):
+        raise Http404
+    if request.method == "POST":
+        try:
+            editor_id = int(request.POST.get("editor", ""))
+            if editor_id < 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            return HttpResponse(_("Choose an eligible editor."), status=400)
+        with transaction.atomic():
+            submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
+            if not _can_coordinate(request.user, submission):
+                raise Http404
+            editor = get_user_model().objects.filter(pk=editor_id, is_active=True).first()
+            if (not editor or editor.pk in (submission.author_id, request.user.pk) or
+                    not _has_role(editor, submission.journal, Membership.Role.EDITOR) or
+                    submission.reviews.filter(reviewer=editor).exists() or
+                    submission.editor_assignments.filter(editor=editor, status=EditorialAssignment.Status.RECUSED).exists()):
+                return HttpResponse(_("Choose an eligible editor."), status=400)
+            assignment, created = EditorialAssignment.objects.get_or_create(submission=submission, editor=editor,
+                status=EditorialAssignment.Status.ACTIVE, defaults={"assigned_by": request.user})
+            if created:
+                _event(submission, request.user, "editor_assigned")
+        messages.success(request, _("Editor assignment recorded.") if created else _("This editor is already assigned."))
+        return redirect("submission_editors", pk=pk)
+    excluded = [submission.author_id, request.user.pk]
+    excluded += list(submission.reviews.values_list("reviewer_id", flat=True))
+    excluded += list(submission.editor_assignments.filter(status__in=[EditorialAssignment.Status.ACTIVE,
+                              EditorialAssignment.Status.RECUSED]).values_list("editor_id", flat=True))
+    candidates = get_user_model().objects.filter(is_active=True, journal_memberships__journal=submission.journal,
+        journal_memberships__role=Membership.Role.EDITOR, journal_memberships__active=True).exclude(pk__in=excluded).distinct().order_by("username")
+    history = submission.editor_assignments.select_related("editor", "assigned_by", "ended_by")
+    return render(request, "publishing/submission_editors.html", {"submission": submission, "candidates": candidates, "assignments": history})
+
+
+@login_required
+@never_cache
+@require_POST
+def remove_editor_assignment(request, pk):
+    with transaction.atomic():
+        assignment = get_object_or_404(EditorialAssignment.objects.select_for_update().select_related(
+            "submission__journal__organisation"), pk=pk)
+        submission = assignment.submission
+        if not _can_coordinate(request.user, submission):
+            raise Http404
+        if assignment.status != EditorialAssignment.Status.ACTIVE:
+            return HttpResponse(_("This assignment is no longer active."), status=409)
+        assignment.status, assignment.ended_at, assignment.ended_by = EditorialAssignment.Status.REVOKED, timezone.now(), request.user
+        assignment.save(update_fields=["status", "ended_at", "ended_by"])
+        _event(submission, request.user, "editor_assignment_removed")
+    return redirect("submission_editors", pk=submission.pk)
+
+
+@login_required
+@never_cache
+@require_POST
+def recuse_editor(request, pk):
+    with transaction.atomic():
+        assignment = get_object_or_404(EditorialAssignment.objects.select_for_update().select_related(
+            "submission__journal__organisation"), pk=pk, editor=request.user)
+        submission = assignment.submission
+        if assignment.status != EditorialAssignment.Status.ACTIVE or not _editor_can_view(request.user, submission):
+            raise Http404
+        if request.POST.get("confirm") != "yes":
+            return HttpResponse(_("Confirm your recusal."), status=400)
+        assignment.status, assignment.ended_at, assignment.ended_by = EditorialAssignment.Status.RECUSED, timezone.now(), request.user
+        assignment.save(update_fields=["status", "ended_at", "ended_by"])
+        _event(submission, request.user, "editor_recused")
+    messages.success(request, _("Your recusal was recorded and editorial access ended."))
+    return redirect("workspace")
 
 
 @login_required
@@ -163,6 +268,7 @@ def submission_detail(request, pk):
                "versions": submission.versions.all(), "decisions": submission.decisions.select_related("round"),
                "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version))}
     if editor_view:
+        context["my_editorial_assignment"] = submission.editor_assignments.get(editor=request.user, status=EditorialAssignment.Status.ACTIVE)
         context["has_reported_conflict"] = submission.reviews.filter(conflict=ReviewAssignment.Conflict.YES).exists()
         if submission.status in ACTIVE_REVIEW_STATUSES and review_round:
             context["invite_form"] = InviteForm(submission=submission, actor=request.user)
@@ -328,6 +434,7 @@ def review_invite(request, pk):
             raise Http404
         if (submission.reviews.filter(invited_by=reviewer).exists() or
                 submission.decisions.filter(decided_by=reviewer).exists() or
+                submission.editor_assignments.filter(editor=reviewer).exists() or
                 Membership.objects.filter(user=reviewer, journal=submission.journal, role=Membership.Role.EDITOR).exists()):
             raise Http404
         assignment, created = ReviewAssignment.objects.get_or_create(

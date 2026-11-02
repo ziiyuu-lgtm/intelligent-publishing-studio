@@ -84,6 +84,7 @@ class InviteForm(forms.Form):
         super().__init__(*args, **kwargs)
         prior_editors = list(submission.reviews.values_list("invited_by_id", flat=True))
         prior_editors += list(submission.decisions.values_list("decided_by_id", flat=True))
+        prior_editors += list(submission.editor_assignments.values_list("editor_id", flat=True))
         prior_editors += list(Membership.objects.filter(journal=submission.journal, role=Membership.Role.EDITOR).values_list("user_id", flat=True))
         self.fields["reviewer"].queryset = get_user_model().objects.filter(
             journal_memberships__journal=submission.journal,

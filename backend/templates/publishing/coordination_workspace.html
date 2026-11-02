@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<a class="back" href="{% url 'workspace' %}">← {% translate "Back to workspace" %}</a>
+<div class="page-intro"><span class="eyebrow">{% translate "EDITORIAL COORDINATION" %}</span><h1>{% translate "Manage editor assignments" %}</h1><p>{% translate "This queue shows titles and assignment information only. A coordinator needs a separate editor assignment to access manuscript files and reports." %}</p></div>
+<section class="card panel"><div class="list">{% for submission in submissions %}<a class="list-row" href="{% url 'submission_editors' submission.pk %}"><span><strong>{{ submission.title }}</strong><small>{{ submission.journal.name }}</small></span><span class="status">{{ submission.get_status_display }}</span></a>{% empty %}<p class="muted">{% translate "No submissions available for coordination." %}</p>{% endfor %}</div></section>
+{% endblock %}

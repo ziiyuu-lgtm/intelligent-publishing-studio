@@ -4,6 +4,10 @@ from . import ai_views, views
 urlpatterns = [
     path("", views.home, name="home"),
     path("workspace/", views.workspace, name="workspace"),
+    path("coordination/", views.coordination_workspace, name="coordination_workspace"),
+    path("submissions/<uuid:pk>/editors/", views.submission_editors, name="submission_editors"),
+    path("editorial-assignments/<int:pk>/remove/", views.remove_editor_assignment, name="remove_editor_assignment"),
+    path("editorial-assignments/<int:pk>/recuse/", views.recuse_editor, name="recuse_editor"),
     path("journals/<slug:slug>/new/", views.submission_create, name="submission_create"),
     path("submissions/<uuid:pk>/", views.submission_detail, name="submission_detail"),
     path("submissions/<uuid:pk>/submit/", views.submission_submit, name="submission_submit"),

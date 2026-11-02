@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from publishing.ai_provider import OPENAI_RESPONSES_URL, PROMPT_VERSION, ProviderError, _NoRedirect, _parse_response, metadata_fingerprint
-from publishing.models import AIConsent, AIAssistanceRun, Journal, Membership, Organisation, Submission, SubmissionVersion
+from publishing.models import AIConsent, AIAssistanceRun, EditorialAssignment, Journal, Membership, Organisation, Submission, SubmissionVersion
 
 
 def mock_response(evidence="Fictional abstract.", observation="Clarify this sentence.", suggestion="Use a more specific phrase."):
@@ -36,6 +36,7 @@ class AIWorkflowTests(TestCase):
         cls.submission = Submission.objects.create(journal=cls.journal, author=cls.author, title="Fictional title", abstract="Fictional abstract.",
                           manuscript="manuscripts/fake.pdf", status=Submission.Status.SUBMITTED)
         cls.version = SubmissionVersion.objects.create(submission=cls.submission, number=1, manuscript="manuscripts/fake.pdf", uploaded_by=cls.author)
+        EditorialAssignment.objects.create(submission=cls.submission, editor=cls.editor, assigned_by=cls.editor)
 
     def setUp(self):
         self.environment = patch.dict(os.environ, {"OPENAI_API_KEY":"synthetic-key-only"})
@@ -265,6 +266,25 @@ class AIWorkflowTests(TestCase):
         self.run_request(actor=self.editor)
         run = AIAssistanceRun.objects.get()
         Membership.objects.filter(user=self.editor, journal=self.journal, role=Membership.Role.EDITOR).update(active=False)
+        self.assertEqual(self.client.get(reverse("ai_result", args=[run.pk])).status_code, 404)
+
+    def test_editor_assignment_removed_before_sending_cancels_request(self):
+        self.grant()
+        def remove_assignment(submission, actor, action):
+            if action == "ai_suggestion_requested":
+                EditorialAssignment.objects.filter(submission=submission, editor=self.editor).update(status="revoked")
+        with patch("publishing.ai_views._event", side_effect=remove_assignment):
+            self.assertEqual(self.run_request(actor=self.editor).status_code, 302)
+        self.assertEqual(AIAssistanceRun.objects.get().status, AIAssistanceRun.Status.CANCELLED)
+        self.transport_mock.assert_not_called()
+
+    def test_ai_result_access_ends_when_editor_assignment_is_removed(self):
+        self.grant()
+        self.transport_mock.side_effect = None
+        self.transport_mock.return_value = mock_response()
+        self.run_request(actor=self.editor)
+        run = AIAssistanceRun.objects.get()
+        EditorialAssignment.objects.filter(submission=self.submission, editor=self.editor).update(status="revoked")
         self.assertEqual(self.client.get(reverse("ai_result", args=[run.pk])).status_code, 404)
 
     def test_checks_page_supports_simplified_chinese(self):

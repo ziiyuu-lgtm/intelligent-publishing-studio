@@ -6,7 +6,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from unittest.mock import patch
 from pathlib import Path
-from publishing.models import (ConflictDeclaration, EditorialDecision, Journal, Membership, Organisation, ReviewAssignment,
+from publishing.models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, Membership, Organisation, ReviewAssignment,
                                ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 PDF = b"%PDF-1.4\n% fictional test document\n%%EOF\n"
@@ -30,6 +30,7 @@ class WorkflowTests(TestCase):
         users = get_user_model().objects
         self.author = users.create_user("writer", password="a-long-synthetic-password")
         self.editor = users.create_user("editor", password="a-long-synthetic-password")
+        self.coordinator = users.create_user("coordinator", password="a-long-synthetic-password")
         self.reviewer = users.create_user("reviewer", password="a-long-synthetic-password")
         self.other_editor = users.create_user("other-editor", password="a-long-synthetic-password")
         self.other_reviewer = users.create_user("other-reviewer", password="a-long-synthetic-password")
@@ -40,6 +41,7 @@ class WorkflowTests(TestCase):
         for user, journal, role in [
             (self.author, self.journal, Membership.Role.AUTHOR),
             (self.editor, self.journal, Membership.Role.EDITOR),
+            (self.coordinator, self.journal, Membership.Role.COORDINATOR),
             (self.reviewer, self.journal, Membership.Role.REVIEWER),
             (self.other_editor, self.other, Membership.Role.EDITOR),
             (self.other_reviewer, self.other, Membership.Role.REVIEWER),
@@ -60,6 +62,7 @@ class WorkflowTests(TestCase):
         response = self.client.post(reverse("submission_submit", args=[submission.pk]))
         self.assertEqual(response.status_code, 302)
         submission.refresh_from_db()
+        EditorialAssignment.objects.create(submission=submission, editor=self.editor, assigned_by=self.coordinator)
 
     def invite(self, submission):
         self.client.force_login(self.editor)
@@ -387,8 +390,9 @@ class WorkflowTests(TestCase):
         Membership.objects.create(user=self.editor, journal=self.journal, role=Membership.Role.REVIEWER)
         second_editor = get_user_model().objects.create_user("second-editor", password="a-long-synthetic-password")
         Membership.objects.create(user=second_editor, journal=self.journal, role=Membership.Role.EDITOR)
+        EditorialAssignment.objects.create(submission=submission, editor=second_editor, assigned_by=self.coordinator)
         self.client.force_login(second_editor)
-        self.client.post(reverse("review_invite", args=[submission.pk]), {"reviewer": self.editor.pk})
+        self.assertEqual(self.client.post(reverse("review_invite", args=[submission.pk]), {"reviewer": self.editor.pk}).status_code, 302)
         self.assertFalse(ReviewAssignment.objects.filter(submission=submission, reviewer=self.editor).exists())
 
     def test_new_decision_form_is_available_in_simplified_chinese(self):
