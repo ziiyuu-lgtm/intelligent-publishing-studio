@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from .models import EditorialDecision, Journal, Membership, ReviewAssignment, Submission
+from .models import EditorialDecision, Journal, Membership, PublicationDraft, ReviewAssignment, Submission
 
 MAX_MANUSCRIPT_BYTES = 10 * 1024 * 1024
 
@@ -110,3 +110,24 @@ class ReportForm(forms.ModelForm):
         if not value:
             raise forms.ValidationError(_("Please provide comments."))
         return value
+
+
+class PublicationMetadataForm(forms.ModelForm):
+    class Meta:
+        model = PublicationDraft
+        fields = ["title", "authors", "abstract"]
+        widgets = {"authors": forms.Textarea(attrs={"rows": 3}), "abstract": forms.Textarea(attrs={"rows": 6})}
+
+    def clean_authors(self):
+        value = self.cleaned_data["authors"].strip()
+        if not value:
+            raise forms.ValidationError(_("Provide fictional author names."))
+        return value
+
+
+class PublicationProofForm(forms.Form):
+    file = forms.FileField(label=_("Fictional publication PDF"), widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
+    synthetic = forms.BooleanField(label=_("I confirm this PDF contains only fictional test data."))
+
+    def clean_file(self):
+        return validate_pdf(self.cleaned_data["file"])

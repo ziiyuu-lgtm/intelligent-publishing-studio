@@ -257,6 +257,48 @@ class EditorialDecision(models.Model):
         ordering = ["round__number"]
 
 
+def publication_proof_path(instance, filename):
+    return f"publication-proofs/{uuid.uuid4().hex}.pdf"
+
+
+class PublicationDraft(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.OneToOneField(Submission, on_delete=models.PROTECT, related_name="publication_draft")
+    decision = models.OneToOneField(EditorialDecision, on_delete=models.PROTECT, related_name="publication_draft")
+    title = models.CharField(_("Public title"), max_length=250)
+    authors = models.TextField(_("Public author names"), max_length=2000, blank=True)
+    abstract = models.TextField(_("Public abstract"), max_length=10000)
+    revision = models.PositiveIntegerField(default=1)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="publication_drafts_created")
+    created_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="test_publications")
+    published_proof = models.ForeignKey("PublicationProof", on_delete=models.PROTECT, null=True, blank=True, related_name="published_in")
+
+
+class PublicationProof(models.Model):
+    draft = models.ForeignKey(PublicationDraft, on_delete=models.PROTECT, related_name="proofs")
+    file = models.FileField(_("Publication PDF"), upload_to=publication_proof_path, max_length=255)
+    sha256 = models.CharField(max_length=64)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-pk"]
+
+
+class PublicationApproval(models.Model):
+    draft = models.ForeignKey(PublicationDraft, on_delete=models.PROTECT, related_name="approvals")
+    proof = models.ForeignKey(PublicationProof, on_delete=models.PROTECT, related_name="approvals")
+    revision = models.PositiveIntegerField()
+    fingerprint = models.CharField(max_length=64)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["draft", "revision", "proof", "approved_by"], name="unique_publication_approval")]
+
+
 class SubmissionEvent(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="events")
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)

@@ -72,3 +72,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # explicit author consent for the exact metadata, and confirmation per request.
 IPS_OPENAI_ENABLED = os.environ.get("IPS_OPENAI_ENABLED") == "1"
 IPS_OPENAI_MODEL = os.environ.get("IPS_OPENAI_MODEL", "").strip()
+
+# Only for locally bound, fictional-data publishing demonstrations.
+IPS_LOCAL_PUBLICATION_ENABLED = DEBUG and os.environ.get("IPS_LOCAL_PUBLICATION_ENABLED") == "1"

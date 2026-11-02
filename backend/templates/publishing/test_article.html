@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{{ draft.title }} | {{ journal.name }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'journal_test_articles' journal.slug %}">← {{ journal.name }}</a>
+<div class="notice">{% translate "Fictional local test article. This is not a real publication." %}</div>
+<article class="card panel"><span class="eyebrow">{{ journal.name }}</span><h1>{{ draft.title }}</h1><p class="preserve">{{ draft.authors }}</p><p class="muted">{% translate "Test publication date" %}: {{ draft.published_at|date:"Y-m-d" }}</p><h2>{% translate "Abstract" %}</h2><p class="preserve">{{ draft.abstract }}</p><a class="button" href="{% url 'test_article_pdf' journal.slug draft.pk %}">{% translate "Download fictional PDF" %}</a></article>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_views, views
+from . import ai_views, production_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -9,6 +9,9 @@ urlpatterns = [
     path("editorial-assignments/<int:pk>/remove/", views.remove_editor_assignment, name="remove_editor_assignment"),
     path("editorial-assignments/<int:pk>/recuse/", views.recuse_editor, name="recuse_editor"),
     path("journals/<slug:slug>/new/", views.submission_create, name="submission_create"),
+    path("journals/<slug:slug>/test-articles/", production_views.journal_test_articles, name="journal_test_articles"),
+    path("journals/<slug:slug>/test-articles/<uuid:pk>/", production_views.test_article, name="test_article"),
+    path("journals/<slug:slug>/test-articles/<uuid:pk>/pdf/", production_views.test_article_pdf, name="test_article_pdf"),
     path("submissions/<uuid:pk>/", views.submission_detail, name="submission_detail"),
     path("submissions/<uuid:pk>/submit/", views.submission_submit, name="submission_submit"),
     path("submissions/<uuid:pk>/file/", views.submission_file, name="submission_file"),
@@ -18,6 +21,13 @@ urlpatterns = [
     path("submissions/<uuid:pk>/revision/", views.submission_revision, name="submission_revision"),
     path("submissions/<uuid:pk>/decision/", views.editorial_decision, name="editorial_decision"),
     path("submissions/<uuid:pk>/invite/", views.review_invite, name="review_invite"),
+    path("submissions/<uuid:pk>/production/start/", production_views.start_production, name="start_production"),
+    path("production/<uuid:pk>/", production_views.production_detail, name="production_detail"),
+    path("production/<uuid:pk>/metadata/", production_views.edit_production_metadata, name="edit_production_metadata"),
+    path("production/<uuid:pk>/proof/", production_views.upload_publication_proof, name="upload_publication_proof"),
+    path("production/<uuid:pk>/proof/<int:proof_id>/", production_views.private_publication_proof, name="private_publication_proof"),
+    path("production/<uuid:pk>/approve/", production_views.approve_publication_proof, name="approve_publication_proof"),
+    path("production/<uuid:pk>/publish/", production_views.publish_test_article, name="publish_test_article"),
     path("submissions/<uuid:pk>/checks/", ai_views.checks_page, name="checks_page"),
     path("submissions/<uuid:pk>/ai-consent/", ai_views.grant_ai_consent, name="grant_ai_consent"),
     path("ai-consents/<uuid:pk>/revoke/", ai_views.revoke_ai_consent, name="revoke_ai_consent"),

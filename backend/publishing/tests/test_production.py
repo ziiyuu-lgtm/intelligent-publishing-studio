@@ -1,0 +1,260 @@
+import shutil
+import tempfile
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
+from django.urls import reverse
+
+from publishing.models import (EditorialAssignment, EditorialDecision, Journal, Membership, Organisation,
+                               PublicationApproval, PublicationDraft, PublicationProof, ReviewAssignment,
+                               ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
+
+PDF = b"%PDF-1.4\nFictional publication proof\n%%EOF\n"
+
+
+@override_settings(DEBUG=True, IPS_LOCAL_PUBLICATION_ENABLED=True, PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+class ProductionTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.media_dir = tempfile.mkdtemp(prefix="ips-production-tests-")
+        cls.media_override = override_settings(MEDIA_ROOT=cls.media_dir)
+        cls.media_override.enable()
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls.media_override.disable()
+        shutil.rmtree(cls.media_dir, ignore_errors=True)
+
+    @classmethod
+    def setUpTestData(cls):
+        users = get_user_model().objects
+        cls.author = users.create_user("production-author")
+        cls.editor = users.create_user("production-editor")
+        cls.coordinator = users.create_user("production-coordinator")
+        cls.other_editor = users.create_user("unassigned-editor")
+        cls.reviewer = users.create_user("production-reviewer")
+        cls.org = Organisation.objects.create(name="Fictional publisher", slug="production-publisher")
+        cls.journal = Journal.objects.create(organisation=cls.org, name="Fictional journal", slug="production-journal", review_mode="direct")
+        cls.other_journal = Journal.objects.create(organisation=cls.org, name="Other test journal", slug="production-other")
+        for user, role in [(cls.author, "author"), (cls.editor, "editor"), (cls.other_editor, "editor"), (cls.reviewer, "reviewer"), (cls.coordinator, "coordinator")]:
+            Membership.objects.create(user=user, journal=cls.journal, role=role)
+        cls.submission = Submission.objects.create(journal=cls.journal, author=cls.author, title="Fictional original title",
+            abstract="Fictional original abstract", manuscript="manuscripts/original.pdf", status="accepted")
+        cls.version = SubmissionVersion.objects.create(submission=cls.submission, number=1,
+            manuscript="manuscripts/original.pdf", uploaded_by=cls.author)
+        cls.round = ReviewRound.objects.create(submission=cls.submission, version=cls.version, number=1, status="closed")
+        cls.decision = EditorialDecision.objects.create(submission=cls.submission, round=cls.round, outcome="accept",
+                                                        author_message="Accepted for this fictional test.", decided_by=cls.editor)
+        EditorialAssignment.objects.create(submission=cls.submission, editor=cls.editor, assigned_by=cls.coordinator)
+        ReviewAssignment.objects.create(submission=cls.submission, round=cls.round, reviewer=cls.reviewer, invited_by=cls.editor,
+                                        status="submitted", conflict="none", comments="SECRET fictional review")
+
+    def start(self):
+        self.client.force_login(self.editor)
+        result = self.client.post(reverse("start_production", args=[self.submission.pk]), {"synthetic":"yes"})
+        self.assertEqual(result.status_code, 302)
+        return PublicationDraft.objects.get(submission=self.submission)
+
+    def edit(self, draft, **changes):
+        draft.refresh_from_db()
+        self.client.force_login(self.editor)
+        values = {"revision":str(draft.revision), "title":"Fictional public title", "authors":"Fictional Author",
+                  "abstract":"Fictional public abstract"}
+        values.update(changes)
+        return self.client.post(reverse("edit_production_metadata", args=[draft.pk]), values)
+
+    def upload(self, draft, data=PDF):
+        draft.refresh_from_db()
+        self.client.force_login(self.editor)
+        return self.client.post(reverse("upload_publication_proof", args=[draft.pk]), {"revision":str(draft.revision),
+            "synthetic":"on", "file":SimpleUploadedFile("fake.pdf", data, content_type="application/pdf")})
+
+    def confirmation_data(self, draft, actor):
+        self.client.force_login(actor)
+        response = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertEqual(response.status_code, 200)
+        return {"revision":str(response.context["draft"].revision), "proof":str(response.context["proof"].pk),
+                "fingerprint":response.context["fingerprint"], "confirm":"yes", "synthetic":"yes"}
+
+    def approve(self, draft):
+        return self.client.post(reverse("approve_publication_proof", args=[draft.pk]), self.confirmation_data(draft, self.author))
+
+    def publish(self, draft):
+        return self.client.post(reverse("publish_test_article", args=[draft.pk]), self.confirmation_data(draft, self.editor))
+
+    def ready(self):
+        draft = self.start()
+        self.assertEqual(self.edit(draft).status_code, 302)
+        self.assertEqual(self.upload(draft).status_code, 302)
+        return draft
+
+    def test_default_off_and_debug_off_block_all_publication_routes(self):
+        for settings_values in ({"IPS_LOCAL_PUBLICATION_ENABLED":False}, {"DEBUG":False}):
+            with self.subTest(settings_values=settings_values), override_settings(**settings_values):
+                self.client.force_login(self.editor)
+                self.assertEqual(self.client.post(reverse("start_production", args=[self.submission.pk]), {"synthetic":"yes"}).status_code, 404)
+                self.assertEqual(self.client.get(reverse("journal_test_articles", args=[self.journal.slug])).status_code, 404)
+        self.assertFalse(PublicationDraft.objects.exists())
+
+    def test_only_assigned_editor_can_start_after_latest_version_acceptance(self):
+        for user in (self.author, self.reviewer, self.other_editor, self.coordinator):
+            self.client.force_login(user)
+            self.assertEqual(self.client.post(reverse("start_production", args=[self.submission.pk]), {"synthetic":"yes"}).status_code, 404)
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.post(reverse("start_production", args=[self.submission.pk]), {}).status_code, 400)
+        Submission.objects.filter(pk=self.submission.pk).update(status="submitted")
+        self.assertEqual(self.client.post(reverse("start_production", args=[self.submission.pk]), {"synthetic":"yes"}).status_code, 409)
+        Submission.objects.filter(pk=self.submission.pk).update(status="accepted")
+        SubmissionVersion.objects.create(submission=self.submission, number=2, manuscript="manuscripts/new.pdf", uploaded_by=self.author)
+        self.assertEqual(self.client.post(reverse("start_production", args=[self.submission.pk]), {"synthetic":"yes"}).status_code, 409)
+        self.assertFalse(PublicationDraft.objects.exists())
+
+    def test_private_until_author_confirmation_and_explicit_publication(self):
+        draft = self.ready()
+        proof = PublicationProof.objects.get(draft=draft)
+        public_url = reverse("test_article", args=[self.journal.slug, draft.pk])
+        pdf_url = reverse("test_article_pdf", args=[self.journal.slug, draft.pk])
+        anonymous = Client()
+        self.assertEqual(anonymous.get(public_url).status_code, 404)
+        self.assertEqual(anonymous.get(pdf_url).status_code, 404)
+        self.assertNotContains(anonymous.get(reverse("journal_test_articles", args=[self.journal.slug])), "Fictional public title")
+        self.assertEqual(self.publish(draft).status_code, 409)
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.get(reverse("production_detail", args=[draft.pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("private_publication_proof", args=[draft.pk, proof.pk])).status_code, 404)
+        self.client.force_login(self.author)
+        page = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertNotContains(page, "SECRET fictional review")
+        self.assertNotContains(page, self.reviewer.username)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(PublicationApproval.objects.count(), 1)
+        self.assertEqual(self.publish(draft).status_code, 302)
+        public = anonymous.get(public_url)
+        self.assertContains(public, "Fictional public title")
+        self.assertContains(public, "Fictional Author")
+        self.assertNotContains(public, "SECRET fictional review")
+        self.assertNotContains(public, self.reviewer.username)
+        self.assertEqual(public["X-Robots-Tag"], "noindex, nofollow, noarchive")
+        download = anonymous.get(pdf_url)
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(b"".join(download.streaming_content), PDF)
+        self.assertEqual(download["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(anonymous.get(reverse("test_article", args=[self.other_journal.slug, draft.pk])).status_code, 404)
+        self.assertContains(anonymous.get(reverse("journal_test_articles", args=[self.journal.slug])), "Fictional public title")
+        self.assertEqual(self.publish(draft).status_code, 409)
+        self.assertEqual(SubmissionEvent.objects.filter(action="test_article_published").count(), 1)
+        self.assertEqual(self.edit(draft).status_code, 409)
+        self.assertEqual(self.upload(draft).status_code, 409)
+        self.assertEqual(self.approve(draft).status_code, 409)
+        Journal.objects.filter(pk=self.journal.pk).update(active=False)
+        self.assertEqual(anonymous.get(public_url).status_code, 404)
+        self.assertEqual(anonymous.get(pdf_url).status_code, 404)
+
+    def test_author_confirmation_invalidated_by_metadata_and_new_proof(self):
+        draft = self.ready()
+        stale = self.confirmation_data(draft, self.author)
+        self.assertEqual(self.edit(draft, title="Changed fictional title").status_code, 302)
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.post(reverse("approve_publication_proof", args=[draft.pk]), stale).status_code, 409)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.upload(draft, PDF+b"new proof").status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 409)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+        self.assertEqual(PublicationApproval.objects.count(), 2)
+
+    def test_mutated_or_missing_pdf_blocks_confirmation_and_public_download(self):
+        draft = self.ready()
+        proof = PublicationProof.objects.get(draft=draft)
+        with open(proof.file.path, "ab") as output:
+            output.write(b"tampered")
+        self.assertEqual(self.approve(draft).status_code, 409)
+        self.assertFalse(PublicationApproval.objects.exists())
+        self.assertEqual(self.publish(draft).status_code, 409)
+
+    def test_reverted_metadata_still_requires_a_new_confirmation(self):
+        draft = self.ready()
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.edit(draft, title="Changed title").status_code, 302)
+        self.assertEqual(self.edit(draft, title="Fictional public title").status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 409)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+
+    def test_post_publication_pdf_tampering_blocks_public_download(self):
+        draft = self.ready()
+        self.approve(draft)
+        self.publish(draft)
+        proof = PublicationProof.objects.get(draft=draft)
+        with open(proof.file.path, "ab") as output:
+            output.write(b"tampered")
+        self.assertEqual(Client().get(reverse("test_article_pdf", args=[self.journal.slug, draft.pk])).status_code, 404)
+
+    def test_public_metadata_is_escaped(self):
+        draft = self.start()
+        self.assertEqual(self.edit(draft, title="<script>alert(1)</script>").status_code, 302)
+        self.assertEqual(self.upload(draft).status_code, 302)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+        page = Client().get(reverse("test_article", args=[self.journal.slug, draft.pk]))
+        self.assertContains(page, "&lt;script&gt;alert(1)&lt;/script&gt;")
+        self.assertNotContains(page, "<script>alert(1)</script>")
+
+    def test_production_continues_from_editorial_acceptance(self):
+        self.decision.delete()
+        ReviewRound.objects.filter(pk=self.round.pk).update(status="open")
+        Submission.objects.filter(pk=self.submission.pk).update(status="under_review")
+        self.client.force_login(self.editor)
+        response = self.client.post(reverse("editorial_decision", args=[self.submission.pk]),
+                                    {"outcome":"accept", "author_message":"Fictional acceptance"})
+        self.assertEqual(response.status_code, 302)
+        draft = self.ready()
+        self.assertEqual(draft.decision.outcome, "accept")
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+
+    def test_simplified_chinese_production_page(self):
+        draft = self.start()
+        self.client.post(reverse("set_language"), {"language":"zh-hans", "next":"/"})
+        page = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertContains(page, "制作工作台")
+        self.assertContains(page, "公开元数据预览")
+
+    def test_invalid_pdf_and_failed_transaction_leave_no_new_proof(self):
+        from pathlib import Path
+        before = set(Path(self.media_dir).rglob("*.pdf"))
+        draft = self.start()
+        self.edit(draft)
+        self.assertEqual(self.upload(draft, b"not a PDF").status_code, 400)
+        self.assertFalse(PublicationProof.objects.exists())
+        with patch("publishing.production_views._event", side_effect=RuntimeError("synthetic error")):
+            with self.assertRaises(RuntimeError):
+                self.upload(draft)
+        self.assertFalse(PublicationProof.objects.exists())
+        self.assertEqual(set(Path(self.media_dir).rglob("*.pdf")), before)
+
+    def test_removing_editor_assignment_and_disabling_journal_block_access(self):
+        draft = self.ready()
+        EditorialAssignment.objects.filter(editor=self.editor, submission=self.submission).update(status="revoked")
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(reverse("production_detail", args=[draft.pk])).status_code, 404)
+        self.assertEqual(self.edit(draft).status_code, 404)
+        Journal.objects.filter(pk=self.journal.pk).update(active=False)
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.get(reverse("production_detail", args=[draft.pk])).status_code, 404)
+        self.assertEqual(Client().get(reverse("journal_test_articles", args=[self.journal.slug])).status_code, 404)
+
+    def test_csrf_protects_approval_and_publication(self):
+        draft = self.ready()
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.author)
+        self.assertEqual(client.post(reverse("approve_publication_proof", args=[draft.pk]), {}).status_code, 403)
+        client.force_login(self.editor)
+        self.assertEqual(client.post(reverse("publish_test_article", args=[draft.pk]), {}).status_code, 403)
+        self.assertEqual(client.get(reverse("publish_test_article", args=[draft.pk])).status_code, 405)
+        self.assertFalse(PublicationApproval.objects.exists())

@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -100,7 +101,8 @@ def _review_copy_ready(submission, version):
 @require_GET
 def home(request):
     journals = Journal.objects.filter(active=True, organisation__active=True).select_related("organisation").order_by("name")
-    return render(request, "publishing/home.html", {"journals": journals})
+    return render(request, "publishing/home.html", {"journals": journals,
+        "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED})
 
 
 @login_required
@@ -266,7 +268,8 @@ def submission_detail(request, pk):
     review_round = _open_round(submission)
     context = {"submission": submission, "author_view": author_view, "editor_view": editor_view,
                "versions": submission.versions.all(), "decisions": submission.decisions.select_related("round"),
-               "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version))}
+               "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version)),
+               "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED}
     if editor_view:
         context["my_editorial_assignment"] = submission.editor_assignments.get(editor=request.user, status=EditorialAssignment.Status.ACTIVE)
         context["has_reported_conflict"] = submission.reviews.filter(conflict=ReviewAssignment.Conflict.YES).exists()

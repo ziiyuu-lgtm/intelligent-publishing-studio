@@ -109,6 +109,20 @@ except IrreversibleError:
     assert Submission5.objects.filter(pk=submission.pk).exists()
 else:
     raise AssertionError('Editorial assignment history must not be silently discarded')
+production = ('publishing', '0006_publicationdraft_publicationproof_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([production])
+apps = executor.loader.project_state([production]).apps
+Submission6 = apps.get_model('publishing', 'Submission')
+Draft6 = apps.get_model('publishing', 'PublicationDraft')
+assert Submission6.objects.get(pk=submission.pk).title == 'Synthetic'
+assert not Draft6.objects.exists(), 'Old submissions must not be published automatically'
+try:
+    MigrationExecutor(connection).migrate([editor_scope])
+except IrreversibleError:
+    assert Submission6.objects.filter(pk=submission.pk).exists()
+else:
+    raise AssertionError('Production history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
