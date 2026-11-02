@@ -4,6 +4,7 @@ from django.forms import BaseFormSet, formset_factory
 from django.utils.translation import gettext_lazy as _
 from .models import EditorialDecision, Journal, JournalAIPolicy, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
 from .site_design import ALIGNMENTS, COMPOSITIONS, CORNERS, DENSITIES, FONTS, HERO_STYLES, SECTION_ORDERS
+from .module_images import SectionImageForm, form_image_fields
 from .site_sections import (MAX_BODY_LENGTH, MAX_HEADING_LENGTH, MAX_SECTIONS, SECTION_CHOICES,
                             InvalidSections, validate_sections)
 
@@ -180,7 +181,7 @@ class JournalAppearanceForm(forms.Form):
         return data
 
 
-class JournalSectionForm(forms.Form):
+class JournalSectionForm(SectionImageForm):
     kind = forms.ChoiceField(label=_("Module type"), choices=(("", _("Select a module type")), *SECTION_CHOICES))
     heading = forms.CharField(label=_("Custom heading"), max_length=MAX_HEADING_LENGTH, required=False,
         help_text=_("Leave blank to use the module's default heading; custom modules need a heading."))
@@ -202,7 +203,7 @@ class BaseJournalSectionFormSet(BaseFormSet):
                 continue
             order = data.get("ORDER")
             active.append(((order is None, order if order is not None else 0, index),
-                           {key:data[key] for key in ("kind", "heading", "body", "visible")}))
+                           {**{key:data[key] for key in ("kind", "heading", "body", "visible")}, **form_image_fields(data)}))
         try:
             self.cleaned_sections = validate_sections([item for _, item in sorted(active, key=lambda row: row[0])])
         except InvalidSections as exc:

@@ -267,6 +267,27 @@ class SiteImageAsset(models.Model):
             models.Q(journal_site__isnull=True, portal_site__isnull=False)), name="site_image_exactly_one_owner")]
 
 
+class SiteModuleImageReference(models.Model):
+    """Protect images referenced by a draft or an immutable release."""
+    asset = models.ForeignKey(SiteImageAsset, on_delete=models.PROTECT, related_name="module_references")
+    journal_draft = models.ForeignKey(JournalSiteDraft, on_delete=models.CASCADE, null=True, blank=True, related_name="module_image_references")
+    journal_release = models.ForeignKey(JournalSiteRelease, on_delete=models.CASCADE, null=True, blank=True, related_name="module_image_references")
+    portal_draft = models.ForeignKey(OrganisationPortalDraft, on_delete=models.CASCADE, null=True, blank=True, related_name="module_image_references")
+    portal_release = models.ForeignKey(OrganisationPortalRelease, on_delete=models.CASCADE, null=True, blank=True, related_name="module_image_references")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=(
+                models.Q(journal_draft__isnull=False, journal_release__isnull=True, portal_draft__isnull=True, portal_release__isnull=True) |
+                models.Q(journal_draft__isnull=True, journal_release__isnull=False, portal_draft__isnull=True, portal_release__isnull=True) |
+                models.Q(journal_draft__isnull=True, journal_release__isnull=True, portal_draft__isnull=False, portal_release__isnull=True) |
+                models.Q(journal_draft__isnull=True, journal_release__isnull=True, portal_draft__isnull=True, portal_release__isnull=False)
+            ), name="module_image_one_owner"),
+            *[models.UniqueConstraint(fields=["asset", field], name=f"module_image_{field}_uniq")
+              for field in ("journal_draft", "journal_release", "portal_draft", "portal_release")],
+        ]
+
+
 class JournalAIPolicy(models.Model):
     """Fail-closed policies for local metadata and journal site design tasks."""
 

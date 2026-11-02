@@ -22,6 +22,7 @@ from .ai_provider import ProviderError
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since
 from .ai_views import _policy, _provider_configured
 from .models import JournalSiteAIDesignRun, JournalSiteEvent
+from .module_images import images_valid
 from .production_views import _enabled, _no_index
 from .site_ai_modules import (MAX_BRIEF_LENGTH, PROMPT_VERSION, describe_sections, materialize_option,
                               validate_options)
@@ -45,6 +46,9 @@ def _sections(site):
             validate_blueprint(site.design_config)
         if site.sections_config:
             validate_sections(site.sections_config)
+        if not images_valid(site, site.sections_config, site):
+            raise InvalidSections("invalid_image")
+        if site.sections_config:
             return [dict(item) for item in site.sections_config]
         return default_sections(site)
     except (InvalidDesign, InvalidSections) as exc:

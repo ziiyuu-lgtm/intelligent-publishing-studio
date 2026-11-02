@@ -14,6 +14,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .models import (Journal, JournalSiteDraft, JournalSiteEvent, Organisation, OrganisationPortalDraft,
                      SiteImageAsset)
+from .module_images import images_valid
 from .portal_views import (_event as portal_event, _fingerprint as portal_fingerprint, _organisation,
                            _site as portal_site, _valid_snapshot)
 from .portal_sections import InvalidSections as InvalidPortalSections, validate_sections as validate_portal_sections
@@ -78,6 +79,9 @@ def _upload(request, slug, kind):
     _managed(request.user, slug, kind)
     if request.POST.get("synthetic") != "yes":
         return HttpResponse(_("Confirm that the image is fictional test data."), status=400)
+    use_as = request.POST.get("use_as", "hero")
+    if use_as not in ("hero", "library"):
+        return HttpResponse(_("Invalid image upload option."), status=400)
     try:
         alt = _alt(request)
         fit, position = _display(request)
@@ -92,11 +96,14 @@ def _upload(request, slug, kind):
             return HttpResponse(_("This site has reached its local image-library limit."), status=409)
         owner_field = "journal_site" if kind == "journal" else "portal_site"
         asset = SiteImageAsset.objects.create(**{owner_field:site}, **fields, default_alt=alt, uploaded_by=request.user)
-        site.hero_asset, site.hero_alt, site.hero_fit, site.hero_position = asset, alt, fit, position
-        site.revision += 1
-        site.save(update_fields=["hero_asset", "hero_alt", "hero_fit", "hero_position", "revision"])
-        _event(site, request.user, kind, "site_hero_uploaded" if kind == "journal" else "portal_hero_uploaded")
-    messages.success(request, _("Image added to the draft. Preview it before publishing."))
+        if use_as == "hero":
+            site.hero_asset, site.hero_alt, site.hero_fit, site.hero_position = asset, alt, fit, position
+            site.revision += 1
+            site.save(update_fields=["hero_asset", "hero_alt", "hero_fit", "hero_position", "revision"])
+            _event(site, request.user, kind, "site_hero_uploaded" if kind == "journal" else "portal_hero_uploaded")
+        else:
+            _event(site, request.user, kind, "site_image_uploaded" if kind == "journal" else "portal_image_uploaded")
+    messages.success(request, _("Image added to the library. Select it in a page module or as the hero image."))
     return _redirect(slug, kind)
 
 
@@ -183,8 +190,9 @@ def _public_image(slug, asset_id, kind):
         site = get_object_or_404(OrganisationPortalDraft.objects.select_related("current_release"), organisation=owner,
                                  current_release__isnull=False)
     release = site.current_release
-    if release.site_id != site.pk or release.hero_asset_id != asset_id:
+    if release.site_id != site.pk:
         raise Http404
+    sections = []
     try:
         if kind == "journal":
             if release.theme not in JournalSiteDraft.Theme.values or release.layout not in JournalSiteDraft.Layout.values:
@@ -192,16 +200,22 @@ def _public_image(slug, asset_id, kind):
             if release.design_config:
                 validate_blueprint(release.design_config)
             if release.sections_config:
-                validate_journal_sections(release.sections_config)
+                sections = validate_journal_sections(release.sections_config)
         else:
             validate_blueprint(release.design_config)
             if release.sections_config:
-                validate_portal_sections(release.sections_config)
+                sections = validate_portal_sections(release.sections_config)
             if not _valid_snapshot(release.journals):
                 raise ValueError
     except (ValueError, InvalidDesign, InvalidPortalSections, InvalidJournalSections) as exc:
         raise Http404 from exc
-    if not hero_reference_valid(site, asset_id, release.hero_alt, release.hero_fit, release.hero_position):
+    if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
+        raise Http404
+    if not images_valid(site, sections, release):
+        raise Http404
+    visible_images = {section["image_asset_id"] for section in sections
+                      if section["visible"] and section.get("image_asset_id")}
+    if release.hero_asset_id != asset_id and str(asset_id) not in visible_images:
         raise Http404
     asset = get_object_or_404(site.images, pk=asset_id)
     return _image_response(asset)

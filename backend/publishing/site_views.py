@@ -22,6 +22,7 @@ from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, SAMPLES, appearance_for, legacy_to_blueprint, sample_by_id, validate_blueprint
 from .site_sections import InvalidSections, default_sections, validate_sections, visible_sections
 from .site_images import hero_reference_valid
+from .module_images import image_choices, images_valid, sync_image_references
 from .views import _has_role
 
 TEXT_FIELDS = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
@@ -68,6 +69,14 @@ def _render_site(request, journal, design, **context):
         sections = visible_sections(design.sections_config) if design.sections_config else []
     except InvalidSections as exc:
         raise Http404 from exc
+    site = get_object_or_404(JournalSiteDraft, journal=journal)
+    owner = site if context.get("preview") else design
+    if not images_valid(site, design.sections_config, owner):
+        raise Http404
+    for section in sections:
+        if section.get("image_asset_id"):
+            route = "private_journal_image" if context.get("preview") else "public_journal_image"
+            section["image_url"] = reverse(route, args=[journal.slug, section["image_asset_id"]])
     hero_image_url = ""
     if design.hero_asset_id or design.hero_alt or design.hero_fit != "cover" or design.hero_position != "center":
         site = get_object_or_404(JournalSiteDraft, journal=journal)
@@ -92,7 +101,7 @@ def _context(journal, site, form=None, user=None, appearance_form=None, section_
     return {"journal": journal, "site": site, "form": form if form is not None else JournalSiteForm(instance=site),
             "appearance_form": appearance_form if appearance_form is not None else JournalAppearanceForm(initial=initial),
             "design_samples": samples,
-            "section_formset": section_formset if section_formset is not None else JournalSectionFormSet(prefix="sections", initial=section_initial),
+            "section_formset": section_formset if section_formset is not None else JournalSectionFormSet(prefix="sections", initial=section_initial, form_kwargs={"image_choices":image_choices(site)}),
             "fingerprint": _fingerprint(site), "releases": site.releases.select_related("published_by"),
             "ai_design_enabled": bool(policy and policy.site_design_enabled),
             "ai_modules_enabled": bool(policy and policy.site_modules_enabled), "ai_provider_configured": _provider_configured(),
@@ -250,7 +259,7 @@ def edit_site_sections(request, slug):
         initial = validate_sections(site.sections_config) if site.sections_config else default_sections(site)
     except (InvalidDesign, InvalidSections) as exc:
         raise Http404 from exc
-    formset = JournalSectionFormSet(request.POST, prefix="sections", initial=initial)
+    formset = JournalSectionFormSet(request.POST, prefix="sections", initial=initial, form_kwargs={"image_choices":image_choices(site)})
     if not formset.is_valid():
         return render(request, "publishing/manage_journal_site.html", _context(journal, site, user=request.user, section_formset=formset), status=400)
     with transaction.atomic():
@@ -258,7 +267,10 @@ def edit_site_sections(request, slug):
         site = _site(journal, locked=True)
         if _stale(request, site) or request.POST.get("fingerprint") != _fingerprint(site):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
+        if not images_valid(site, formset.cleaned_sections, check_references=False):
+            return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         if site.sections_config != formset.cleaned_sections:
+            sync_image_references(site, site, formset.cleaned_sections)
             site.sections_config = formset.cleaned_sections
             site.revision += 1
             site.save(update_fields=["sections_config", "revision"])
@@ -294,10 +306,13 @@ def publish_journal_site(request, slug):
                 return HttpResponse(_("The page modules are invalid."), status=409)
         if not hero_reference_valid(site, site.hero_asset_id, site.hero_alt, site.hero_fit, site.hero_position):
             return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
+        if not images_valid(site, site.sections_config, site):
+            return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         if site.current_release_id and (site.current_release.site_id != site.pk or site.current_release.revision == site.revision):
             return HttpResponse(_("This version is already published or unavailable."), status=409)
         release = JournalSiteRelease.objects.create(site=site, revision=site.revision, published_by=request.user,
             **{key: getattr(site, key) for key in SITE_FIELDS})
+        sync_image_references(site, release, release.sections_config)
         site.current_release = release
         site.save(update_fields=["current_release"])
         JournalSiteEvent.objects.create(site=site, actor=request.user, action="site_test_published", revision=site.revision, source_release=release)
@@ -332,8 +347,11 @@ def restore_journal_site(request, slug, release_id):
                 return HttpResponse(_("The page modules are invalid."), status=409)
         if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
             return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
+        if not images_valid(site, release.sections_config, release):
+            return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         changed = any(getattr(site, key) != getattr(release, key) for key in SITE_FIELDS)
         if changed:
+            sync_image_references(site, site, release.sections_config)
             for key in SITE_FIELDS:
                 setattr(site, key, getattr(release, key))
             site.revision += 1

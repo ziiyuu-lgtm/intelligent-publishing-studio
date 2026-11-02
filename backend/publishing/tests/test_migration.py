@@ -369,6 +369,30 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.filter(pk=release15.pk).exists()
 else:
     raise AssertionError('Published site images must not be silently discarded')
+Asset18 = apps.get_model('publishing', 'SiteImageAsset')
+legacy_asset = Asset18.objects.create(journal_site_id=site18.pk, image_data=b'legacy', media_type='image/jpeg',
+    width=10, height=10, sha256='a'*64, default_alt='Legacy hero', uploaded_by_id=editor.pk)
+legacy_sections = [{'kind':'about', 'heading':'Old heading', 'body':'Old body', 'visible':True}]
+apps.get_model('publishing', 'JournalSiteDraft').objects.filter(pk=site18.pk).update(
+    hero_asset_id=legacy_asset.pk, hero_alt='Legacy hero', sections_config=legacy_sections)
+apps.get_model('publishing', 'OrganisationPortalDraft').objects.filter(pk=portal18.pk).update(sections_config=legacy_sections)
+module_images_scope = ('publishing', '0019_sitemoduleimagereference')
+executor = MigrationExecutor(connection)
+executor.migrate([module_images_scope])
+apps = executor.loader.project_state([module_images_scope]).apps
+assert not apps.get_model('publishing', 'SiteModuleImageReference').objects.exists()
+site19 = apps.get_model('publishing', 'JournalSiteDraft').objects.get(pk=site18.pk)
+portal19 = apps.get_model('publishing', 'OrganisationPortalDraft').objects.get(pk=portal18.pk)
+assert site19.hero_asset_id == legacy_asset.pk and site19.hero_alt == 'Legacy hero'
+assert site19.sections_config == legacy_sections and portal19.sections_config == legacy_sections
+assert site19.current_release_id == release11.pk and portal19.current_release_id == release15.pk
+assert apps.get_model('publishing', 'OrganisationPortalAIDesignRun').objects.get(pk=portal_run16.pk).site_fingerprint == 'c'*64
+try:
+    MigrationExecutor(connection).migrate([image_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'SiteImageAsset').objects.filter(pk=legacy_asset.pk).exists()
+else:
+    raise AssertionError('Module image references must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

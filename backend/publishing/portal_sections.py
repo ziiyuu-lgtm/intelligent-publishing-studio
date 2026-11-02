@@ -1,5 +1,6 @@
 """Validated plain-text modules for fictional publisher portal drafts."""
 from django.utils.translation import gettext_lazy as _
+from .module_images import IMAGE_FIELDS, validate_image_fields
 
 MAX_SECTIONS = 12
 MAX_HEADING_LENGTH = 120
@@ -31,7 +32,7 @@ def validate_sections(sections):
         raise InvalidSections("invalid_count")
     result, seen = [], set()
     for item in sections:
-        if not isinstance(item, dict) or set(item) != SECTION_FIELDS:
+        if not isinstance(item, dict) or set(item) not in (SECTION_FIELDS, SECTION_FIELDS | IMAGE_FIELDS):
             raise InvalidSections("invalid_fields")
         kind, heading, body, visible = (item[k] for k in ("kind", "heading", "body", "visible"))
         if not isinstance(kind, str) or kind not in dict(SECTION_CHOICES):
@@ -47,7 +48,11 @@ def validate_sections(sections):
             raise InvalidSections("custom_heading_required")
         if type(visible) is not bool:
             raise InvalidSections("invalid_visibility")
-        result.append({"kind":kind, "heading":heading, "body":body, "visible":visible})
+        try:
+            image = validate_image_fields(item)
+        except ValueError as exc:
+            raise InvalidSections("invalid_image") from exc
+        result.append({"kind":kind, "heading":heading, "body":body, "visible":visible, **image})
     if not any(item["visible"] for item in result):
         raise InvalidSections("no_visible_sections")
     return result

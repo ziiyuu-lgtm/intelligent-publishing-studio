@@ -3130,3 +3130,39 @@ msgstr "图片焦点位置"
 
 msgid "Provide a valid image description and display setting."
 msgstr "请填写有效的图片描述并选择有效的显示设置。"
+
+msgid "Module image"
+msgstr "栏目图片"
+
+msgid "Module image description"
+msgstr "栏目图片描述"
+
+msgid "Module image display"
+msgstr "栏目图片显示方式"
+
+msgid "Module image focus"
+msgstr "栏目图片焦点位置"
+
+msgid "Default: crop to fill"
+msgstr "默认：裁切填满"
+
+msgid "Default: centre"
+msgstr "默认：居中"
+
+msgid "No image"
+msgstr "不使用图片"
+
+msgid "Provide a description for the selected module image."
+msgstr "请为所选栏目图片填写描述。"
+
+msgid "Invalid image upload option."
+msgstr "无效的图片上传选项。"
+
+msgid "Image added to the library. Select it in a page module or as the hero image."
+msgstr "图片已加入素材库。可在页面栏目中选择使用，或设为主视觉图片。"
+
+msgid "Upload to library only"
+msgstr "仅上传至素材库"
+
+msgid "Upload images to this site’s library first, then select them for individual modules. Each image needs a description."
+msgstr "请先将图片上传到本网站素材库，再为各栏目选择图片。每张图片均需填写描述。"

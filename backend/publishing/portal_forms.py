@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .forms import JournalAppearanceForm
 from .models import Journal, OrganisationAIPolicy
+from .module_images import SectionImageForm, form_image_fields
 from .portal_sections import (MAX_BODY_LENGTH, MAX_HEADING_LENGTH, MAX_SECTIONS, SECTION_CHOICES,
                               InvalidSections, validate_sections)
 
@@ -44,7 +45,7 @@ class OrganisationAIPolicyForm(forms.ModelForm):
         fields = ["portal_design_enabled", "portal_modules_enabled", "portal_daily_limit"]
 
 
-class PortalSectionForm(forms.Form):
+class PortalSectionForm(SectionImageForm):
     kind = forms.ChoiceField(label=_("Module type"), choices=(("", _("Select a module type")), *SECTION_CHOICES))
     heading = forms.CharField(label=_("Custom heading"), max_length=MAX_HEADING_LENGTH, required=False,
         help_text=_("Leave blank to use the module's default heading; custom modules need a heading."))
@@ -66,7 +67,7 @@ class BasePortalSectionFormSet(BaseFormSet):
                 continue
             order = data.get("ORDER")
             active.append(((order is None, order if order is not None else 0, index),
-                           {key:data[key] for key in ("kind", "heading", "body", "visible")}))
+                           {**{key:data[key] for key in ("kind", "heading", "body", "visible")}, **form_image_fields(data)}))
         try:
             self.cleaned_sections = validate_sections([item for _, item in sorted(active, key=lambda row:row[0])])
         except InvalidSections as exc:

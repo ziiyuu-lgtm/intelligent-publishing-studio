@@ -22,6 +22,7 @@ from .ai_provider import ProviderError
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, portal_requests_since
 from .ai_views import _provider_configured
 from .models import OrganisationPortalAIDesignRun
+from .module_images import images_valid
 from .portal_ai_modules import MAX_BRIEF_LENGTH, PROMPT_VERSION, describe_sections, materialize_option, validate_options
 from .portal_ai_views import _current, _run
 from .portal_policy_views import _policy
@@ -44,6 +45,9 @@ def _sections(site):
         validate_blueprint(site.design_config)
         if site.sections_config:
             validate_sections(site.sections_config)
+        if not images_valid(site, site.sections_config, site):
+            raise InvalidSections("invalid_image")
+        if site.sections_config:
             return [dict(item) for item in site.sections_config]
         return default_sections(site)
     except (InvalidDesign, InvalidSections) as exc:

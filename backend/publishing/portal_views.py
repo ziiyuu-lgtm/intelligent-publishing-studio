@@ -25,6 +25,7 @@ from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, SAMPLES, appearance_for, sample_by_id, validate_blueprint
 from .site_sections import InvalidSections as InvalidJournalSections, visible_sections as visible_journal_sections
 from .site_images import hero_reference_valid
+from .module_images import image_choices, images_valid, sync_image_references
 
 CONTENT_FIELDS = ("brand_name", "headline", "tagline", "introduction")
 
@@ -147,6 +148,14 @@ def _render(request, organisation, design, journals, **extra):
         sections = visible_sections(design.sections_config) if design.sections_config else []
     except (InvalidDesign, InvalidPortalSections) as exc:
         raise Http404 from exc
+    site = get_object_or_404(OrganisationPortalDraft, organisation=organisation)
+    owner = site if extra.get("preview") else design
+    if not images_valid(site, design.sections_config, owner):
+        raise Http404
+    for section in sections:
+        if section.get("image_asset_id"):
+            route = "private_portal_image" if extra.get("preview") else "public_portal_image"
+            section["image_url"] = reverse(route, args=[organisation.slug, section["image_asset_id"]])
     hero_image_url = ""
     if design.hero_asset_id or design.hero_alt or design.hero_fit != "cover" or design.hero_position != "center":
         site = get_object_or_404(OrganisationPortalDraft, organisation=organisation)
@@ -174,7 +183,7 @@ def _context(organisation, site, content_form=None, appearance_form=None, sectio
     return {"organisation":organisation, "site":site, "fingerprint":_fingerprint(site),
         "form":content_form if content_form is not None else PortalContentForm(organisation=organisation, initial=initial),
         "appearance_form":appearance_form if appearance_form is not None else PortalAppearanceForm(initial=design),
-        "section_formset":section_formset if section_formset is not None else PortalSectionFormSet(prefix="sections", initial=section_initial),
+        "section_formset":section_formset if section_formset is not None else PortalSectionFormSet(prefix="sections", initial=section_initial, form_kwargs={"image_choices":image_choices(site)}),
         "samples":[{**sample, "appearance":appearance_for(sample["config"])} for sample in SAMPLES],
         "releases":site.releases.select_related("published_by"),
         "ai_design_enabled":bool(policy and policy.portal_design_enabled),
@@ -344,7 +353,7 @@ def edit_sections(request, slug):
         initial = validate_sections(site.sections_config) if site.sections_config else default_sections(site)
     except (InvalidDesign, InvalidPortalSections) as exc:
         raise Http404 from exc
-    formset = PortalSectionFormSet(request.POST, prefix="sections", initial=initial)
+    formset = PortalSectionFormSet(request.POST, prefix="sections", initial=initial, form_kwargs={"image_choices":image_choices(site)})
     if not formset.is_valid():
         return render(request, "publishing/manage_publisher_portal.html",
                       _context(organisation, site, section_formset=formset, user=request.user), status=400)
@@ -353,7 +362,10 @@ def edit_sections(request, slug):
         site = _site(organisation, locked=True)
         if _stale(request, site):
             return HttpResponse(_("The site draft changed; reload the page."), status=409)
+        if not images_valid(site, formset.cleaned_sections, check_references=False):
+            return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         if site.sections_config != formset.cleaned_sections:
+            sync_image_references(site, site, formset.cleaned_sections)
             site.sections_config = formset.cleaned_sections
             site.revision += 1
             site.save(update_fields=["sections_config", "revision"])
@@ -377,6 +389,8 @@ def publish_portal(request, slug):
             config = validate_blueprint(site.design_config)
             if site.sections_config:
                 validate_sections(site.sections_config)
+            if not images_valid(site, site.sections_config, site):
+                raise ValueError("invalid module image")
             if not hero_reference_valid(site, site.hero_asset_id, site.hero_alt, site.hero_fit, site.hero_position):
                 raise ValueError("invalid hero image")
         except (ValueError, InvalidDesign, InvalidPortalSections):
@@ -392,6 +406,7 @@ def publish_portal(request, slug):
             published_by=request.user, design_config=config, sections_config=site.sections_config, journals=snapshots,
             hero_asset_id=site.hero_asset_id, hero_alt=site.hero_alt, hero_fit=site.hero_fit, hero_position=site.hero_position,
             **{key:getattr(site, key) for key in CONTENT_FIELDS})
+        sync_image_references(site, release, release.sections_config)
         site.current_release = release
         site.save(update_fields=["current_release"])
         _event(site, request.user, "portal_test_published", release)
@@ -416,6 +431,8 @@ def restore_portal(request, slug, release_id):
             config = validate_blueprint(release.design_config)
             if release.sections_config:
                 validate_sections(release.sections_config)
+            if not images_valid(site, release.sections_config, release):
+                raise ValueError("invalid module image")
             if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
                 raise ValueError("invalid hero image")
             if not _valid_snapshot(release.journals):
@@ -431,6 +448,7 @@ def restore_portal(request, slug, release_id):
                    site.sections_config != release.sections_config or site.hero_asset_id != release.hero_asset_id or
                    site.hero_alt != release.hero_alt or site.hero_fit != release.hero_fit or site.hero_position != release.hero_position)
         if changed:
+            sync_image_references(site, site, release.sections_config)
             for key in CONTENT_FIELDS:
                 setattr(site, key, getattr(release, key))
             site.design_config = config
