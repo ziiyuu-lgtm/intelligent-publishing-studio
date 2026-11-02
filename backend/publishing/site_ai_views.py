@@ -27,6 +27,7 @@ from .site_ai_provider import LEGACY_PROMPT_VERSION, MAX_BRIEF_LENGTH, PROMPT_VE
 from .site_ai_modules import PROMPT_VERSION as MODULE_PROMPT_VERSION
 from .page_ai_provider import PROMPT_VERSION as PAGE_PROMPT_VERSION
 from .page_block_ai_provider import LEGACY_PROMPT_VERSION as LEGACY_BLOCK_PROMPT_VERSION, PROMPT_VERSION as BLOCK_PROMPT_VERSION
+from .page_layout_ai_provider import PROMPT_VERSION as LAYOUT_PROMPT_VERSION
 from .site_design import COMPOSITIONS, FONTS, InvalidDesign, appearance_for, legacy_to_blueprint, validate_blueprint
 from .site_views import SITE_FIELDS, _fingerprint, _managed_journal, _render_site, _site
 
@@ -161,6 +162,8 @@ def site_ai_result(request, slug, run_id):
         return redirect("journal_page_ai_result", slug=slug, run_id=run.pk)
     if run.prompt_version in (LEGACY_BLOCK_PROMPT_VERSION, BLOCK_PROMPT_VERSION):
         return redirect("journal_page_block_ai_result", slug=slug, run_id=run.pk)
+    if run.prompt_version == LAYOUT_PROMPT_VERSION:
+        return redirect("journal_page_layout_ai_result", slug=slug, run_id=run.pk)
     choices = []
     if run.status == JournalSiteAIDesignRun.Status.COMPLETED:
         for i, option in enumerate(_options(run)):

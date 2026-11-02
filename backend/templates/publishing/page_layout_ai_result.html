@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "AI page-layout suggestions" %}{% endblock %}
+{% block content %}
+<a class="back" href="{% url manage_route owner.slug run.target_page_slug %}">← {% translate "Back to page content blocks" %}</a>
+<section class="card panel stack"><span class="eyebrow">{% translate "OPTIONAL EXTERNAL AI" %}</span><h1>{% translate "AI page-layout suggestions" %}</h1>
+<p>{% translate "Request status" %}: {{ run.get_status_display }} · {{ run.model_name }}</p>
+{% if run.applied_revision %}<div class="notice">{% translate "This layout was applied to the draft." %}</div>
+{% elif not current %}<div class="notice">{% translate "The site draft changed; request new suggestions." %}</div>
+{% elif not allowed %}<div class="notice">{% translate "The AI policy changed; request new suggestions after the policy is enabled." %}</div>
+{% elif run.status == 'failed' %}<div class="notice">{% translate "The AI service was unavailable or returned an invalid response." %}</div>
+{% elif run.status == 'cancelled' %}<div class="notice">{% translate "This request was cancelled before sending because authorisation changed." %}</div>
+{% elif run.status == 'pending' %}<div class="notice">{% translate "This request is still being processed." %}</div>
+{% else %}<p>{% translate "Target page" %}: <strong>{{ page.title }}</strong></p><p class="muted">{% translate "Adjust each block's order and grid width. Every original block is retained, including hidden blocks. Preview before applying." %}</p>
+{% for choice in choices %}<article class="module-card"><h2>{% translate "Suggestion" %} {{ forloop.counter }}</h2>
+<form method="post" action="{% url preview_route owner.slug run.pk choice.index %}" class="stack" data-layout-editor data-empty-label="{% translate 'No visible blocks in this sketch.' %}">{% csrf_token %}<input type="hidden" name="revision" value="{{ site.revision }}">{{ choice.settings.non_field_errors }}<div class="module-fields"><div class="field">{{ choice.settings.gap.label_tag }}{{ choice.settings.gap }}{{ choice.settings.gap.errors }}</div><div class="field">{{ choice.settings.alignment.label_tag }}{{ choice.settings.alignment }}{{ choice.settings.alignment.errors }}</div></div>
+<div><strong>{% translate "Live layout sketch" %}</strong><p class="muted">{% translate "This sketch shows visible blocks on desktop in their relative widths. Hidden blocks stay hidden. Open the full preview to check the page and mobile layout." %}</p><div class="layout-sketch" data-layout-sketch aria-label="{% translate 'Live layout sketch' %}"><span>{% translate "Enable JavaScript to see the sketch." %}</span></div></div>
+{{ choice.formset.management_form }}{{ choice.formset.non_form_errors }}{% for row in choice.rows %}<fieldset data-layout-block data-layout-label="{{ row.label }}" data-layout-hidden="{% if not row.visible %}yes{% else %}no{% endif %}"><legend>{{ row.label }}{% if not row.visible %} · {% translate "Hidden" %}{% endif %}</legend>{{ row.form.non_field_errors }}{{ row.form.block_id }}{{ row.form.block_id.errors }}<div class="module-fields"><div class="field">{{ row.form.order.label_tag }}{{ row.form.order }}{{ row.form.order.errors }}</div><div class="field">{{ row.form.grid_span.label_tag }}{{ row.form.grid_span }}{{ row.form.grid_span.errors }}</div></div></fieldset>{% endfor %}<button class="button secondary" type="submit">{% translate "Preview reviewed layout" %}</button></form></article>{% endfor %}{% endif %}</section>
+<script src="{% static 'layout_review.js' %}" defer></script>
+{% endblock %}

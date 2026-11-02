@@ -97,7 +97,7 @@ class JournalAIPolicyTests(TestCase):
         self.assertTrue(policy.metadata_enabled)
         self.assertEqual(policy.journal_daily_limit, 4)
         event = JournalAIPolicyEvent.objects.get(policy=policy)
-        self.assertEqual(event.configuration, {"metadata_enabled":True, "allow_author":True, "allow_editor":True, "site_design_enabled":False, "site_modules_enabled":False, "site_pages_enabled":False, "site_page_blocks_enabled":False, "journal_daily_limit":4})
+        self.assertEqual(event.configuration, {"metadata_enabled":True, "allow_author":True, "allow_editor":True, "site_design_enabled":False, "site_modules_enabled":False, "site_pages_enabled":False, "site_page_blocks_enabled":False, "site_page_layout_enabled":False, "journal_daily_limit":4})
         self.assertNotIn(self.submission.title, str(event.configuration))
         self.assertFalse(Journal.objects.get(pk=self.journal.pk).allow_openai_metadata)
         self.assertEqual(self.save(revision="0", journal_daily_limit="5").status_code, 409)

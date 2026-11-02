@@ -3742,3 +3742,96 @@ msgstr "四分之一"
 
 msgid "When the grid is enabled, this is a percentage of the block's assigned grid area."
 msgstr "启用网格时，该比例以区块所占的网格区域为基准。"
+
+msgid "Enable AI page-layout suggestions"
+msgstr "启用 AI 页面布局建议"
+
+msgid "AI page-layout suggestions"
+msgstr "AI 页面布局建议"
+
+msgid "Ask AI to suggest new arrangements for the blocks already saved on this page. Review and adjust block order, widths, spacing and alignment before previewing and applying a layout to the draft."
+msgstr "请 AI 为此页面已保存的区块建议新的排列方式。您可以先调整区块顺序、宽度、间距和对齐方式，再预览并应用到草稿。"
+
+msgid "OpenAI receives your fictional brief and each block's temporary identifier, type, position, visibility, image presence and grid width. Page and block text, links, names, image identifiers and image bytes are not sent automatically. Hidden blocks are included as structural descriptors. Use fictional information only; API charges and provider retention may apply."
+msgstr "OpenAI 会收到您输入的虚构设计要求，以及每个区块的临时标识、类型、位置、可见状态、是否包含图片和网格宽度。页面及区块文字、链接、名称、图片标识和图片内容不会自动发送。隐藏区块的结构信息也会包含在内。请仅使用虚构信息；API 可能收费，服务商可能保留数据。"
+
+msgid "All existing blocks, including hidden ones, are retained. AI changes layout only. Save your edits first; publishing remains a separate action."
+msgstr "所有现有区块（包括隐藏区块）都会保留。AI 仅调整布局。请先保存您的编辑；发布仍需单独操作。"
+
+msgid "The AI manager has not enabled page-layout suggestions in this site's AI policy."
+msgstr "AI 管理员尚未在本站的 AI 策略中启用页面布局建议。"
+
+msgid "Add at least one valid block before requesting a layout."
+msgstr "请求布局建议前，请至少添加一个有效区块。"
+
+msgid "Fictional layout brief"
+msgstr "虚构页面布局要求"
+
+msgid "Describe the audience and visual direction using fictional details."
+msgstr "请使用虚构信息描述目标读者和视觉方向。"
+
+msgid "Request layout suggestions"
+msgstr "获取布局建议"
+
+msgid "My layout suggestion requests"
+msgstr "我的布局建议请求"
+
+msgid "No layout suggestion requests yet."
+msgstr "尚无布局建议请求。"
+
+msgid "AI page-layout suggestions are not enabled for this site and test environment."
+msgstr "本站或测试环境尚未启用 AI 页面布局建议。"
+
+msgid "Keep each block once and use a different order number for each block."
+msgstr "请确保每个区块只出现一次，并为每个区块使用不同的顺序编号。"
+
+msgid "This layout was applied to the draft."
+msgstr "此布局已应用到草稿。"
+
+msgid "The AI policy changed; request new suggestions after the policy is enabled."
+msgstr "AI 策略已更改；请在启用策略后重新获取建议。"
+
+msgid "The AI service was unavailable or returned an invalid response."
+msgstr "AI 服务暂不可用，或返回了无效结果。"
+
+msgid "Adjust each block's order and grid width. Every original block is retained, including hidden blocks. Preview before applying."
+msgstr "调整每个区块的顺序和网格宽度。所有原有区块（包括隐藏区块）都会保留。请在应用前预览。"
+
+msgid "Preview reviewed layout"
+msgstr "预览已调整的布局"
+
+msgid "The draft or AI policy changed; request new suggestions."
+msgstr "草稿或 AI 策略已更改，请重新获取建议。"
+
+msgid "The reviewed layout is invalid or expired."
+msgstr "已审核的布局无效或已过期。"
+
+msgid "Private AI layout preview. This arrangement is not applied or published; hidden blocks remain hidden."
+msgstr "AI 布局私人预览。此方案尚未应用或发布；隐藏区块仍保持隐藏。"
+
+msgid "Apply this reviewed layout to the draft page."
+msgstr "将已审核的布局应用到页面草稿。"
+
+msgid "Apply layout to draft"
+msgstr "将布局应用到草稿"
+
+msgid "Return to edit this layout"
+msgstr "返回修改此布局"
+
+msgid "The reviewed layout was applied to the draft. Publishing remains separate."
+msgstr "已将审核后的布局应用到草稿。发布仍需单独操作。"
+
+msgid "Live layout sketch"
+msgstr "实时布局草图"
+
+msgid "This sketch shows visible blocks on desktop in their relative widths. Hidden blocks stay hidden. Open the full preview to check the page and mobile layout."
+msgstr "草图展示电脑端可见区块的相对宽度；隐藏区块保持隐藏。请打开完整预览检查页面和手机端布局。"
+
+msgid "Enable JavaScript to see the sketch."
+msgstr "启用 JavaScript 后可查看布局草图。"
+
+msgid "No visible blocks in this sketch."
+msgstr "此草图没有可见区块。"
+
+msgid "Page-layout suggestions have their own independent switch below."
+msgstr "页面布局建议使用下方单独的开关。"

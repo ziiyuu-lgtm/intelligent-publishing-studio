@@ -106,7 +106,7 @@ class PublisherPortalAITests(TestCase):
         self.policy.refresh_from_db()
         self.assertEqual((self.policy.revision, self.policy.portal_daily_limit), (2, 4))
         self.assertEqual(OrganisationAIPolicyEvent.objects.get(policy=self.policy).configuration,
-                         {"portal_design_enabled":True, "portal_modules_enabled":False, "portal_pages_enabled":False, "portal_page_blocks_enabled":False, "portal_daily_limit":4})
+                         {"portal_design_enabled":True, "portal_modules_enabled":False, "portal_pages_enabled":False, "portal_page_blocks_enabled":False, "portal_page_layout_enabled":False, "portal_daily_limit":4})
         self.assertFalse(JournalAIPolicy.objects.exists())
         self.assertEqual(self.client.post(url, {**data, "revision":"2"}).status_code, 302)
         self.assertEqual(OrganisationAIPolicyEvent.objects.count(), 1)

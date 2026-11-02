@@ -16,6 +16,7 @@ from .module_images import image_choices, images_valid, sync_image_references
 from .page_blocks import MAX_PAGE_BLOCKS, PageBlockFormSet
 from .page_block_layout import BlockLayoutForm
 from .page_block_ai_provider import LEGACY_PROMPT_VERSION, MAX_OPTIONS, PROMPT_VERSION
+from .page_layout_ai_provider import PROMPT_VERSION as LAYOUT_PROMPT_VERSION
 from .portal_views import _event as portal_event
 from .portal_policy_views import _policy as publisher_policy
 from .ai_views import _policy as journal_policy, _provider_configured
@@ -53,6 +54,12 @@ def _editor(request, slug, page_slug, kind, formset=None, layout_form=None, stat
         "ai_enabled":enabled, "ai_provider_configured":_provider_configured(),
         "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
         "ai_request_id":uuid.uuid4(), "available_slots":MAX_PAGE_BLOCKS - len(page.get("blocks", [])),
+        "layout_ai_enabled":bool(policy and (policy.site_page_layout_enabled if kind == "journal" else policy.portal_page_layout_enabled)),
+        "layout_request_id":uuid.uuid4(), "layout_block_count":len(page.get("blocks", [])),
+        "layout_runs":site.ai_design_runs.filter(requested_by=request.user, target_page_slug=page_slug,
+                                                  prompt_version=LAYOUT_PROMPT_VERSION)[:10],
+        "layout_request_route":"request_journal_page_layout_ai" if kind == "journal" else "request_publisher_page_layout_ai",
+        "layout_result_route":"journal_page_layout_ai_result" if kind == "journal" else "publisher_page_layout_ai_result",
         "ai_option_counts":range(1, MAX_OPTIONS + 1),
         "ai_runs":site.ai_design_runs.filter(requested_by=request.user, target_page_slug=page_slug,
                                               prompt_version__in=(LEGACY_PROMPT_VERSION, PROMPT_VERSION))[:10],
