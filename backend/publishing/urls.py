@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_views, issue_views, production_views, views
+from . import ai_views, issue_views, production_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -11,6 +11,13 @@ urlpatterns = [
     path("editorial-assignments/<int:pk>/remove/", views.remove_editor_assignment, name="remove_editor_assignment"),
     path("editorial-assignments/<int:pk>/recuse/", views.recuse_editor, name="recuse_editor"),
     path("journals/<slug:slug>/new/", views.submission_create, name="submission_create"),
+    path("journals/<slug:slug>/site/", site_views.public_journal_site, name="public_journal_site"),
+    path("journals/<slug:slug>/site/manage/", site_views.manage_journal_site, name="manage_journal_site"),
+    path("journals/<slug:slug>/site/start/", site_views.start_journal_site, name="start_journal_site"),
+    path("journals/<slug:slug>/site/edit/", site_views.edit_journal_site, name="edit_journal_site"),
+    path("journals/<slug:slug>/site/preview/", site_views.preview_journal_site, name="preview_journal_site"),
+    path("journals/<slug:slug>/site/publish/", site_views.publish_journal_site, name="publish_journal_site"),
+    path("journals/<slug:slug>/site/restore/<int:release_id>/", site_views.restore_journal_site, name="restore_journal_site"),
     path("journals/<slug:slug>/test-articles/", production_views.journal_test_articles, name="journal_test_articles"),
     path("journals/<slug:slug>/test-articles/<uuid:pk>/", production_views.test_article, name="test_article"),
     path("journals/<slug:slug>/test-articles/<uuid:pk>/pdf/", production_views.test_article_pdf, name="test_article_pdf"),

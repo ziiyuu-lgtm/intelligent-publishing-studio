@@ -177,6 +177,23 @@ except IrreversibleError:
     assert Draft8.objects.filter(pk=draft6.pk).exists()
 else:
     raise AssertionError('Issue assignments must not be silently discarded')
+issue8 = Issue8.objects.create(journal_id=journal.pk, volume=1, number=1, year=2025, title='Fictional issue', created_by_id=editor.pk)
+site_scope = ('publishing', '0009_alter_membership_role_journalsitedraft_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([site_scope])
+apps = executor.loader.project_state([site_scope]).apps
+Issue9 = apps.get_model('publishing', 'JournalIssue')
+Site9 = apps.get_model('publishing', 'JournalSiteDraft')
+Membership9 = apps.get_model('publishing', 'Membership')
+assert Issue9.objects.get(pk=issue8.pk).title == 'Fictional issue'
+assert not Site9.objects.exists(), 'No test site should be inferred or published'
+assert not Membership9.objects.filter(role='site_manager').exists(), 'No site-manager role should be inferred'
+try:
+    MigrationExecutor(connection).migrate([issues_scope])
+except IrreversibleError:
+    assert Issue9.objects.filter(pk=issue8.pk).exists()
+else:
+    raise AssertionError('Site design history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

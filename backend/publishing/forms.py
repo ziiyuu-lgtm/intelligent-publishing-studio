@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from .models import EditorialDecision, Journal, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
+from .models import EditorialDecision, Journal, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
 
 MAX_MANUSCRIPT_BYTES = 10 * 1024 * 1024
 
@@ -140,3 +140,10 @@ class JournalIssueForm(forms.Form):
     year = forms.IntegerField(label=_("Year"), min_value=1000, max_value=9999)
     title = forms.CharField(label=_("Issue title"), max_length=200, required=False)
     synthetic = forms.BooleanField(label=_("I confirm that this is a fictional test issue."))
+
+
+class JournalSiteForm(forms.ModelForm):
+    class Meta:
+        model = JournalSiteDraft
+        fields = ["brand_name", "headline", "tagline", "introduction", "theme", "layout"]
+        widgets = {"introduction": forms.Textarea(attrs={"rows": 7})}

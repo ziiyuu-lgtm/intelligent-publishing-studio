@@ -37,6 +37,7 @@ class Membership(models.Model):
         REVIEWER = "reviewer", _("Reviewer")
         COORDINATOR = "coordinator", _("Editorial coordinator")
         PRODUCER = "producer", _("Production editor")
+        SITE_MANAGER = "site_manager", _("Journal site manager")
 
     journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="memberships")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_memberships")
@@ -48,6 +49,58 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"{self.user} / {self.journal} / {self.role}"
+
+
+class JournalSiteDraft(models.Model):
+    class Theme(models.TextChoices):
+        FOREST = "forest", _("Forest")
+        INK = "ink", _("Ink")
+        TERRACOTTA = "terracotta", _("Terracotta")
+
+    class Layout(models.TextChoices):
+        CLASSIC = "classic", _("Classic")
+        MAGAZINE = "magazine", _("Magazine")
+
+    journal = models.OneToOneField(Journal, on_delete=models.PROTECT, related_name="site_draft")
+    brand_name = models.CharField(_("Site display name"), max_length=200)
+    headline = models.CharField(_("Site headline"), max_length=200)
+    tagline = models.CharField(_("Site tagline"), max_length=240, blank=True)
+    introduction = models.TextField(_("Journal introduction"), max_length=4000)
+    theme = models.CharField(_("Colour theme"), max_length=16, choices=Theme.choices, default=Theme.FOREST)
+    layout = models.CharField(_("Page layout"), max_length=16, choices=Layout.choices, default=Layout.CLASSIC)
+    revision = models.PositiveIntegerField(default=1)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_sites_created")
+    created_at = models.DateTimeField(auto_now_add=True)
+    current_release = models.ForeignKey("JournalSiteRelease", on_delete=models.PROTECT, null=True, blank=True, related_name="active_for")
+
+
+class JournalSiteRelease(models.Model):
+    site = models.ForeignKey(JournalSiteDraft, on_delete=models.PROTECT, related_name="releases")
+    revision = models.PositiveIntegerField()
+    brand_name = models.CharField(_("Site display name"), max_length=200)
+    headline = models.CharField(_("Site headline"), max_length=200)
+    tagline = models.CharField(_("Site tagline"), max_length=240, blank=True)
+    introduction = models.TextField(_("Journal introduction"), max_length=4000)
+    theme = models.CharField(_("Colour theme"), max_length=16, choices=JournalSiteDraft.Theme.choices)
+    layout = models.CharField(_("Page layout"), max_length=16, choices=JournalSiteDraft.Layout.choices)
+    published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_site_releases")
+    published_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["site", "revision"], name="unique_journal_site_revision")]
+        ordering = ["-revision", "-pk"]
+
+
+class JournalSiteEvent(models.Model):
+    site = models.ForeignKey(JournalSiteDraft, on_delete=models.PROTECT, related_name="events")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    action = models.CharField(max_length=40)
+    revision = models.PositiveIntegerField()
+    source_release = models.ForeignKey(JournalSiteRelease, on_delete=models.PROTECT, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
 
 
 def manuscript_path(instance, filename):

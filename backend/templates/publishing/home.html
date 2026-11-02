@@ -7,7 +7,7 @@
 <section class="section">
   <div class="section-heading"><div><span class="eyebrow">{% translate "PUBLISHING NETWORK" %}</span><h2>{% translate "Journal directory" %}</h2></div><p>{% translate "Separate journal roles and workspaces" %}</p></div>
   <div class="journal-grid">
-  {% for journal in journals %}<article class="card journal-card"><span class="journal-icon">{{ journal.name|slice:":1" }}</span><p class="overline">{{ journal.organisation.name }}</p><h3>{{ journal.name }}</h3><p class="muted">{{ journal.description }}</p>{% if local_publication_enabled %}<a class="back" href="{% url 'journal_test_articles' journal.slug %}">{% translate "View fictional test articles" %}</a>{% endif %}</article>
+  {% for journal in journals %}<article class="card journal-card"><span class="journal-icon">{{ journal.name|slice:":1" }}</span><p class="overline">{{ journal.organisation.name }}</p><h3>{{ journal.name }}</h3><p class="muted">{{ journal.description }}</p>{% if local_publication_enabled %}<div class="actions">{% if journal.site_is_published %}<a class="button secondary small" href="{% url 'public_journal_site' journal.slug %}">{% translate "View test journal site" %}</a>{% endif %}<a class="button secondary small" href="{% url 'journal_test_articles' journal.slug %}">{% translate "View fictional test articles" %}</a></div>{% endif %}</article>
   {% empty %}<div class="card empty">{% translate "No journals have been configured yet." %}</div>{% endfor %}
   </div>
 </section>

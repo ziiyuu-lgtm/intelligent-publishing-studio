@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
-from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, Membership, ProductionAssignment,
+from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, ProductionAssignment,
                      PublicationDraft, ReviewAssignment, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
@@ -103,7 +103,9 @@ def _review_copy_ready(submission, version):
 
 @require_GET
 def home(request):
-    journals = Journal.objects.filter(active=True, organisation__active=True).select_related("organisation").order_by("name")
+    journals = Journal.objects.filter(active=True, organisation__active=True).select_related("organisation").annotate(
+        site_is_published=Exists(JournalSiteDraft.objects.filter(journal_id=OuterRef("pk"), current_release__isnull=False,
+                                                                 current_release__site_id=F("pk")))).order_by("name")
     return render(request, "publishing/home.html", {"journals": journals,
         "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED})
 
@@ -114,6 +116,8 @@ def home(request):
 def workspace(request):
     visible_journals = Journal.objects.filter(active=True, organisation__active=True)
     author_journals = visible_journals.filter(memberships__user=request.user, memberships__role=Membership.Role.AUTHOR, memberships__active=True).distinct()
+    site_manager_journals = visible_journals.filter(memberships__user=request.user,
+        memberships__role=Membership.Role.SITE_MANAGER, memberships__active=True).distinct().order_by("name")
     authored = Submission.objects.filter(author=request.user, journal__in=visible_journals).select_related("journal")
     editorial = Submission.objects.filter(
         journal__in=visible_journals, journal__memberships__user=request.user,
@@ -149,6 +153,7 @@ def workspace(request):
     return render(request, "publishing/workspace.html", {
         "author_journals": author_journals, "authored": authored, "editorial": editorial, "reviews": reviews,
         "production": production, "local_publication_enabled": production_enabled,
+        "site_manager_journals": site_manager_journals,
         "is_coordinator": Membership.objects.filter(user=request.user, role=Membership.Role.COORDINATOR,
              active=True, journal__active=True, journal__organisation__active=True).exists(),
     })

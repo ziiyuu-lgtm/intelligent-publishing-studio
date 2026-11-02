@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Intelligent Publishing Studio{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'workspace.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
   <div class="sandbox">{% translate "Isolated development workspace · synthetic test data only" %}</div>
