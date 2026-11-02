@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, issue_views, production_views, site_views, views
+from . import ai_policy_views, ai_views, issue_views, production_views, site_ai_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -17,6 +17,10 @@ urlpatterns = [
     path("journals/<slug:slug>/site/start/", site_views.start_journal_site, name="start_journal_site"),
     path("journals/<slug:slug>/site/edit/", site_views.edit_journal_site, name="edit_journal_site"),
     path("journals/<slug:slug>/site/preview/", site_views.preview_journal_site, name="preview_journal_site"),
+    path("journals/<slug:slug>/site/ai-design/", site_ai_views.request_site_ai_design, name="request_site_ai_design"),
+    path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/", site_ai_views.site_ai_result, name="site_ai_result"),
+    path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/preview/<int:index>/", site_ai_views.preview_site_ai_option, name="preview_site_ai_option"),
+    path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/apply/<int:index>/", site_ai_views.apply_site_ai_option, name="apply_site_ai_option"),
     path("journals/<slug:slug>/site/publish/", site_views.publish_journal_site, name="publish_journal_site"),
     path("journals/<slug:slug>/site/restore/<int:release_id>/", site_views.restore_journal_site, name="restore_journal_site"),
     path("journals/<slug:slug>/test-articles/", production_views.journal_test_articles, name="journal_test_articles"),

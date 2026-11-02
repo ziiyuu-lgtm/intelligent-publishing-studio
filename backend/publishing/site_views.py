@@ -1,7 +1,9 @@
 """Local-only journal site design, preview and versioned test publication."""
 import hashlib
 import json
+import uuid
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -12,6 +14,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import JournalSiteForm
+from .ai_views import _policy, _provider_configured
 from .models import Journal, JournalSiteDraft, JournalSiteEvent, JournalSiteRelease, Membership
 from .production_views import _enabled, _no_index
 from .views import _has_role
@@ -37,9 +40,13 @@ def _fingerprint(site):
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
-def _context(journal, site, form=None):
+def _context(journal, site, form=None, user=None):
+    policy = _policy(journal)
     return {"journal": journal, "site": site, "form": form if form is not None else JournalSiteForm(instance=site),
-            "fingerprint": _fingerprint(site), "releases": site.releases.select_related("published_by")}
+            "fingerprint": _fingerprint(site), "releases": site.releases.select_related("published_by"),
+            "ai_design_enabled": bool(policy and policy.site_design_enabled), "ai_provider_configured": _provider_configured(),
+            "ai_policy_revision": policy.revision if policy else 0, "ai_model_name": settings.IPS_OPENAI_MODEL,
+            "ai_request_id": uuid.uuid4(), "ai_design_runs": site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
 
 
 def _stale(request, site):
@@ -53,7 +60,7 @@ def manage_journal_site(request, slug):
     _enabled()
     journal = _managed_journal(request.user, slug)
     site = JournalSiteDraft.objects.filter(journal=journal).select_related("current_release").first()
-    return render(request, "publishing/manage_journal_site.html", _context(journal, site) if site else {"journal": journal})
+    return render(request, "publishing/manage_journal_site.html", _context(journal, site, user=request.user) if site else {"journal": journal})
 
 
 @login_required
@@ -82,7 +89,7 @@ def edit_journal_site(request, slug):
     site = _site(journal)
     form = JournalSiteForm(request.POST, instance=site)
     if not form.is_valid():
-        return render(request, "publishing/manage_journal_site.html", _context(journal, _site(journal), form), status=400)
+        return render(request, "publishing/manage_journal_site.html", _context(journal, _site(journal), form, user=request.user), status=400)
     with transaction.atomic():
         journal = _managed_journal(request.user, slug, locked=True)
         site = _site(journal, locked=True)

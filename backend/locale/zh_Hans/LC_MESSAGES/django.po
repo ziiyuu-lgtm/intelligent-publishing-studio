@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 02:52+0000\n"
+"POT-Creation-Date: 2026-11-02 03:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,32 +25,32 @@ msgstr "英语"
 msgid "Simplified Chinese"
 msgstr "简体中文"
 
-#: publishing/ai_policy_views.py:53 publishing/ai_views.py:115
-#: publishing/ai_views.py:170 publishing/issue_views.py:88
+#: publishing/ai_policy_views.py:54 publishing/ai_views.py:113
+#: publishing/ai_views.py:168 publishing/issue_views.py:88
 #: publishing/production_views.py:345 publishing/production_views.py:373
-#: publishing/site_views.py:117
+#: publishing/site_ai_views.py:64 publishing/site_views.py:124
 msgid "Both confirmations are required."
 msgstr "请完成两项确认。"
 
-#: publishing/ai_policy_views.py:61 publishing/ai_views.py:125
-#: publishing/ai_views.py:186 publishing/ai_views.py:203
+#: publishing/ai_policy_views.py:62 publishing/ai_views.py:123
+#: publishing/ai_views.py:184 publishing/ai_views.py:201
 msgid "The AI policy changed; reload the page."
 msgstr "AI 策略已变更，请重新加载页面。"
 
-#: publishing/ai_policy_views.py:75
+#: publishing/ai_policy_views.py:76
 msgid "Journal AI policy saved for local testing."
 msgstr "期刊 AI 策略已保存，用于本地测试。"
 
-#: publishing/ai_views.py:67 publishing/models.py:161
+#: publishing/ai_views.py:65 publishing/models.py:190
 #: templates/publishing/checks.html:10
 msgid "Title"
 msgstr "题目"
 
-#: publishing/ai_views.py:67
+#: publishing/ai_views.py:65
 msgid "Checks whether the title field contains text; accuracy is not verified."
 msgstr "仅检查题目是否有文字，不核实其准确性。"
 
-#: publishing/ai_views.py:68 publishing/models.py:162
+#: publishing/ai_views.py:66 publishing/models.py:191
 #: templates/publishing/checks.html:10
 #: templates/publishing/review_detail.html:5
 #: templates/publishing/submission_detail.html:8
@@ -58,78 +58,78 @@ msgstr "仅检查题目是否有文字，不核实其准确性。"
 msgid "Abstract"
 msgstr "摘要"
 
-#: publishing/ai_views.py:68
+#: publishing/ai_views.py:66
 msgid ""
 "Checks whether the abstract field contains text; content is not verified."
 msgstr "仅检查摘要是否有文字，不核实其内容。"
 
-#: publishing/ai_views.py:69 publishing/models.py:163 publishing/models.py:198
+#: publishing/ai_views.py:67 publishing/models.py:192 publishing/models.py:227
 msgid "Manuscript PDF"
 msgstr "稿件 PDF"
 
-#: publishing/ai_views.py:69
+#: publishing/ai_views.py:67
 msgid "Checks whether the test file exists, not whether it is safe or valid."
 msgstr "仅检查测试文件是否存在，不判断文件是否安全或有效。"
 
-#: publishing/ai_views.py:72 publishing/forms.py:20 publishing/forms.py:43
+#: publishing/ai_views.py:70 publishing/forms.py:20 publishing/forms.py:43
 msgid "Separate reviewer PDF"
 msgstr "独立审稿用 PDF"
 
-#: publishing/ai_views.py:73
+#: publishing/ai_views.py:71
 msgid "A separate reviewer file and author confirmation are required."
 msgstr "需要独立审稿文件及作者确认。"
 
-#: publishing/ai_views.py:75 templates/publishing/submission_detail.html:13
+#: publishing/ai_views.py:73 templates/publishing/submission_detail.html:13
 msgid "Reviewer file check"
 msgstr "审稿文件核查"
 
-#: publishing/ai_views.py:76
+#: publishing/ai_views.py:74
 msgid "An editor must record a manual check; anonymity is not guaranteed."
 msgstr "编辑须记录人工核查；系统不保证完全匿名。"
 
-#: publishing/ai_views.py:123 publishing/ai_views.py:182
-#: publishing/ai_views.py:199
+#: publishing/ai_views.py:121 publishing/ai_views.py:180
+#: publishing/ai_views.py:197
 msgid "External AI is not enabled for this journal and test environment."
 msgstr "本刊及测试环境尚未启用外部 AI。"
 
-#: publishing/ai_views.py:128 publishing/ai_views.py:213
+#: publishing/ai_views.py:126 publishing/ai_views.py:211
 msgid "The manuscript version changed; review the current details."
 msgstr "稿件版本已变化，请核对当前信息。"
 
-#: publishing/ai_views.py:131 publishing/ai_views.py:217
+#: publishing/ai_views.py:129 publishing/ai_views.py:215
 msgid "The title or abstract changed; review the current details."
 msgstr "题目或摘要已变化，请重新核对当前信息。"
 
-#: publishing/ai_views.py:141
+#: publishing/ai_views.py:139
 msgid "Authorisation recorded for this version and metadata."
 msgstr "已记录对本版本及其题目、摘要的授权。"
 
-#: publishing/ai_views.py:158
+#: publishing/ai_views.py:156
 msgid "Authorisation revoked for future requests."
 msgstr "已撤销后续请求的授权。"
 
-#: publishing/ai_views.py:174
+#: publishing/ai_views.py:172 publishing/site_ai_views.py:68
 msgid "Invalid request identifier."
 msgstr "请求标识无效。"
 
-#: publishing/ai_views.py:184 publishing/ai_views.py:201
+#: publishing/ai_views.py:182 publishing/ai_views.py:199
 #: templates/publishing/checks.html:20
 msgid "This role is not enabled to request AI suggestions."
 msgstr "此角色未获准请求 AI 建议。"
 
-#: publishing/ai_views.py:188 publishing/ai_views.py:205
+#: publishing/ai_views.py:186 publishing/ai_views.py:203
 msgid "The AI model configuration changed; review the current details."
 msgstr "AI 模型配置已变化，请核对当前信息。"
 
-#: publishing/ai_views.py:221 templates/publishing/checks.html:12
+#: publishing/ai_views.py:219 templates/publishing/checks.html:12
 msgid "The author has not authorised these exact metadata for this version."
 msgstr "作者尚未授权本版本的这份题目和摘要。"
 
-#: publishing/ai_views.py:224
+#: publishing/ai_views.py:222 publishing/site_ai_views.py:100
 msgid "The local test request limit has been reached."
 msgstr "已达到本地测试请求次数上限。"
 
-#: publishing/ai_views.py:226
+#: publishing/ai_views.py:224 publishing/site_ai_views.py:102
 msgid "The journal's local test request limit has been reached."
 msgstr "已达到该期刊的本地测试请求上限。"
 
@@ -150,7 +150,7 @@ msgstr "我已检查审稿文件、题目和摘要中的身份识别信息。"
 msgid "Revised manuscript PDF"
 msgstr "修回稿件 PDF"
 
-#: publishing/forms.py:45 publishing/models.py:203
+#: publishing/forms.py:45 publishing/models.py:232
 #: templates/publishing/submission_detail.html:15
 msgid "Response to the editor"
 msgstr "给编辑的回复"
@@ -163,7 +163,7 @@ msgstr "请填写回复。"
 msgid "Editorial decision"
 msgstr "编辑决定"
 
-#: publishing/forms.py:70 publishing/models.py:343
+#: publishing/forms.py:70 publishing/models.py:372
 msgid "Message to the author"
 msgstr "给作者的说明"
 
@@ -200,7 +200,7 @@ msgstr "虚构的发表用 PDF"
 msgid "I confirm this PDF contains only fictional test data."
 msgstr "我确认该 PDF 只包含虚构测试数据。"
 
-#: publishing/forms.py:138 publishing/models.py:358
+#: publishing/forms.py:138 publishing/models.py:387
 #: templates/publishing/journal_test_articles.html:6
 #: templates/publishing/manage_test_issues.html:8
 #: templates/publishing/production_detail.html:7
@@ -210,15 +210,15 @@ msgstr "我确认该 PDF 只包含虚构测试数据。"
 msgid "Volume"
 msgstr "卷"
 
-#: publishing/forms.py:139 publishing/models.py:359
+#: publishing/forms.py:139 publishing/models.py:388
 msgid "Issue number"
 msgstr "期号"
 
-#: publishing/forms.py:140 publishing/models.py:360
+#: publishing/forms.py:140 publishing/models.py:389
 msgid "Year"
 msgstr "年份"
 
-#: publishing/forms.py:141 publishing/models.py:361
+#: publishing/forms.py:141 publishing/models.py:390
 msgid "Issue title"
 msgstr "期次标题"
 
@@ -380,131 +380,135 @@ msgid "Allow assigned editors to request suggestions"
 msgstr "允许获分配编辑请求建议"
 
 #: publishing/models.py:115
+msgid "Enable journal site design suggestions"
+msgstr "启用期刊网站设计建议"
+
+#: publishing/models.py:116
 msgid "Journal request limit per 24 hours"
 msgstr "期刊每 24 小时请求上限"
 
-#: publishing/models.py:149
+#: publishing/models.py:145 publishing/models.py:337
+msgid "Pending"
+msgstr "处理中"
+
+#: publishing/models.py:146 publishing/models.py:338
+msgid "Completed"
+msgstr "已完成"
+
+#: publishing/models.py:147 publishing/models.py:339
+msgid "Unavailable"
+msgstr "不可用"
+
+#: publishing/models.py:148 publishing/models.py:340
+msgid "Cancelled"
+msgstr "已取消"
+
+#: publishing/models.py:178
 msgid "Draft"
 msgstr "草稿"
 
-#: publishing/models.py:150
+#: publishing/models.py:179
 msgid "Submitted"
 msgstr "已投稿"
 
-#: publishing/models.py:151
+#: publishing/models.py:180
 msgid "Under review"
 msgstr "审稿中"
 
-#: publishing/models.py:152
+#: publishing/models.py:181
 msgid "Revision requested"
 msgstr "需要修回"
 
-#: publishing/models.py:153 publishing/models.py:239
+#: publishing/models.py:182 publishing/models.py:268
 msgid "Accepted"
 msgstr "已接受"
 
-#: publishing/models.py:154
+#: publishing/models.py:183
 msgid "Rejected"
 msgstr "已拒稿"
 
-#: publishing/models.py:178 publishing/models.py:406
+#: publishing/models.py:207 publishing/models.py:435
 msgid "Active"
 msgstr "有效"
 
-#: publishing/models.py:179 publishing/models.py:407
+#: publishing/models.py:208 publishing/models.py:436
 msgid "Removed"
 msgstr "已移除"
 
-#: publishing/models.py:180 publishing/models.py:408
+#: publishing/models.py:209 publishing/models.py:437
 msgid "Recused"
 msgstr "已回避"
 
-#: publishing/models.py:199
+#: publishing/models.py:228
 msgid "Reviewer PDF"
 msgstr "审稿用 PDF"
 
-#: publishing/models.py:217
+#: publishing/models.py:246
 msgid "Open"
 msgstr "进行中"
 
-#: publishing/models.py:218
+#: publishing/models.py:247
 msgid "Closed"
 msgstr "已结束"
 
-#: publishing/models.py:238
+#: publishing/models.py:267
 msgid "Invited"
 msgstr "已邀请"
 
-#: publishing/models.py:240
+#: publishing/models.py:269
 msgid "Declined"
 msgstr "已拒绝"
 
-#: publishing/models.py:241 publishing/models.py:247 publishing/models.py:278
+#: publishing/models.py:270 publishing/models.py:276 publishing/models.py:307
 #: templates/publishing/workspace.html:17
 msgid "Conflict declared"
 msgstr "已声明利益冲突"
 
-#: publishing/models.py:242
+#: publishing/models.py:271
 msgid "Report submitted"
 msgstr "已提交意见"
 
-#: publishing/models.py:245
+#: publishing/models.py:274
 msgid "Not declared"
 msgstr "尚未声明"
 
-#: publishing/models.py:246 publishing/models.py:277
+#: publishing/models.py:275 publishing/models.py:306
 msgid "No conflict declared"
 msgstr "已声明无利益冲突"
 
-#: publishing/models.py:250 publishing/models.py:337
+#: publishing/models.py:279 publishing/models.py:366
 msgid "Accept"
 msgstr "接收"
 
-#: publishing/models.py:251 publishing/models.py:335
+#: publishing/models.py:280 publishing/models.py:364
 msgid "Minor revision"
 msgstr "小修"
 
-#: publishing/models.py:252 publishing/models.py:336
+#: publishing/models.py:281 publishing/models.py:365
 msgid "Major revision"
 msgstr "大修"
 
-#: publishing/models.py:253 publishing/models.py:338
+#: publishing/models.py:282 publishing/models.py:367
 msgid "Reject"
 msgstr "拒稿"
 
-#: publishing/models.py:308
-msgid "Pending"
-msgstr "处理中"
-
-#: publishing/models.py:309
-msgid "Completed"
-msgstr "已完成"
-
-#: publishing/models.py:310
-msgid "Unavailable"
-msgstr "不可用"
-
-#: publishing/models.py:311
-msgid "Cancelled"
-msgstr "已取消"
-
-#: publishing/models.py:382 templates/publishing/production_detail.html:7
+#: publishing/models.py:411 templates/publishing/production_detail.html:7
 msgid "Public title"
 msgstr "公开题目"
 
-#: publishing/models.py:383 templates/publishing/production_detail.html:7
+#: publishing/models.py:412 templates/publishing/production_detail.html:7
 msgid "Public author names"
 msgstr "公开作者姓名"
 
-#: publishing/models.py:384 templates/publishing/production_detail.html:7
+#: publishing/models.py:413 templates/publishing/production_detail.html:7
 msgid "Public abstract"
 msgstr "公开摘要"
 
-#: publishing/models.py:395
+#: publishing/models.py:424
 msgid "Publication PDF"
 msgstr "发表用 PDF"
 
-#: publishing/production_views.py:126 publishing/site_views.py:65
+#: publishing/production_views.py:126 publishing/site_views.py:72
 msgid "Confirm that the materials are fictional."
 msgstr "请确认材料为虚构测试数据。"
 
@@ -564,36 +568,65 @@ msgstr "当前校样需要有效的作者确认。"
 msgid "Fictional article published in the local test environment."
 msgstr "虚构文章已在本地测试环境中发表。"
 
-#: publishing/site_views.py:72
-msgid "Journal site draft created."
-msgstr "已创建期刊网站草稿。"
+#: publishing/site_ai_views.py:76
+msgid "Provide a fictional design brief of at most 600 characters."
+msgstr "请填写不超过 600 个字符的虚构设计需求。"
 
-#: publishing/site_views.py:72
-msgid "The journal site draft already exists."
-msgstr "期刊网站草稿已存在。"
+#: publishing/site_ai_views.py:79 publishing/site_ai_views.py:88
+msgid "AI site design is not enabled for this journal and test environment."
+msgstr "本刊及测试环境尚未启用 AI 网站设计。"
 
-#: publishing/site_views.py:90 publishing/site_views.py:122
-#: publishing/site_views.py:147
+#: publishing/site_ai_views.py:81 publishing/site_ai_views.py:90
+msgid "The AI policy or model changed; reload the page."
+msgstr "AI 策略或模型已变更，请重新加载页面。"
+
+#: publishing/site_ai_views.py:97 publishing/site_views.py:97
+#: publishing/site_views.py:129 publishing/site_views.py:154
 msgid "The site draft changed; reload the page."
 msgstr "网站草稿已变更，请重新加载页面。"
 
-#: publishing/site_views.py:125 publishing/site_views.py:151
+#: publishing/site_ai_views.py:163 publishing/site_ai_views.py:190
+#: templates/publishing/site_ai_result.html:6
+msgid "The site draft changed; request new suggestions."
+msgstr "网站草稿已变更，请重新请求设计建议。"
+
+#: publishing/site_ai_views.py:179
+msgid "Confirm applying this option to the draft."
+msgstr "请确认将此方案应用到草稿。"
+
+#: publishing/site_ai_views.py:188 templates/publishing/site_ai_result.html:6
+msgid "This suggestion has already been applied."
+msgstr "此建议已应用。"
+
+#: publishing/site_ai_views.py:199
+msgid "Suggestion applied to the draft. Publish separately after review."
+msgstr "建议已应用到草稿；审核后需另行确认发布。"
+
+#: publishing/site_views.py:79
+msgid "Journal site draft created."
+msgstr "已创建期刊网站草稿。"
+
+#: publishing/site_views.py:79
+msgid "The journal site draft already exists."
+msgstr "期刊网站草稿已存在。"
+
+#: publishing/site_views.py:132 publishing/site_views.py:158
 msgid "The site design is invalid."
 msgstr "网站设计配置无效。"
 
-#: publishing/site_views.py:127
+#: publishing/site_views.py:134
 msgid "This version is already published or unavailable."
 msgstr "该版本已发布或不可用。"
 
-#: publishing/site_views.py:133
+#: publishing/site_views.py:140
 msgid "Journal site published in the local test environment."
 msgstr "期刊网站已在本地测试环境发布。"
 
-#: publishing/site_views.py:149
+#: publishing/site_views.py:156
 msgid "Confirm the draft restoration."
 msgstr "请确认恢复草稿。"
 
-#: publishing/site_views.py:159
+#: publishing/site_views.py:166
 msgid "Version restored to the draft; publish separately after review."
 msgstr "已将版本恢复到草稿；审核后需另行确认发布。"
 
@@ -809,18 +842,21 @@ msgid "The model returned no suggestions."
 msgstr "模型未返回建议。"
 
 #: templates/publishing/ai_result.html:6
+#: templates/publishing/site_ai_result.html:7
 msgid ""
 "The request is still being processed. It will not be sent again if this page "
 "is refreshed."
 msgstr "请求仍在处理中；刷新此页面不会再次发送。"
 
 #: templates/publishing/ai_result.html:7
+#: templates/publishing/site_ai_result.html:7
 msgid ""
 "The request was cancelled because authorisation or configuration changed "
 "before sending."
 msgstr "发送前授权或配置发生变化，请求已取消。"
 
 #: templates/publishing/ai_result.html:8
+#: templates/publishing/site_ai_result.html:7
 msgid ""
 "The service was unavailable or returned an unusable response. No automatic "
 "retry was made."
@@ -859,6 +895,7 @@ msgid "Needs attention"
 msgstr "需要关注"
 
 #: templates/publishing/checks.html:7
+#: templates/publishing/manage_journal_site.html:9
 msgid "OPTIONAL EXTERNAL AI"
 msgstr "可选的外部 AI"
 
@@ -889,6 +926,7 @@ msgid "The journal has not enabled external AI suggestions."
 msgstr "期刊尚未启用外部 AI 建议。"
 
 #: templates/publishing/checks.html:11
+#: templates/publishing/manage_journal_site.html:10
 msgid "The OpenAI connection is not configured in this test environment."
 msgstr "测试环境尚未配置 OpenAI 连接。"
 
@@ -1081,6 +1119,11 @@ msgid "No journals have been configured yet."
 msgstr "尚未配置期刊。"
 
 #: templates/publishing/journal_site.html:5
+msgid ""
+"Private AI suggestion preview. This option has not been applied or published."
+msgstr "AI 建议的私密预览。此方案尚未应用或发布。"
+
+#: templates/publishing/journal_site.html:5
 msgid "Private draft preview. This version is not necessarily published."
 msgstr "私有草稿预览；此版本不一定已经发布。"
 
@@ -1182,17 +1225,15 @@ msgstr "期刊 AI 策略"
 
 #: templates/publishing/manage_ai_policy.html:4
 msgid ""
-"Control the existing title and abstract writing task for this journal's "
-"fictional test data."
-msgstr "管理本刊虚构测试数据的题目与摘要写作建议。"
+"Control metadata and site design suggestions for this journal's fictional "
+"test data."
+msgstr "管理本刊虚构测试数据的元数据和网站设计建议。"
 
 #: templates/publishing/manage_ai_policy.html:5
 msgid ""
-"This policy covers only OpenAI title and abstract suggestions. It does not "
-"enable website design, other AI providers or manuscript file processing."
-msgstr ""
-"此策略仅适用于 OpenAI 题目与摘要建议，不会启用网站设计、其他 AI 服务商或稿件"
-"文件处理。"
+"This policy covers OpenAI metadata and preset site design suggestions. It "
+"does not enable other AI providers or manuscript file processing."
+msgstr "本策略适用于 OpenAI 元数据建议及预设网站设计建议，不启用其他 AI 供应商或稿件文件处理。"
 
 #: templates/publishing/manage_ai_policy.html:6
 msgid "Current test configuration"
@@ -1208,8 +1249,8 @@ msgid "Requests in the last 24 hours"
 msgstr "最近 24 小时请求次数"
 
 #: templates/publishing/manage_ai_policy.html:6
-msgid "Journal administrator switch"
-msgstr "期刊管理员总开关"
+msgid "Journal administrator switch for metadata"
+msgstr "元数据任务的期刊管理员开关"
 
 #: templates/publishing/manage_ai_policy.html:6
 #: templates/publishing/manage_ai_policy.html:8
@@ -1223,21 +1264,17 @@ msgstr "已停用"
 
 #: templates/publishing/manage_ai_policy.html:6
 msgid ""
-"The journal administrator must also enable OpenAI metadata suggestions in "
-"the admin site, and the server must be configured. Authors must still "
-"authorise the exact metadata, and the requester must confirm each request."
-msgstr ""
-"期刊管理员还须在管理后台启用 OpenAI 元数据建议，并完成服务器配置。作者仍需针"
-"对具体元数据授权，请求者每次都须确认。"
+"The metadata task also needs the journal administrator switch, author "
+"consent and request confirmation. Site design requires an authorised site "
+"manager and request confirmation. Both require server configuration."
+msgstr "元数据任务还需要期刊管理员开关、作者授权和请求确认。网站设计需要有权的网站管理员和请求确认。两者都需要服务端配置。"
 
 #: templates/publishing/manage_ai_policy.html:6
 msgid ""
 "Every attempt counts towards the journal limit, including failed and "
 "cancelled requests. A separate limit of three requests per account in 24 "
 "hours also applies."
-msgstr ""
-"每次尝试均计入期刊上限，包括失败和取消的请求。每个账户 24 小时内最多请求三次"
-"的限制仍然适用。"
+msgstr "每次尝试均计入期刊上限，包括失败和取消的请求；每个账户另有 24 小时三次的上限。"
 
 #: templates/publishing/manage_ai_policy.html:7
 msgid "I confirm this policy for the journal."
@@ -1262,12 +1299,20 @@ msgid ""
 msgstr "记录仅包含策略设置和操作者，不包含稿件内容或 AI 凭据。"
 
 #: templates/publishing/manage_ai_policy.html:8
+msgid "Metadata"
+msgstr "元数据"
+
+#: templates/publishing/manage_ai_policy.html:8
 msgid "Author requests"
 msgstr "作者请求"
 
 #: templates/publishing/manage_ai_policy.html:8
 msgid "Editor requests"
 msgstr "编辑请求"
+
+#: templates/publishing/manage_ai_policy.html:8
+msgid "Site design"
+msgstr "网站设计"
 
 #: templates/publishing/manage_ai_policy.html:8
 msgid "Limit"
@@ -1299,7 +1344,7 @@ msgid "Start a site draft"
 msgstr "开始网站草稿"
 
 #: templates/publishing/manage_journal_site.html:6
-#: templates/publishing/manage_journal_site.html:9
+#: templates/publishing/manage_journal_site.html:12
 #: templates/publishing/production_detail.html:14
 #: templates/publishing/production_detail.html:15
 #: templates/publishing/submission_detail.html:6
@@ -1315,8 +1360,10 @@ msgid "Site draft"
 msgstr "网站草稿"
 
 #: templates/publishing/manage_journal_site.html:7
-#: templates/publishing/manage_journal_site.html:10
+#: templates/publishing/manage_journal_site.html:11
+#: templates/publishing/manage_journal_site.html:13
 #: templates/publishing/production_detail.html:4
+#: templates/publishing/site_ai_result.html:4
 msgid "Revision"
 msgstr "修订版本"
 
@@ -1347,37 +1394,92 @@ msgid "Save site draft"
 msgstr "保存网站草稿"
 
 #: templates/publishing/manage_journal_site.html:9
+msgid "AI site design suggestions"
+msgstr "AI 网站设计建议"
+
+#: templates/publishing/manage_journal_site.html:9
+msgid ""
+"Describe a fictional visual style. AI can suggest up to three combinations "
+"of the existing colours and layouts."
+msgstr "描述虚构的视觉风格，AI 可从现有配色和布局中建议最多三种组合。"
+
+#: templates/publishing/manage_journal_site.html:9
+msgid ""
+"Only the design brief you enter below is sent to OpenAI. Use fictional "
+"information only; do not include manuscripts or personal information. API "
+"use may incur charges and provider retention may apply."
+msgstr "只会将下方输入的设计需求发送给 OpenAI。请只使用虚构信息，不要包含稿件或个人信息。API 可能收费，服务商可能保留数据。"
+
+#: templates/publishing/manage_journal_site.html:9
+msgid ""
+"Save any draft edits first. Suggestions do not change the draft; publishing "
+"requires separate confirmation."
+msgstr "请先保存草稿修改。建议不会自动更改草稿；发布需要另行确认。"
+
+#: templates/publishing/manage_journal_site.html:10
+msgid "The journal has not enabled AI site design in its AI policy."
+msgstr "本刊尚未在 AI 策略中启用网站设计。"
+
+#: templates/publishing/manage_journal_site.html:10
+msgid "Fictional design brief"
+msgstr "虚构设计需求"
+
+#: templates/publishing/manage_journal_site.html:10
+msgid "For example: a calm, contemporary academic journal."
+msgstr "例如：沉稳、现代的学术期刊。"
+
+#: templates/publishing/manage_journal_site.html:10
+msgid "Send this exact design brief to OpenAI for one request."
+msgstr "本次请求将这份设计需求发送给 OpenAI。"
+
+#: templates/publishing/manage_journal_site.html:10
+msgid "I confirm that this brief contains only fictional test information."
+msgstr "我确认该设计需求只包含虚构测试信息。"
+
+#: templates/publishing/manage_journal_site.html:10
+msgid "Request design suggestions"
+msgstr "请求设计建议"
+
+#: templates/publishing/manage_journal_site.html:11
+msgid "My design requests"
+msgstr "我的设计请求"
+
+#: templates/publishing/manage_journal_site.html:11
+msgid "No design requests yet."
+msgstr "尚无设计请求。"
+
+#: templates/publishing/manage_journal_site.html:12
 msgid "Publish test site"
 msgstr "发布测试网站"
 
-#: templates/publishing/manage_journal_site.html:9
+#: templates/publishing/manage_journal_site.html:12
 msgid ""
 "Review the draft first. This publishes only to the local test environment."
 msgstr "请先审阅草稿。此操作仅在本地测试环境发布。"
 
-#: templates/publishing/manage_journal_site.html:9
+#: templates/publishing/manage_journal_site.html:12
 msgid "Publish this exact site draft locally."
 msgstr "在本地发布当前网站草稿。"
 
-#: templates/publishing/manage_journal_site.html:10
+#: templates/publishing/manage_journal_site.html:13
 msgid "Published versions"
 msgstr "已发布版本"
 
-#: templates/publishing/manage_journal_site.html:10
+#: templates/publishing/manage_journal_site.html:13
 msgid ""
 "Restoring a version only changes the draft; publishing it requires a "
 "separate confirmation."
 msgstr "恢复版本只会修改草稿；发布仍需另行确认。"
 
-#: templates/publishing/manage_journal_site.html:10
+#: templates/publishing/manage_journal_site.html:13
 msgid "Restore this version to the draft."
 msgstr "将此版本恢复到草稿。"
 
-#: templates/publishing/manage_journal_site.html:10
+#: templates/publishing/manage_journal_site.html:13
 msgid "Restore to draft"
 msgstr "恢复到草稿"
 
-#: templates/publishing/manage_journal_site.html:10
+#: templates/publishing/manage_journal_site.html:13
 msgid "No site versions have been published."
 msgstr "尚未发布网站版本。"
 
@@ -1803,6 +1905,32 @@ msgstr "本刊将作者 PDF 用于审稿，其中可能包含身份识别信息�
 msgid "Submit revised version"
 msgstr "提交修回版本"
 
+#: templates/publishing/site_ai_result.html:3
+msgid "Back to site design"
+msgstr "返回网站设计"
+
+#: templates/publishing/site_ai_result.html:4
+msgid "AI design suggestions"
+msgstr "AI 设计建议"
+
+#: templates/publishing/site_ai_result.html:5
+msgid ""
+"These are unverified suggestions using preset colours and layouts. Preview "
+"is private; applying changes only the draft."
+msgstr "这些未经核实的建议使用预设配色和布局。预览仅限本人，应用只会更改草稿。"
+
+#: templates/publishing/site_ai_result.html:6
+msgid "Preview option"
+msgstr "预览方案"
+
+#: templates/publishing/site_ai_result.html:6
+msgid "Apply this option to the draft."
+msgstr "将此方案应用到草稿。"
+
+#: templates/publishing/site_ai_result.html:6
+msgid "Apply to draft"
+msgstr "应用到草稿"
+
 #: templates/publishing/submission_detail.html:4
 msgid "Download latest PDF"
 msgstr "下载最新 PDF"
@@ -2044,9 +2172,8 @@ msgid ""
 msgstr "在本地测试环境设计、预览和发布虚构期刊页面。"
 
 #: templates/publishing/workspace.html:7
-msgid ""
-"Manage the permitted metadata task and local request limit for each journal."
-msgstr "管理各刊允许使用的题目摘要任务及本地请求上限。"
+msgid "Manage permitted AI tasks and local request limits for each journal."
+msgstr "管理各期刊允许的 AI 任务及本地请求上限。"
 
 #: templates/publishing/workspace.html:10
 msgid "AUTHOR"
@@ -2131,6 +2258,14 @@ msgstr "请使用为此隔离工作台创建的测试账户。"
 #: templates/registration/login.html:8
 msgid "Sign-in failed. Check your username and password."
 msgstr "登录失败，请检查用户名和密码。"
+
+#~ msgid ""
+#~ "The journal administrator must also enable OpenAI metadata suggestions in "
+#~ "the admin site, and the server must be configured. Authors must still "
+#~ "authorise the exact metadata, and the requester must confirm each request."
+#~ msgstr ""
+#~ "期刊管理员还须在管理后台启用 OpenAI 元数据建议，并完成服务器配置。作者仍需"
+#~ "针对具体元数据授权，请求者每次都须确认。"
 
 #~ msgid "Submitted manuscripts from your authorised journals."
 #~ msgstr "来自您有权处理的期刊的已投稿件。"

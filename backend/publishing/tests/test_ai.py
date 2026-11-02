@@ -10,7 +10,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from publishing.ai_provider import OPENAI_RESPONSES_URL, PROMPT_VERSION, ProviderError, _NoRedirect, _parse_response, metadata_fingerprint
-from publishing.models import AIConsent, AIAssistanceRun, EditorialAssignment, Journal, JournalAIPolicy, Membership, Organisation, Submission, SubmissionVersion
+from publishing.models import (AIConsent, AIAssistanceRun, EditorialAssignment, Journal, JournalAIPolicy,
+    JournalSiteAIDesignRun, JournalSiteDraft, Membership, Organisation, Submission, SubmissionVersion)
 
 
 def mock_response(evidence="Fictional abstract.", observation="Clarify this sentence.", suggestion="Use a more specific phrase."):
@@ -81,6 +82,17 @@ class AIWorkflowTests(TestCase):
             self.assertEqual(self.client.get(reverse("checks_page", args=[self.submission.pk])).status_code, 404)
         self.transport_mock.assert_not_called()
         self.assertFalse(AIAssistanceRun.objects.exists())
+
+    def test_site_design_attempts_count_towards_metadata_journal_limit(self):
+        self.grant()
+        site = JournalSiteDraft.objects.create(journal=self.journal, brand_name="Fictional site", headline="Test",
+            introduction="Fictional text", created_by=self.author)
+        JournalSiteAIDesignRun.objects.create(id=uuid.uuid4(), site=site, requested_by=self.author, model_name="test-model",
+            prompt_version="test", policy_revision=1, site_revision=1, site_fingerprint="a" * 64,
+            brief_fingerprint="b" * 64, status="failed")
+        JournalAIPolicy.objects.filter(journal=self.journal).update(journal_daily_limit=1)
+        self.assertEqual(self.run_request().status_code, 429)
+        self.transport_mock.assert_not_called()
 
     def test_external_provider_is_disabled_by_default_and_no_implicit_consent(self):
         self.client.force_login(self.author)

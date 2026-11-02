@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from publishing.ai_gateway import GatewayRejected, METADATA_WRITING, OPENAI, run_ai_task
+from publishing.ai_gateway import GatewayRejected, METADATA_WRITING, OPENAI, SITE_DESIGN, run_ai_task
 
 
 class AIGatewayTests(SimpleTestCase):
@@ -10,7 +10,7 @@ class AIGatewayTests(SimpleTestCase):
         valid = {"task":METADATA_WRITING, "provider":OPENAI, "model":"test-model", "api_key":"fictional-key",
                  "payload":{"title":"Fictional title", "abstract":"Fictional abstract"}}
         bad_requests = [
-            {**valid, "task":"site_design"},
+            {**valid, "task":"unregistered_task"},
             {**valid, "provider":"unregistered-provider"},
             {**valid, "payload":{"title":"Fictional title", "abstract":"Fictional abstract", "review":"private"}},
             {**valid, "payload":{"title":"Fictional title", "file":"private.pdf"}},
@@ -28,3 +28,13 @@ class AIGatewayTests(SimpleTestCase):
                                  payload={"title":"Fictional title", "abstract":"Fictional abstract"})
         self.assertEqual(result, [])
         adapter.assert_called_once_with(api_key="fictional-key", model="test-model", title="Fictional title", abstract="Fictional abstract")
+
+    def test_site_task_accepts_only_the_brief(self):
+        valid = {"task":SITE_DESIGN, "provider":OPENAI, "model":"test-model", "api_key":"fictional-key"}
+        with patch("publishing.ai_gateway.request_design_suggestions", return_value=[]) as adapter:
+            self.assertEqual(run_ai_task(**valid, payload={"brief":"Fictional visual style"}), [])
+            adapter.assert_called_once_with(api_key="fictional-key", model="test-model", brief="Fictional visual style")
+            for payload in ({"brief":"Style", "manuscript":"private"}, {"brief":None}, {}):
+                with self.subTest(payload=payload), self.assertRaises(GatewayRejected):
+                    run_ai_task(**valid, payload=payload)
+            self.assertEqual(adapter.call_count, 1)

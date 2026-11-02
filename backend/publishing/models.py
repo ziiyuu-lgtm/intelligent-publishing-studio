@@ -106,12 +106,13 @@ class JournalSiteEvent(models.Model):
 
 
 class JournalAIPolicy(models.Model):
-    """Fail-closed policy for the existing metadata-only local test task."""
+    """Fail-closed policies for local metadata and journal site design tasks."""
 
     journal = models.OneToOneField(Journal, on_delete=models.PROTECT, related_name="ai_policy")
     metadata_enabled = models.BooleanField(_("Enable metadata writing suggestions"), default=False)
     allow_author = models.BooleanField(_("Allow submitting authors to request suggestions"), default=False)
     allow_editor = models.BooleanField(_("Allow assigned editors to request suggestions"), default=False)
+    site_design_enabled = models.BooleanField(_("Enable journal site design suggestions"), default=False)
     journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)
@@ -137,6 +138,34 @@ class JournalAIPolicyEvent(models.Model):
     class Meta:
         ordering = ["-revision", "-pk"]
         constraints = [models.UniqueConstraint(fields=["policy", "revision"], name="unique_ai_policy_revision")]
+
+
+class JournalSiteAIDesignRun(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Unavailable")
+        CANCELLED = "cancelled", _("Cancelled")
+
+    id = models.UUIDField(primary_key=True, editable=False)
+    site = models.ForeignKey(JournalSiteDraft, on_delete=models.PROTECT, related_name="ai_design_runs")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    model_name = models.CharField(max_length=100)
+    prompt_version = models.CharField(max_length=60)
+    policy_revision = models.PositiveIntegerField()
+    site_revision = models.PositiveIntegerField()
+    site_fingerprint = models.CharField(max_length=64)
+    brief_fingerprint = models.CharField(max_length=64)
+    options = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    error_code = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    applied_option = models.PositiveSmallIntegerField(null=True, blank=True)
+    applied_revision = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
 
 
 def manuscript_path(instance, filename):

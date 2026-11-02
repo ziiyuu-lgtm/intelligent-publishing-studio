@@ -18,11 +18,9 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .ai_gateway import METADATA_WRITING, OPENAI, run_ai_task
 from .ai_provider import PROMPT_VERSION, metadata_fingerprint
+from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since
 from .models import AIConsent, AIAssistanceRun, Journal, JournalAIPolicy, Submission
 from .views import _author_can_view, _editor_can_view, _event, _file_exists, _submission
-
-DAILY_REQUEST_LIMIT = 3
-
 
 def _provider_configured():
     key = os.environ.get("OPENAI_API_KEY", "")
@@ -220,9 +218,9 @@ def request_ai_suggestions(request, pk):
         if not consent:
             return HttpResponse(_("The author has not authorised these exact metadata for this version."), status=403)
         since = timezone.now() - timedelta(hours=24)
-        if AIAssistanceRun.objects.filter(requested_by=request.user, created_at__gte=since).count() >= DAILY_REQUEST_LIMIT:
+        if account_requests_since(request.user, since) >= DAILY_REQUEST_LIMIT:
             return HttpResponse(_("The local test request limit has been reached."), status=429)
-        if AIAssistanceRun.objects.filter(version__submission__journal=submission.journal, created_at__gte=since).count() >= policy.journal_daily_limit:
+        if journal_requests_since(submission.journal, since) >= policy.journal_daily_limit:
             return HttpResponse(_("The journal's local test request limit has been reached."), status=429)
         run = AIAssistanceRun.objects.create(id=run_id, version=version, requested_by=request.user, consent=consent,
                    model_name=settings.IPS_OPENAI_MODEL, prompt_version=PROMPT_VERSION, policy_revision=policy.revision, data_fingerprint=fingerprint)

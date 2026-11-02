@@ -152,7 +152,7 @@ class JournalSiteForm(forms.ModelForm):
 class JournalAIPolicyForm(forms.ModelForm):
     class Meta:
         model = JournalAIPolicy
-        fields = ["metadata_enabled", "allow_author", "allow_editor", "journal_daily_limit"]
+        fields = ["metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "journal_daily_limit"]
 
     def clean(self):
         data = super().clean()

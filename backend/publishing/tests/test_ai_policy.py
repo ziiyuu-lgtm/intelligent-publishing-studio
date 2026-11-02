@@ -54,6 +54,16 @@ class JournalAIPolicyTests(TestCase):
         self.assertEqual(self.client.get(reverse("submission_detail", args=[self.submission.pk])).status_code, 404)
         self.assertEqual(self.client.get(reverse("submission_file", args=[self.submission.pk])).status_code, 404)
 
+    def test_site_design_can_be_enabled_independently_of_metadata(self):
+        response = self.save(metadata_enabled="", allow_author="", allow_editor="", site_design_enabled="on")
+        self.assertEqual(response.status_code, 302)
+        policy = JournalAIPolicy.objects.get(journal=self.journal)
+        self.assertTrue(policy.site_design_enabled)
+        self.assertFalse(policy.metadata_enabled)
+        self.assertFalse(policy.allow_author)
+        self.assertFalse(policy.allow_editor)
+        self.assertTrue(JournalAIPolicyEvent.objects.get(policy=policy).configuration["site_design_enabled"])
+
     def test_create_change_history_and_stale_update(self):
         self.assertEqual(self.save().status_code, 302)
         policy = JournalAIPolicy.objects.get(journal=self.journal)
@@ -61,7 +71,7 @@ class JournalAIPolicyTests(TestCase):
         self.assertTrue(policy.metadata_enabled)
         self.assertEqual(policy.journal_daily_limit, 4)
         event = JournalAIPolicyEvent.objects.get(policy=policy)
-        self.assertEqual(event.configuration, {"metadata_enabled":True, "allow_author":True, "allow_editor":True, "journal_daily_limit":4})
+        self.assertEqual(event.configuration, {"metadata_enabled":True, "allow_author":True, "allow_editor":True, "site_design_enabled":False, "journal_daily_limit":4})
         self.assertNotIn(self.submission.title, str(event.configuration))
         self.assertFalse(Journal.objects.get(pk=self.journal.pk).allow_openai_metadata)
         self.assertEqual(self.save(revision="0", journal_daily_limit="5").status_code, 409)

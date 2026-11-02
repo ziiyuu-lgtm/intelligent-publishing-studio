@@ -1,4 +1,4 @@
-"""Journal-scoped configuration for the existing fictional metadata AI task."""
+"""Journal-scoped configuration for fictional metadata and site design tasks."""
 from datetime import timedelta
 
 from django.conf import settings
@@ -13,10 +13,11 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from .forms import JournalAIPolicyForm
-from .models import AIAssistanceRun, Journal, JournalAIPolicy, JournalAIPolicyEvent, Membership
+from .models import Journal, JournalAIPolicy, JournalAIPolicyEvent, Membership
+from .ai_usage import journal_requests_since
 from .views import _has_role
 
-POLICY_FIELDS = ("metadata_enabled", "allow_author", "allow_editor", "journal_daily_limit")
+POLICY_FIELDS = ("metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "journal_daily_limit")
 
 
 def _managed_journal(user, slug, locked=False):
@@ -36,7 +37,7 @@ def _context(journal, policy, form=None):
         "policy": policy,
         "form": form if form is not None else JournalAIPolicyForm(instance=policy or JournalAIPolicy(journal=journal)),
         "revision": policy.revision if policy else 0,
-        "requests_24h": AIAssistanceRun.objects.filter(version__submission__journal=journal, created_at__gte=since).count(),
+        "requests_24h": journal_requests_since(journal, since),
         "events": policy.events.select_related("actor")[:20] if policy else [],
     }
 
