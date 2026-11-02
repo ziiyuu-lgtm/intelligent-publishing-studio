@@ -1,9 +1,10 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, author_response_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, author_dashboard_views, author_response_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
     path("workspace/", views.workspace, name="workspace"),
+    path("workspace/author-changes/", author_dashboard_views.author_change_dashboard, name="author_change_dashboard"),
     path("publishers/<slug:slug>/ai-policy/", portal_policy_views.manage_policy, name="manage_publisher_ai_policy"),
     path("publishers/<slug:slug>/site/", portal_views.public_portal, name="public_publisher_portal"),
     path("publishers/<slug:slug>/site/manage/", portal_views.manage_portal, name="manage_publisher_portal"),

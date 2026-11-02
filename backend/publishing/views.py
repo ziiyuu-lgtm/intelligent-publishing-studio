@@ -122,6 +122,21 @@ def home(request):
         "local_publication_enabled": local_publication_enabled, "publisher_portals":portals})
 
 
+
+def _editorial_submissions(user):
+    """One shared scope for editorial workspace and private change tracking."""
+    visible_journals = Journal.objects.filter(active=True, organisation__active=True)
+    return Submission.objects.filter(
+        journal__in=visible_journals, journal__memberships__user=user,
+        journal__memberships__role=Membership.Role.EDITOR, journal__memberships__active=True,
+        editor_assignments__editor=user, editor_assignments__status=EditorialAssignment.Status.ACTIVE,
+    ).exclude(author=user).exclude(reviews__reviewer=user).exclude(status=Submission.Status.DRAFT).exclude(
+        Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("pk"), recipient=user))
+    ).exclude(
+        Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("pk"), producer=user,
+                                                    status=ProductionAssignment.Status.RECUSED))
+    ).select_related("journal", "author").distinct()
+
 @login_required
 @never_cache
 @require_GET
@@ -137,16 +152,7 @@ def workspace(request):
     portal_ai_organisations = Organisation.objects.filter(active=True, memberships__user=request.user,
         memberships__role=OrganisationMembership.Role.AI_MANAGER, memberships__active=True).distinct().order_by("name")
     authored = Submission.objects.filter(author=request.user, journal__in=visible_journals).select_related("journal")
-    editorial = Submission.objects.filter(
-        journal__in=visible_journals, journal__memberships__user=request.user,
-        journal__memberships__role=Membership.Role.EDITOR, journal__memberships__active=True,
-        editor_assignments__editor=request.user, editor_assignments__status=EditorialAssignment.Status.ACTIVE,
-    ).exclude(author=request.user).exclude(reviews__reviewer=request.user).exclude(status=Submission.Status.DRAFT).exclude(
-        Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("pk"), recipient=request.user))
-    ).exclude(
-        Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("pk"), producer=request.user,
-                                                    status=ProductionAssignment.Status.RECUSED))
-    ).select_related("journal", "author").distinct().annotate(
+    editorial = _editorial_submissions(request.user).annotate(
         has_reported_conflict=Exists(ReviewAssignment.objects.filter(submission_id=OuterRef("pk"), conflict=ReviewAssignment.Conflict.YES)))
     reviews = ReviewAssignment.objects.filter(
         reviewer=request.user, submission__journal__in=visible_journals,

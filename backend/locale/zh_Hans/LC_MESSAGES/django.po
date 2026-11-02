@@ -4411,3 +4411,114 @@ msgstr "查看账户任务"
 
 msgid "Resolve outstanding, disagreeing or ineligible author account responses before approval."
 msgstr "批准前，请处理未回复、不同意或账户资格失效的作者确认任务。"
+
+msgid "Track author changes"
+msgstr "追踪作者变更"
+
+msgid "Author change tracking"
+msgstr "作者变更进度看板"
+
+msgid "EDITORIAL OVERVIEW"
+msgstr "编辑工作总览"
+
+msgid "Monitor pending requests for manuscripts assigned to you."
+msgstr "集中查看分配给您的稿件中尚未处理完毕的作者变更申请。"
+
+msgid "PRIVATE WORKSPACE"
+msgstr "编辑私密工作区"
+
+msgid "Fictional test records only. Counts describe requests and may overlap. No messages are sent."
+msgstr "仅限虚构测试数据。统计单位是变更申请，各类申请可能重叠；系统不会发送消息。"
+
+msgid "Filter pending requests"
+msgstr "筛选待处理申请"
+
+msgid "Pending requests"
+msgstr "待处理申请"
+
+msgid "All assigned requests"
+msgstr "全部已分配申请"
+
+msgid "Awaiting responses"
+msgstr "等待作者回复"
+
+msgid "At least one account"
+msgstr "至少一个账户待回复"
+
+msgid "Overdue responses"
+msgstr "回复已逾期"
+
+msgid "Past response deadline"
+msgstr "已超过回复期限"
+
+msgid "Author objections"
+msgstr "作者有异议"
+
+msgid "At least one disagreement"
+msgstr "至少一位作者不同意"
+
+msgid "YOUR EDITORIAL QUEUE"
+msgstr "我的编辑任务"
+
+msgid "Requests needing attention"
+msgstr "需要关注的申请"
+
+msgid "Newest first"
+msgstr "按申请时间倒序"
+
+msgid "Checked counts are recorded assessments only. File integrity, account eligibility and all approval requirements are rechecked when an editor attempts approval."
+msgstr "核查数量仅表示已记录的人工评估。编辑尝试批准时，系统会重新检查文件完整性、账户资格及其他批准条件。"
+
+msgid "Manual evidence checks recorded"
+msgstr "已记录的证明核查"
+
+msgid "Original and proposed entries"
+msgstr "变更前后名单条目"
+
+msgid "Account responses"
+msgstr "账户回复"
+
+msgid "Agreed / assigned (optional)"
+msgstr "已同意 / 已分配（可选）"
+
+msgid "Records need review"
+msgstr "记录需要核查"
+
+msgid "Evidence check disputed"
+msgstr "证明核查有异议"
+
+msgid "Author disagreed"
+msgstr "作者不同意"
+
+msgid "Response overdue"
+msgstr "回复已逾期"
+
+msgid "Account or response needs review"
+msgstr "账户或回复需要核查"
+
+msgid "Evidence checks incomplete"
+msgstr "证明核查未完成"
+
+msgid "Editorial review required"
+msgstr "等待编辑复核"
+
+msgid "Review the full record before making a decision."
+msgstr "作出决定前，请查看完整申请记录。"
+
+msgid "Open request"
+msgstr "查看申请"
+
+msgid "No assigned requests match this filter."
+msgstr "没有符合此筛选条件的已分配申请。"
+
+msgid "Request pages"
+msgstr "申请分页"
+
+msgid "Previous"
+msgstr "上一页"
+
+msgid "Next"
+msgstr "下一页"
+
+msgid "Page"
+msgstr "第"

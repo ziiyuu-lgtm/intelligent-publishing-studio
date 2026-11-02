@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Author change tracking" %} | Intelligent Publishing Studio{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'workspace' %}">← {% translate "Back to workspace" %}</a>
+<div class="page-intro tracking-intro"><div><span class="eyebrow">{% translate "EDITORIAL OVERVIEW" %}</span><h1>{% translate "Author change tracking" %}</h1><p>{% translate "Monitor pending requests for manuscripts assigned to you." %}</p></div><span class="tracking-marker">{% translate "PRIVATE WORKSPACE" %}</span></div>
+<div class="notice">{% translate "Fictional test records only. Counts describe requests and may overlap. No messages are sent." %}</div>
+<div class="tracking-stats" aria-label="{% translate 'Filter pending requests' %}">
+  <a class="tracking-stat{% if selected == 'all' %} selected{% endif %}" href="?filter=all" {% if selected == 'all' %}aria-current="page"{% endif %}><span>{% translate "Pending requests" %}</span><strong>{{ counts.all }}</strong><small>{% translate "All assigned requests" %}</small></a>
+  <a class="tracking-stat{% if selected == 'waiting' %} selected{% endif %}" href="?filter=waiting" {% if selected == 'waiting' %}aria-current="page"{% endif %}><span>{% translate "Awaiting responses" %}</span><strong>{{ counts.waiting }}</strong><small>{% translate "At least one account" %}</small></a>
+  <a class="tracking-stat{% if selected == 'overdue' %} selected{% endif %}" href="?filter=overdue" {% if selected == 'overdue' %}aria-current="page"{% endif %}><span>{% translate "Overdue responses" %}</span><strong>{{ counts.overdue }}</strong><small>{% translate "Past response deadline" %}</small></a>
+  <a class="tracking-stat{% if selected == 'objection' %} selected{% endif %}" href="?filter=objection" {% if selected == 'objection' %}aria-current="page"{% endif %}><span>{% translate "Author objections" %}</span><strong>{{ counts.objection }}</strong><small>{% translate "At least one disagreement" %}</small></a>
+</div>
+<section class="tracking-list" aria-label="{% translate 'Author change requests' %}">
+  <div class="tracking-list__heading"><div><span class="eyebrow">{% translate "YOUR EDITORIAL QUEUE" %}</span><h2>{% translate "Requests needing attention" %}</h2></div><span class="muted">{% translate "Newest first" %}</span></div>
+  <p class="muted tracking-explainer">{% translate "Checked counts are recorded assessments only. File integrity, account eligibility and all approval requirements are rechecked when an editor attempts approval." %}</p>
+  {% for row in rows %}<article class="tracking-card" data-waiting="{{ row.awaiting }}" data-overdue="{{ row.overdue }}" data-objection="{{ row.objections }}">
+    <div class="tracking-card__top"><div><span class="tracking-journal">{{ row.change.submission.journal.name }}</span><h3>{{ row.change.submission.title }}</h3><p class="tracking-meta">{% translate "Requested" %} · {{ row.change.requested_at|date:'Y-m-d H:i' }}</p></div><span class="tracking-chip">{% translate "Pending review" %}</span></div>
+    <div class="tracking-card__body"><div class="tracking-detail"><span>{% translate "Manual evidence checks recorded" %}</span>{% if row.invalid %}<strong>—</strong>{% else %}<strong>{{ row.manual_checked }} / {{ row.manual_total }}</strong>{% endif %}<small>{% translate "Original and proposed entries" %}</small></div><div class="tracking-detail"><span>{% translate "Account responses" %}</span><strong>{{ row.agreed }} / {{ row.task_count }}</strong><small>{% translate "Agreed / assigned (optional)" %}</small></div><div class="tracking-flags">
+      {% if row.invalid %}<span class="tracking-flag alert">{% translate "Records need review" %}</span>{% endif %}
+      {% if row.manual_disputed %}<span class="tracking-flag alert">{% translate "Evidence check disputed" %} · {{ row.manual_disputed }}</span>{% endif %}
+      {% if row.objections %}<span class="tracking-flag alert">{% translate "Author disagreed" %} · {{ row.objections }}</span>{% endif %}
+      {% if row.overdue %}<span class="tracking-flag warn">{% translate "Response overdue" %} · {{ row.overdue }}</span>{% endif %}
+      {% if row.awaiting %}<span class="tracking-flag warn">{% translate "Awaiting response" %} · {{ row.awaiting }}</span>{% endif %}
+      {% if row.account_issue %}<span class="tracking-flag alert">{% translate "Account or response needs review" %}</span>{% endif %}
+      {% if not row.invalid and row.manual_checked < row.manual_total %}<span class="tracking-flag">{% translate "Evidence checks incomplete" %}</span>{% endif %}
+      {% if not row.invalid and row.manual_checked == row.manual_total and not row.awaiting and not row.objections and not row.account_issue and not row.manual_disputed %}<span class="tracking-flag">{% translate "Editorial review required" %}</span>{% endif %}
+    </div></div>
+    <div class="tracking-card__bottom"><span>{% translate "Review the full record before making a decision." %}</span><a class="button secondary small" href="{% url 'contributor_change_detail' row.change.submission.pk row.change.pk %}">{% translate "Open request" %} →</a></div>
+  </article>{% empty %}<div class="card panel"><p class="empty-text">{% translate "No assigned requests match this filter." %}</p></div>{% endfor %}
+</section>
+{% if page.has_other_pages %}<nav class="tracking-pagination" aria-label="{% translate 'Request pages' %}">{% if page.has_previous %}<a class="button secondary small" href="?filter={{ selected }}&amp;page={{ page.previous_page_number }}">← {% translate "Previous" %}</a>{% endif %}<span>{% translate "Page" %} {{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="button secondary small" href="?filter={{ selected }}&amp;page={{ page.next_page_number }}">{% translate "Next" %} →</a>{% endif %}</nav>{% endif %}
+{% endblock %}
