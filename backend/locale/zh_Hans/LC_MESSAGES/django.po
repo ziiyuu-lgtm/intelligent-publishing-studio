@@ -3835,3 +3835,6 @@ msgstr "此草图没有可见区块。"
 
 msgid "Page-layout suggestions have their own independent switch below."
 msgstr "页面布局建议使用下方单独的开关。"
+
+msgid "Drag blocks in the sketch to reorder them, or use the move buttons below."
+msgstr "拖动草图中的区块即可调整顺序，也可以使用下方的移动按钮。"
