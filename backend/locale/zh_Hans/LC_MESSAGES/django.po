@@ -4522,3 +4522,141 @@ msgstr "下一页"
 
 msgid "Page"
 msgstr "第"
+
+msgid "Track review progress"
+msgstr "追踪审稿进度"
+
+msgid "Review progress"
+msgstr "审稿进度与期限"
+
+msgid "Track open review tasks for manuscripts assigned to you."
+msgstr "集中查看分配给您的稿件中正在进行的审稿任务。"
+
+msgid "Fictional test data only. Deadlines use UTC and are informational; no messages are sent and overdue tasks remain open."
+msgstr "仅限虚构测试数据。截止日期采用 UTC，仅作进度参考；系统不发送消息，逾期任务仍可继续。"
+
+msgid "Filter review tasks"
+msgstr "筛选审稿任务"
+
+msgid "Open tasks"
+msgstr "进行中的任务"
+
+msgid "Invited or accepted"
+msgstr "已邀请或已接受"
+
+msgid "Awaiting acceptance"
+msgstr "等待接受邀请"
+
+msgid "Invitation recorded"
+msgstr "邀请已记录"
+
+msgid "In review"
+msgstr "正在审稿"
+
+msgid "Reviewer accepted"
+msgstr "审稿人已接受"
+
+msgid "Overdue"
+msgstr "已逾期"
+
+msgid "Past UTC deadline"
+msgstr "已超过 UTC 截止日期"
+
+msgid "No deadline"
+msgstr "尚未设置期限"
+
+msgid "Date not set"
+msgstr "未设置日期"
+
+msgid "Open review tasks"
+msgstr "进行中的审稿任务"
+
+msgid "Review tasks needing attention"
+msgstr "需要关注的审稿任务"
+
+msgid "Nearest deadline first"
+msgstr "按截止日期由近到远"
+
+msgid "Counts are individual tasks and filters may overlap. Submitted, declined, conflicted and closed-round tasks are excluded."
+msgstr "统计单位为审稿任务，筛选类别可能重叠。已提交、已拒绝、有利益冲突及轮次已关闭的任务不列入。"
+
+msgid "Reviewer account"
+msgstr "审稿人账户"
+
+msgid "Review deadline (UTC)"
+msgstr "审稿截止日期（UTC）"
+
+msgid "Deadline (UTC)"
+msgstr "截止日期（UTC）"
+
+msgid "Not set"
+msgstr "未设置"
+
+msgid "Reviewer account or role inactive"
+msgstr "审稿人账户或角色已停用"
+
+msgid "Deadline changes are recorded for editors."
+msgstr "期限修改会记录供编辑查阅。"
+
+msgid "Manage deadline"
+msgstr "管理期限"
+
+msgid "Manage review deadline"
+msgstr "管理审稿期限"
+
+msgid "No assigned review tasks match this filter."
+msgstr "没有符合此筛选条件的已分配审稿任务。"
+
+msgid "Review task pages"
+msgstr "审稿任务分页"
+
+msgid "Back to review progress"
+msgstr "返回审稿进度"
+
+msgid "This deadline is a date in UTC. It is visible to the assigned reviewer but does not send a message or automatically close the task. Editors can view the change history and reason."
+msgstr "截止日期按 UTC 计算。指定审稿人可以查看日期；系统不会发送消息或自动关闭任务。编辑可查看修改历史及原因。"
+
+msgid "Current deadline"
+msgstr "当前截止日期"
+
+msgid "Reason for setting or changing the deadline"
+msgstr "设置或调整期限的原因"
+
+msgid "Leave blank to remove the deadline. The date lasts through the end of the UTC day."
+msgstr "留空可移除截止日期。截止时间为该 UTC 日期结束时。"
+
+msgid "Save deadline"
+msgstr "保存期限"
+
+msgid "This task is closed or no longer eligible for deadline changes. History remains read-only."
+msgstr "此任务已关闭或不再允许修改期限，历史记录仅供查看。"
+
+msgid "EDITORIAL HISTORY"
+msgstr "编辑处理记录"
+
+msgid "Deadline history"
+msgstr "期限修改历史"
+
+msgid "The latest 50 changes are shown. Reasons are visible only to assigned editors."
+msgstr "显示最近 50 次修改。原因仅对指定编辑可见。"
+
+msgid "No deadline changes have been recorded."
+msgstr "尚无期限修改记录。"
+
+msgid "This date does not automatically close your review task."
+msgstr "此日期不会自动关闭您的审稿任务。"
+
+msgid "Choose today or a future UTC date."
+msgstr "请选择 UTC 今天或之后的日期。"
+
+msgid "Please provide a reason."
+msgstr "请填写原因。"
+
+msgid "This review task is no longer open for deadline changes."
+msgstr "此审稿任务已不再允许修改期限。"
+
+msgid "The deadline changed; reload the page before saving."
+msgstr "期限已发生变化，请重新加载页面后再保存。"
+
+msgid "Deadline saved locally. No email was sent."
+msgstr "期限已在本地保存，系统未发送邮件。"

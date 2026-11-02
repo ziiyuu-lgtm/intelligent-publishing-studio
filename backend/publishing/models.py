@@ -626,10 +626,28 @@ class ReviewAssignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     responded_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    # An optional date in the local test system's UTC calendar; it never closes the task.
+    due_on = models.DateField(null=True, blank=True)
+    deadline_revision = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["round", "reviewer"], name="unique_reviewer_per_round")]
         ordering = ["-created_at"]
+
+
+class ReviewDeadlineEvent(models.Model):
+    """Append-only record of an editor changing a fictional review deadline."""
+    assignment = models.ForeignKey(ReviewAssignment, on_delete=models.PROTECT, related_name="deadline_events")
+    previous_date = models.DateField(null=True, blank=True)
+    new_date = models.DateField(null=True, blank=True)
+    revision = models.PositiveIntegerField()
+    reason = models.CharField(max_length=500)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_deadlines_recorded")
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-revision"]
+        constraints = [models.UniqueConstraint(fields=["assignment", "revision"], name="unique_review_deadline_revision")]
 
 
 class ConflictDeclaration(models.Model):

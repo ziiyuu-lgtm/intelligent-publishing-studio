@@ -530,6 +530,21 @@ except IrreversibleError:
     assert Change27.objects.filter(pk=old_approved25.pk).exists()
 else:
     raise AssertionError('Author response history must not be silently discarded')
+deadline_scope = ('publishing', '0028_review_deadlines')
+executor = MigrationExecutor(connection)
+executor.migrate([deadline_scope])
+apps = executor.loader.project_state([deadline_scope]).apps
+Assignment28 = apps.get_model('publishing', 'ReviewAssignment')
+Deadline28 = apps.get_model('publishing', 'ReviewDeadlineEvent')
+legacy_review28 = Assignment28.objects.get(pk=assignment.pk)
+assert legacy_review28.due_on is None and legacy_review28.deadline_revision == 0
+assert not Deadline28.objects.exists(), 'No deadlines or events may be inferred'
+try:
+    MigrationExecutor(connection).migrate([response_scope])
+except IrreversibleError:
+    assert Assignment28.objects.filter(pk=assignment.pk).exists()
+else:
+    raise AssertionError('Review deadline history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
