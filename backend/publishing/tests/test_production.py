@@ -1,5 +1,8 @@
 import shutil
 import tempfile
+import hashlib
+import json
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -8,7 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from publishing.models import (EditorialAssignment, EditorialDecision, Journal, Membership, Organisation, ProductionAssignment,
+from publishing.models import (EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, Organisation, ProductionAssignment,
                                PublicationApproval, PublicationDraft, PublicationProof, ReviewAssignment,
                                ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
@@ -97,6 +100,23 @@ class ProductionTests(TestCase):
         self.assertEqual(self.edit(draft).status_code, 302)
         self.assertEqual(self.upload(draft).status_code, 302)
         return draft
+
+    def create_issue(self, volume=1, number=1, year=2025, title="Fictional issue"):
+        self.client.force_login(self.coordinator)
+        response = self.client.post(reverse("manage_test_issues", args=[self.journal.slug]),
+            {"volume":volume, "number":number, "year":year, "title":title, "synthetic":"on"})
+        self.assertEqual(response.status_code, 302)
+        return JournalIssue.objects.get(journal=self.journal, volume=volume, number=number)
+
+    def select_issue(self, draft, issue=None):
+        draft.refresh_from_db()
+        self.client.force_login(self.producer)
+        return self.client.post(reverse("set_production_issue", args=[draft.pk]),
+                                {"revision":str(draft.revision), "issue":str(issue.pk) if issue else ""})
+
+    def release_issue(self, issue, actor=None):
+        self.client.force_login(actor or self.coordinator)
+        return self.client.post(reverse("release_test_issue", args=[issue.pk]), {"confirm":"yes", "synthetic":"yes"})
 
     def test_default_off_and_debug_off_block_all_publication_routes(self):
         for settings_values in ({"IPS_LOCAL_PUBLICATION_ENABLED":False}, {"DEBUG":False}):
@@ -418,3 +438,198 @@ class ProductionTests(TestCase):
         self.assertEqual(self.client.get(reverse("production_detail", args=[draft.pk])).status_code, 404)
         self.assertEqual(self.client.get(reverse("accepted_production_source", args=[draft.pk])).status_code, 404)
         self.assertNotContains(self.client.get(reverse("workspace")), draft.title)
+
+    def test_issue_creation_is_scoped_unique_and_immutable(self):
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.get(reverse("manage_test_issues", args=[self.journal.slug])).status_code, 404)
+        self.client.force_login(self.coordinator)
+        url = reverse("manage_test_issues", args=[self.journal.slug])
+        self.assertEqual(self.client.post(url, {"volume":0, "number":1, "year":2025, "synthetic":"on"}).status_code, 400)
+        issue = self.create_issue()
+        self.assertEqual(self.client.post(url, {"volume":1, "number":1, "year":2025, "title":"Fictional issue", "synthetic":"on"}).status_code, 302)
+        self.assertEqual(JournalIssue.objects.filter(journal=self.journal).count(), 1)
+        self.assertEqual(self.client.post(url, {"volume":1, "number":1, "year":2026, "title":"Different", "synthetic":"on"}).status_code, 409)
+        issue.refresh_from_db()
+        self.assertEqual((issue.year, issue.title), (2025, "Fictional issue"))
+        self.assertEqual(self.client.get(reverse("manage_test_issues", args=[self.other_journal.slug])).status_code, 404)
+        foreign_coordinator = get_user_model().objects.create_user("other-issue-coordinator")
+        Membership.objects.create(user=foreign_coordinator, journal=self.other_journal, role=Membership.Role.COORDINATOR)
+        self.client.force_login(foreign_coordinator)
+        result = self.client.post(reverse("manage_test_issues", args=[self.other_journal.slug]),
+                                  {"volume":1, "number":1, "year":2025, "title":"Other issue", "synthetic":"on"})
+        self.assertEqual(result.status_code, 302)
+        self.assertEqual(JournalIssue.objects.filter(volume=1, number=1).count(), 2)
+
+    def test_issue_assignment_and_release_follow_publication_and_journal_scope(self):
+        draft = self.ready()
+        issue = self.create_issue()
+        self.assertEqual(self.select_issue(draft, issue).status_code, 302)
+        draft.refresh_from_db()
+        revision = draft.revision
+        self.assertEqual(self.select_issue(draft, issue).status_code, 302)
+        draft.refresh_from_db()
+        self.assertEqual(draft.revision, revision)
+        self.assertEqual(SubmissionEvent.objects.filter(submission=self.submission, action="test_issue_selection_changed").count(), 1)
+        self.assertEqual(self.release_issue(issue).status_code, 409)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+        public = Client()
+        article = public.get(reverse("test_article", args=[self.journal.slug, draft.pk]))
+        self.assertContains(article, "Volume 1")
+        self.assertContains(article, "Issue 1")
+        issue_url = reverse("test_issue", args=[self.journal.slug, issue.pk])
+        self.assertEqual(public.get(issue_url).status_code, 404)
+        self.assertEqual(self.release_issue(issue).status_code, 302)
+        page = public.get(issue_url)
+        self.assertContains(page, "Fictional public title")
+        self.assertNotContains(page, "SECRET fictional review")
+        self.assertEqual(page["X-Robots-Tag"], "noindex, nofollow, noarchive")
+        self.assertContains(public.get(reverse("journal_test_articles", args=[self.journal.slug])), "Fictional issue")
+        self.assertEqual(public.get(reverse("test_issue", args=[self.other_journal.slug, issue.pk])).status_code, 404)
+        self.assertEqual(self.release_issue(issue).status_code, 409)
+        self.assertEqual(self.select_issue(draft).status_code, 409)
+
+    def test_issue_selection_invalidates_author_confirmation_and_stale_forms(self):
+        draft = self.ready()
+        issue = self.create_issue()
+        old_data = self.confirmation_data(draft, self.author)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.select_issue(draft, issue).status_code, 302)
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.post(reverse("approve_publication_proof", args=[draft.pk]), old_data).status_code, 409)
+        self.assertEqual(self.publish(draft).status_code, 409)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.select_issue(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 409)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+        self.assertEqual(PublicationApproval.objects.count(), 3)
+
+    def test_cross_journal_issue_and_unassigned_actor_cannot_change_draft(self):
+        draft = self.ready()
+        issue = JournalIssue.objects.create(journal=self.other_journal, volume=1, number=1, year=2025, created_by=self.coordinator)
+        self.assertEqual(self.select_issue(draft, issue).status_code, 400)
+        draft.refresh_from_db()
+        self.assertIsNone(draft.issue_id)
+        self.client.force_login(self.producer)
+        url = reverse("set_production_issue", args=[draft.pk])
+        self.assertEqual(self.client.post(url, {"revision":draft.revision, "issue":"not-a-uuid"}).status_code, 400)
+        self.assertEqual(self.client.post(url, {"revision":draft.revision}).status_code, 400)
+        self.client.force_login(self.other_editor)
+        self.assertEqual(self.client.post(url, {"revision":draft.revision, "issue":""}).status_code, 404)
+
+    def test_issue_release_requires_independent_coordinator_and_no_unpublished_articles(self):
+        issue = self.create_issue()
+        self.assertEqual(self.release_issue(issue).status_code, 409)
+        draft = self.ready()
+        self.select_issue(draft, issue)
+        self.assertEqual(self.release_issue(issue).status_code, 409)
+        self.approve(draft)
+        self.publish(draft)
+        for user in (self.author, self.reviewer):
+            Membership.objects.create(user=user, journal=self.journal, role=Membership.Role.COORDINATOR)
+            self.assertEqual(self.release_issue(issue, user).status_code, 403)
+        recused = get_user_model().objects.create_user("recused-issue-coordinator")
+        Membership.objects.create(user=recused, journal=self.journal, role=Membership.Role.COORDINATOR)
+        EditorialAssignment.objects.create(submission=self.submission, editor=recused, assigned_by=self.coordinator, status="recused")
+        self.assertEqual(self.release_issue(issue, recused).status_code, 403)
+        recused_producer = get_user_model().objects.create_user("recused-issue-producer")
+        Membership.objects.create(user=recused_producer, journal=self.journal, role=Membership.Role.COORDINATOR)
+        ProductionAssignment.objects.create(draft=draft, producer=recused_producer, assigned_by=self.coordinator, status="recused")
+        self.assertEqual(self.release_issue(issue, recused_producer).status_code, 403)
+        self.assertEqual(self.release_issue(issue).status_code, 302)
+
+    def test_issue_mutations_are_csrf_protected_and_disabled_by_default(self):
+        draft = self.ready()
+        issue = self.create_issue()
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.coordinator)
+        self.assertEqual(client.post(reverse("manage_test_issues", args=[self.journal.slug]), {}).status_code, 403)
+        self.assertEqual(client.post(reverse("release_test_issue", args=[issue.pk]), {}).status_code, 403)
+        client.force_login(self.producer)
+        self.assertEqual(client.post(reverse("set_production_issue", args=[draft.pk]), {}).status_code, 403)
+        self.assertEqual(client.get(reverse("set_production_issue", args=[draft.pk])).status_code, 405)
+        with override_settings(IPS_LOCAL_PUBLICATION_ENABLED=False):
+            self.assertEqual(self.client.get(reverse("test_issue", args=[self.journal.slug, issue.pk])).status_code, 404)
+            self.client.force_login(self.coordinator)
+            self.assertEqual(self.client.get(reverse("manage_test_issues", args=[self.journal.slug])).status_code, 404)
+
+    def test_online_first_fingerprint_preserves_existing_approvals(self):
+        draft = self.ready()
+        draft.refresh_from_db()
+        proof = draft.proofs.first()
+        old_payload = {"draft": str(draft.pk), "revision": draft.revision, "title": draft.title,
+                       "authors": draft.authors, "abstract": draft.abstract, "proof": proof.pk, "sha256": proof.sha256}
+        legacy_hash = hashlib.sha256(json.dumps(old_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+        self.client.force_login(self.author)
+        page = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertEqual(page.context["fingerprint"], legacy_hash)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+
+    def test_released_issue_cannot_receive_another_draft(self):
+        draft = self.ready()
+        issue = self.create_issue()
+        self.select_issue(draft, issue)
+        self.approve(draft)
+        self.publish(draft)
+        self.release_issue(issue)
+        second = Submission.objects.create(journal=self.journal, author=self.author, title="Second fictional manuscript",
+            abstract="Fictional abstract", manuscript="manuscripts/second.pdf", status="accepted")
+        version = SubmissionVersion.objects.create(submission=second, number=1, manuscript="manuscripts/second.pdf", uploaded_by=self.author)
+        review_round = ReviewRound.objects.create(submission=second, version=version, number=1, status="closed")
+        decision = EditorialDecision.objects.create(submission=second, round=review_round, outcome="accept", author_message="Accepted", decided_by=self.editor)
+        second_draft = PublicationDraft.objects.create(submission=second, decision=decision, title="Second draft", abstract="Fictional", created_by=self.editor)
+        ProductionAssignment.objects.create(draft=second_draft, producer=self.producer, assigned_by=self.coordinator)
+        self.assertEqual(self.select_issue(second_draft, issue).status_code, 400)
+        second_draft.refresh_from_db()
+        self.assertIsNone(second_draft.issue_id)
+
+    def test_issue_pages_support_simplified_chinese(self):
+        draft = self.ready()
+        self.client.force_login(self.coordinator)
+        self.client.post(reverse("set_language"), {"language":"zh-hans", "next":"/"})
+        self.assertContains(self.client.get(reverse("manage_test_issues", args=[self.journal.slug])), "管理测试卷期")
+        issue = self.create_issue()
+        self.select_issue(draft, issue)
+        self.client.force_login(self.author)
+        self.client.post(reverse("set_language"), {"language":"zh-hans", "next":"/"})
+        page = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertContains(page, "测试期次")
+        self.assertContains(page, "Fictional issue")
+
+    def test_missing_published_pdf_blocks_issue_release(self):
+        draft = self.ready()
+        issue = self.create_issue()
+        self.select_issue(draft, issue)
+        self.approve(draft)
+        self.publish(draft)
+        proof = PublicationProof.objects.get(draft=draft)
+        proof.file.storage.delete(proof.file.name)
+        self.assertEqual(self.release_issue(issue).status_code, 409)
+        issue.refresh_from_db()
+        self.assertIsNone(issue.released_at)
+        self.assertEqual(Client().get(reverse("test_issue", args=[self.journal.slug, issue.pk])).status_code, 404)
+
+    def test_issue_contents_follow_test_publication_order(self):
+        first = self.ready()
+        issue = self.create_issue()
+        self.select_issue(first, issue)
+        self.approve(first)
+        self.publish(first)
+        first.refresh_from_db()
+        second = Submission.objects.create(journal=self.journal, author=self.author, title="Earlier fictional manuscript",
+            abstract="Fictional abstract", manuscript="manuscripts/earlier.pdf", status="accepted")
+        version = SubmissionVersion.objects.create(submission=second, number=1, manuscript="manuscripts/earlier.pdf", uploaded_by=self.author)
+        review_round = ReviewRound.objects.create(submission=second, version=version, number=1, status="closed")
+        decision = EditorialDecision.objects.create(submission=second, round=review_round, outcome="accept", author_message="Accepted", decided_by=self.editor)
+        earlier = PublicationDraft.objects.create(submission=second, decision=decision, issue=issue, title="Earlier test article",
+            authors="Imaginary Author", abstract="Fictional", created_by=self.editor, published_by=self.producer,
+            published_at=first.published_at-timedelta(minutes=1))
+        proof = PublicationProof.objects.create(draft=earlier, file=SimpleUploadedFile("earlier.pdf", PDF),
+                                                sha256=hashlib.sha256(PDF).hexdigest(), uploaded_by=self.producer)
+        earlier.published_proof = proof
+        earlier.save(update_fields=["published_proof"])
+        self.assertEqual(self.release_issue(issue).status_code, 302)
+        page = Client().get(reverse("test_issue", args=[self.journal.slug, issue.pk])).content.decode("utf-8")
+        self.assertLess(page.index("Earlier test article"), page.index("Fictional public title"))

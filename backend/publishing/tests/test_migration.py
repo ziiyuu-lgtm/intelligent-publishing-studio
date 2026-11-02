@@ -159,6 +159,24 @@ except IrreversibleError:
     assert Submission7.objects.filter(pk=submission.pk).exists()
 else:
     raise AssertionError('Production assignment history must not be silently discarded')
+issues_scope = ('publishing', '0008_journalissue_publicationdraft_issue_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([issues_scope])
+apps = executor.loader.project_state([issues_scope]).apps
+Submission8 = apps.get_model('publishing', 'Submission')
+Draft8 = apps.get_model('publishing', 'PublicationDraft')
+Approval8 = apps.get_model('publishing', 'PublicationApproval')
+Issue8 = apps.get_model('publishing', 'JournalIssue')
+assert Submission8.objects.filter(pk=submission.pk).exists()
+assert Draft8.objects.get(pk=draft6.pk).issue_id is None
+assert Approval8.objects.filter(draft_id=draft6.pk, proof_id=proof6.pk, approved_by_id=author.pk).exists()
+assert not Issue8.objects.exists(), 'No issue should be inferred for existing manuscripts'
+try:
+    MigrationExecutor(connection).migrate([production_scope])
+except IrreversibleError:
+    assert Draft8.objects.filter(pk=draft6.pk).exists()
+else:
+    raise AssertionError('Issue assignments must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

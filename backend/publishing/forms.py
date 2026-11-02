@@ -132,3 +132,11 @@ class PublicationProofForm(forms.Form):
 
     def clean_file(self):
         return validate_pdf(self.cleaned_data["file"])
+
+
+class JournalIssueForm(forms.Form):
+    volume = forms.IntegerField(label=_("Volume"), min_value=1, max_value=9999)
+    number = forms.IntegerField(label=_("Issue number"), min_value=1, max_value=9999)
+    year = forms.IntegerField(label=_("Year"), min_value=1000, max_value=9999)
+    title = forms.CharField(label=_("Issue title"), max_length=200, required=False)
+    synthetic = forms.BooleanField(label=_("I confirm that this is a fictional test issue."))

@@ -19,7 +19,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import PublicationMetadataForm, PublicationProofForm
-from .models import (EditorialAssignment, EditorialDecision, Journal, Membership, ProductionAssignment,
+from .models import (EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, ProductionAssignment,
                      PublicationApproval, PublicationDraft, PublicationProof, ReviewRound, Submission)
 from .views import _author_can_view, _can_coordinate, _download_version, _editor_can_view, _event, _has_role, _submission
 
@@ -40,9 +40,9 @@ def _source_valid(submission, decision):
 
 
 def _draft(pk, locked=False):
-    qs = PublicationDraft.objects.select_related("submission__journal__organisation", "decision__round__version", "published_proof")
-    if locked:
-        qs = qs.select_for_update()
+    # Lock only the draft row; nullable joins cannot be locked by PostgreSQL.
+    qs = (PublicationDraft.objects.select_for_update() if locked else
+          PublicationDraft.objects.select_related("submission__journal__organisation", "decision__round__version", "published_proof", "issue"))
     return get_object_or_404(qs, pk=pk)
 
 
@@ -67,7 +67,15 @@ def _latest_proof(draft):
 def _fingerprint(draft, proof):
     payload = {"draft": str(draft.pk), "revision": draft.revision, "title": draft.title,
                "authors": draft.authors, "abstract": draft.abstract, "proof": proof.pk, "sha256": proof.sha256}
+    # Keep pre-issue approvals valid for unchanged online-first drafts.
+    if draft.issue_id:
+        payload["issue"] = {"id": str(draft.issue_id), "volume": draft.issue.volume, "number": draft.issue.number,
+                            "year": draft.issue.year, "title": draft.issue.title}
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+
+
+def _issue_valid_for_draft(draft):
+    return not draft.issue_id or (draft.issue.journal_id == draft.submission.journal_id and not draft.issue.released_at)
 
 
 def _proof_intact(proof):
@@ -94,9 +102,12 @@ def _context(request, draft, metadata_form=None, proof_form=None):
     producer_view = _producer_can_manage(request.user, draft)
     assignment = (draft.production_assignments.filter(producer=request.user, status=ProductionAssignment.Status.ACTIVE).first()
                   if producer_view else None)
+    issues = (JournalIssue.objects.filter(journal=draft.submission.journal, released_at__isnull=True)
+              if producer_view and not draft.published_at else JournalIssue.objects.none())
     return {"draft": draft, "submission": draft.submission, "proof": proof, "fingerprint": fingerprint,
             "approval": approval, "author_view": _author_can_view(request.user, draft.submission),
             "producer_view": producer_view, "my_production_assignment": assignment,
+            "available_issues": issues,
             "can_view_submission": (_author_can_view(request.user, draft.submission) or _editor_can_view(request.user, draft.submission)),
             "metadata_form": metadata_form or PublicationMetadataForm(instance=draft),
             "proof_form": proof_form or PublicationProofForm()}
@@ -338,7 +349,8 @@ def approve_publication_proof(request, pk):
             raise Http404
         proof = _latest_proof(draft)
         if (draft.published_at or _stale(request, draft) or not proof or request.POST.get("proof") != str(proof.pk) or
-                not _source_valid(draft.submission, draft.decision) or not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip()):
+                not _source_valid(draft.submission, draft.decision) or not _issue_valid_for_draft(draft) or
+                not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip()):
             return HttpResponse(_("Production changed or is incomplete; reload the page."), status=409)
         fingerprint = _fingerprint(draft, proof)
         if request.POST.get("fingerprint") != fingerprint or not _proof_intact(proof):
@@ -365,7 +377,8 @@ def publish_test_article(request, pk):
             raise Http404
         proof = _latest_proof(draft)
         if (draft.published_at or _stale(request, draft) or not proof or request.POST.get("proof") != str(proof.pk) or
-                not _source_valid(draft.submission, draft.decision) or not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip()):
+                not _source_valid(draft.submission, draft.decision) or not _issue_valid_for_draft(draft) or
+                not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip()):
             return HttpResponse(_("Production changed or is incomplete; reload the page."), status=409)
         fingerprint = _fingerprint(draft, proof)
         if (request.POST.get("fingerprint") != fingerprint or not _proof_intact(proof) or
@@ -380,10 +393,10 @@ def publish_test_article(request, pk):
 
 
 def _public_article(slug, pk):
-    draft = get_object_or_404(PublicationDraft.objects.select_related("submission__journal__organisation", "published_proof"),
+    draft = get_object_or_404(PublicationDraft.objects.select_related("submission__journal__organisation", "published_proof", "issue"),
         pk=pk, submission__journal__slug=slug, submission__journal__active=True,
         submission__journal__organisation__active=True, published_at__isnull=False, published_proof__isnull=False)
-    if draft.published_proof.draft_id != draft.pk:
+    if draft.published_proof.draft_id != draft.pk or (draft.issue_id and draft.issue.journal_id != draft.submission.journal_id):
         raise Http404
     return draft
 
@@ -401,7 +414,8 @@ def journal_test_articles(request, slug):
     journal = get_object_or_404(Journal.objects.select_related("organisation"), slug=slug, active=True, organisation__active=True)
     articles = PublicationDraft.objects.filter(submission__journal=journal, published_at__isnull=False,
                                                published_proof__isnull=False, published_proof__draft_id=F("pk")).order_by("-published_at")
-    return _no_index(render(request, "publishing/journal_test_articles.html", {"journal": journal, "articles": articles}))
+    issues = journal.test_issues.filter(released_at__isnull=False)
+    return _no_index(render(request, "publishing/journal_test_articles.html", {"journal": journal, "articles": articles, "issues": issues}))
 
 
 @require_GET

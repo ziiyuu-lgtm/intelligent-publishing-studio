@@ -170,7 +170,10 @@ def coordination_workspace(request):
         Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("pk"), producer=request.user,
                                                     status=ProductionAssignment.Status.RECUSED))
     ).select_related("journal").distinct().order_by("-submitted_at")
-    return render(request, "publishing/coordination_workspace.html", {"submissions": submissions})
+    journals = Journal.objects.filter(active=True, organisation__active=True, memberships__user=request.user,
+        memberships__role=Membership.Role.COORDINATOR, memberships__active=True).distinct().order_by("name")
+    return render(request, "publishing/coordination_workspace.html", {"submissions": submissions,
+        "coordinator_journals": journals, "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED})
 
 
 @login_required

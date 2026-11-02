@@ -1,10 +1,12 @@
 from django.urls import path
-from . import ai_views, production_views, views
+from . import ai_views, issue_views, production_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
     path("workspace/", views.workspace, name="workspace"),
     path("coordination/", views.coordination_workspace, name="coordination_workspace"),
+    path("coordination/journals/<slug:slug>/issues/", issue_views.manage_test_issues, name="manage_test_issues"),
+    path("coordination/issues/<uuid:pk>/release/", issue_views.release_test_issue, name="release_test_issue"),
     path("submissions/<uuid:pk>/editors/", views.submission_editors, name="submission_editors"),
     path("editorial-assignments/<int:pk>/remove/", views.remove_editor_assignment, name="remove_editor_assignment"),
     path("editorial-assignments/<int:pk>/recuse/", views.recuse_editor, name="recuse_editor"),
@@ -12,6 +14,7 @@ urlpatterns = [
     path("journals/<slug:slug>/test-articles/", production_views.journal_test_articles, name="journal_test_articles"),
     path("journals/<slug:slug>/test-articles/<uuid:pk>/", production_views.test_article, name="test_article"),
     path("journals/<slug:slug>/test-articles/<uuid:pk>/pdf/", production_views.test_article_pdf, name="test_article_pdf"),
+    path("journals/<slug:slug>/test-issues/<uuid:pk>/", issue_views.test_issue, name="test_issue"),
     path("submissions/<uuid:pk>/", views.submission_detail, name="submission_detail"),
     path("submissions/<uuid:pk>/submit/", views.submission_submit, name="submission_submit"),
     path("submissions/<uuid:pk>/file/", views.submission_file, name="submission_file"),
@@ -28,6 +31,7 @@ urlpatterns = [
     path("production/<uuid:pk>/", production_views.production_detail, name="production_detail"),
     path("production/<uuid:pk>/source/", production_views.accepted_production_source, name="accepted_production_source"),
     path("production/<uuid:pk>/metadata/", production_views.edit_production_metadata, name="edit_production_metadata"),
+    path("production/<uuid:pk>/issue/", issue_views.set_production_issue, name="set_production_issue"),
     path("production/<uuid:pk>/proof/", production_views.upload_publication_proof, name="upload_publication_proof"),
     path("production/<uuid:pk>/proof/<int:proof_id>/", production_views.private_publication_proof, name="private_publication_proof"),
     path("production/<uuid:pk>/approve/", production_views.approve_publication_proof, name="approve_publication_proof"),

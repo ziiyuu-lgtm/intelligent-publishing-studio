@@ -262,10 +262,33 @@ def publication_proof_path(instance, filename):
     return f"publication-proofs/{uuid.uuid4().hex}.pdf"
 
 
+class JournalIssue(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="test_issues")
+    volume = models.PositiveIntegerField(_("Volume"))
+    number = models.PositiveIntegerField(_("Issue number"))
+    year = models.PositiveIntegerField(_("Year"))
+    title = models.CharField(_("Issue title"), max_length=200, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="test_issues_created")
+    created_at = models.DateTimeField(auto_now_add=True)
+    released_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="test_issues_released")
+    released_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["journal", "volume", "number"], name="unique_test_issue_per_journal"),
+            models.CheckConstraint(condition=models.Q(volume__gte=1, volume__lte=9999), name="test_issue_volume_range"),
+            models.CheckConstraint(condition=models.Q(number__gte=1, number__lte=9999), name="test_issue_number_range"),
+            models.CheckConstraint(condition=models.Q(year__gte=1000, year__lte=9999), name="test_issue_year_range"),
+        ]
+        ordering = ["-year", "-volume", "-number"]
+
+
 class PublicationDraft(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     submission = models.OneToOneField(Submission, on_delete=models.PROTECT, related_name="publication_draft")
     decision = models.OneToOneField(EditorialDecision, on_delete=models.PROTECT, related_name="publication_draft")
+    issue = models.ForeignKey(JournalIssue, on_delete=models.PROTECT, null=True, blank=True, related_name="articles")
     title = models.CharField(_("Public title"), max_length=250)
     authors = models.TextField(_("Public author names"), max_length=2000, blank=True)
     abstract = models.TextField(_("Public abstract"), max_length=10000)
