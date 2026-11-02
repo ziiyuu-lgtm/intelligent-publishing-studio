@@ -7,7 +7,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from publishing.forms import InviteForm
-from publishing.models import (EditorialAssignment, EditorialDecision, Journal, Membership, Organisation, ReviewAssignment,
+from publishing.models import (EditorialAssignment, EditorialDecision, Journal, Membership, Organisation, OrganisationMembership, ReviewAssignment,
                                ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 
@@ -196,3 +196,5 @@ class EditorialAssignmentTests(TestCase):
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.PRODUCER, active=True).exists())
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.SITE_MANAGER, active=True).exists())
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.AI_MANAGER, active=True).exists())
+        self.assertTrue(OrganisationMembership.objects.filter(organisation=journal.organisation,
+            role=OrganisationMembership.Role.PORTAL_MANAGER, active=True).exists())

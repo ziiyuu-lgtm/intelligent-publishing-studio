@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
-from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, ProductionAssignment,
+from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
                      PublicationDraft, ReviewAssignment, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
@@ -106,8 +106,12 @@ def home(request):
     journals = Journal.objects.filter(active=True, organisation__active=True).select_related("organisation").annotate(
         site_is_published=Exists(JournalSiteDraft.objects.filter(journal_id=OuterRef("pk"), current_release__isnull=False,
                                                                  current_release__site_id=F("pk")))).order_by("name")
+    local_publication_enabled = settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED
+    portals = (OrganisationPortalDraft.objects.filter(organisation__active=True, current_release__isnull=False,
+        current_release__site_id=F("pk")).select_related("organisation", "current_release").order_by("current_release__brand_name")
+        if local_publication_enabled else OrganisationPortalDraft.objects.none())
     return render(request, "publishing/home.html", {"journals": journals,
-        "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED})
+        "local_publication_enabled": local_publication_enabled, "publisher_portals":portals})
 
 
 @login_required
@@ -120,6 +124,8 @@ def workspace(request):
         memberships__role=Membership.Role.SITE_MANAGER, memberships__active=True).distinct().order_by("name")
     ai_manager_journals = visible_journals.filter(memberships__user=request.user,
         memberships__role=Membership.Role.AI_MANAGER, memberships__active=True).distinct().order_by("name") if settings.DEBUG else visible_journals.none()
+    portal_organisations = Organisation.objects.filter(active=True, memberships__user=request.user,
+        memberships__role=OrganisationMembership.Role.PORTAL_MANAGER, memberships__active=True).distinct().order_by("name")
     authored = Submission.objects.filter(author=request.user, journal__in=visible_journals).select_related("journal")
     editorial = Submission.objects.filter(
         journal__in=visible_journals, journal__memberships__user=request.user,
@@ -157,6 +163,7 @@ def workspace(request):
         "production": production, "local_publication_enabled": production_enabled,
         "site_manager_journals": site_manager_journals,
         "ai_manager_journals": ai_manager_journals,
+        "portal_organisations": portal_organisations,
         "is_coordinator": Membership.objects.filter(user=request.user, role=Membership.Role.COORDINATOR,
              active=True, journal__active=True, journal__organisation__active=True).exists(),
     })

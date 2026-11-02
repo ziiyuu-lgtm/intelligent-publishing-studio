@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from publishing.models import Journal, Membership, Organisation
+from publishing.models import Journal, Membership, Organisation, OrganisationMembership
 
 
 class Command(BaseCommand):
@@ -35,6 +35,11 @@ class Command(BaseCommand):
                 if role == "author":
                     Membership.objects.create(user=user, journal=journal_b, role=Membership.Role.AUTHOR)
                 credentials.append((role, username, password))
+            username = f"test_portal_manager_{suffix}"
+            password = secrets.token_urlsafe(24)
+            user = get_user_model().objects.create_user(username=username, password=password)
+            OrganisationMembership.objects.create(user=user, organisation=organisation, role=OrganisationMembership.Role.PORTAL_MANAGER)
+            credentials.append(("portal_manager", username, password))
         self.stdout.write(self.style.WARNING("Synthetic data only. These generated credentials are shown once; keep them private."))
         for role, username, password in credentials:
             self.stdout.write(f"{role}: {username}  password: {password}")

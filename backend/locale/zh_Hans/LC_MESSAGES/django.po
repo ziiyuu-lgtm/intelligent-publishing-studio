@@ -2824,3 +2824,105 @@ msgstr "登录失败，请检查用户名和密码。"
 
 #~ msgid "Choose accept or decline."
 #~ msgstr "请选择接受或拒绝。"
+
+msgid "Publisher portal manager"
+msgstr "出版社门户管理员"
+
+msgid "Publisher introduction"
+msgstr "出版社介绍"
+
+msgid "Journals to display"
+msgstr "要展示的期刊"
+
+msgid "Choose up to 50 active journals from this publisher. Unpublished journal sites are shown without a link."
+msgstr "请选择本出版社旗下至多 50 种启用的期刊。尚未发布网站的期刊将显示名称，但不提供链接。"
+
+msgid "Choose no more than 50 journals."
+msgstr "最多选择 50 种期刊。"
+
+msgid "Publisher introduction first"
+msgstr "先显示出版社介绍"
+
+msgid "Journal list first"
+msgstr "先显示期刊列表"
+
+msgid "The journal selection changed; reload the page."
+msgstr "期刊选择已变更，请重新加载页面。"
+
+msgid "The portal draft or journal selection is invalid."
+msgstr "门户草稿或期刊选择无效。"
+
+msgid "Some journals in this version are unavailable. Update the draft manually."
+msgstr "该版本中的部分期刊已不可用，请手动更新草稿。"
+
+msgid "Publisher portal published in the local test environment."
+msgstr "出版社门户已在本地测试环境发布。"
+
+msgid "Publisher portal design"
+msgstr "出版社门户设计"
+
+msgid "Create a fictional publisher portal for selected journals in the local test environment."
+msgstr "在本地测试环境为选定期刊创建虚构的出版社门户。"
+
+msgid "Start a publisher portal draft"
+msgstr "开始创建出版社门户草稿"
+
+msgid "Start with a visual sample"
+msgstr "从视觉样板开始"
+
+msgid "Preview a sample, apply it to the draft, then customise the colours and layout."
+msgstr "预览样板并应用到草稿，然后自定义颜色与版式。"
+
+msgid "Preview"
+msgstr "预览"
+
+msgid "Review the draft first. This publishes only to the local test server; later edits remain private until published again."
+msgstr "请先审阅草稿。此操作仅发布至本地测试服务器；之后的修改在再次发布前仍为私有草稿。"
+
+msgid "I reviewed this draft and want to publish this local test version."
+msgstr "我已审阅草稿，并希望发布此本地测试版本。"
+
+msgid "Restoring a version changes only the draft. Review and publish separately."
+msgstr "恢复版本只会修改草稿；请另行审阅并发布。"
+
+msgid "No published versions yet."
+msgstr "尚无已发布版本。"
+
+msgid "Back to portal design"
+msgstr "返回门户设计"
+
+msgid "Publisher navigation"
+msgstr "出版社导航"
+
+msgid "FICTIONAL TEST PUBLISHER"
+msgstr "虚构测试出版社"
+
+msgid "Explore our journals"
+msgstr "浏览我们的期刊"
+
+msgid "THE PUBLISHER"
+msgstr "关于出版社"
+
+msgid "About the publisher"
+msgstr "出版社介绍"
+
+msgid "OUR JOURNALS"
+msgstr "旗下期刊"
+
+msgid "Test journal site not yet published"
+msgstr "测试期刊网站尚未发布"
+
+msgid "No journals selected for this portal yet."
+msgstr "此门户尚未选择期刊。"
+
+msgid "Design a fictional publisher portal and choose which journals to show."
+msgstr "设计虚构的出版社门户，并选择要展示的期刊。"
+
+msgid "Publisher portals"
+msgstr "出版社门户"
+
+msgid "View publisher portal"
+msgstr "查看出版社门户"
+
+msgid "Restored journal selections use current journal names when previewed and republished."
+msgstr "恢复所选期刊后，预览和再次发布时将使用期刊当前名称。"

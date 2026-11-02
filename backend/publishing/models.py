@@ -53,6 +53,66 @@ class Membership(models.Model):
         return f"{self.user} / {self.journal} / {self.role}"
 
 
+class OrganisationMembership(models.Model):
+    """An explicit organisation role; journal roles never imply this role."""
+    class Role(models.TextChoices):
+        PORTAL_MANAGER = "portal_manager", _("Publisher portal manager")
+
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="memberships")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_memberships")
+    role = models.CharField(max_length=20, choices=Role.choices)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["organisation", "user", "role"], name="unique_org_user_role")]
+
+    def __str__(self):
+        return f"{self.user} / {self.organisation} / {self.role}"
+
+
+class OrganisationPortalDraft(models.Model):
+    organisation = models.OneToOneField(Organisation, on_delete=models.PROTECT, related_name="portal_draft")
+    brand_name = models.CharField(_("Site display name"), max_length=200)
+    headline = models.CharField(_("Site headline"), max_length=200)
+    tagline = models.CharField(_("Site tagline"), max_length=240, blank=True)
+    introduction = models.TextField(_("Publisher introduction"), max_length=4000)
+    design_config = models.JSONField(default=dict)
+    journal_ids = models.JSONField(default=list)
+    revision = models.PositiveIntegerField(default=1)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_portals_created")
+    created_at = models.DateTimeField(auto_now_add=True)
+    current_release = models.ForeignKey("OrganisationPortalRelease", on_delete=models.PROTECT, null=True, blank=True, related_name="active_for")
+
+
+class OrganisationPortalRelease(models.Model):
+    site = models.ForeignKey(OrganisationPortalDraft, on_delete=models.PROTECT, related_name="releases")
+    revision = models.PositiveIntegerField()
+    brand_name = models.CharField(_("Site display name"), max_length=200)
+    headline = models.CharField(_("Site headline"), max_length=200)
+    tagline = models.CharField(_("Site tagline"), max_length=240, blank=True)
+    introduction = models.TextField(_("Publisher introduction"), max_length=4000)
+    design_config = models.JSONField(default=dict)
+    journals = models.JSONField(default=list)
+    published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_portal_releases")
+    published_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["site", "revision"], name="unique_org_portal_revision")]
+        ordering = ["-revision", "-pk"]
+
+
+class OrganisationPortalEvent(models.Model):
+    site = models.ForeignKey(OrganisationPortalDraft, on_delete=models.PROTECT, related_name="events")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    action = models.CharField(max_length=40)
+    revision = models.PositiveIntegerField()
+    source_release = models.ForeignKey(OrganisationPortalRelease, on_delete=models.PROTECT, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+
 class JournalSiteDraft(models.Model):
     class Theme(models.TextChoices):
         FOREST = "forest", _("Forest")
