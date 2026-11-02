@@ -67,7 +67,9 @@
   });
   editor.querySelector('[data-author-add]').addEventListener('click', () => {
     const count = Number(total.value), limit = Number(maximum.value);
-    if (!Number.isInteger(count) || !Number.isInteger(limit) || count >= limit) {
+    // Deleted forms still occupy indices; allow replacements up to Django's absolute maximum.
+    const deleted = list.querySelectorAll('[name$="-DELETE"]:checked').length;
+    if (!Number.isInteger(count) || !Number.isInteger(limit) || count >= limit * 2 || count - deleted >= limit) {
       status.textContent = editor.dataset.maxText;
       return;
     }

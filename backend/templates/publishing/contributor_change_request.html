@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "Request an author change" %} | {{ submission.title }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'submission_detail' submission.pk %}">← {% translate "Back to submission" %}</a>
+<div class="page-intro"><span class="eyebrow">{{ submission.journal.name }} / {% translate "AUTHOR CHANGE" %}</span><h1>{% translate "Request an author change" %}</h1><p>{{ submission.title }}</p></div>
+<section class="card panel stack"><div class="notice">{% translate "This is a fictional local test. Your proposed list will not replace the current list unless an assigned editor approves it. No email or consent requests are sent." %}</div>
+<p class="muted">{% translate "List every proposed author in order and include the reason. At least one corresponding author with an email is required. The editor must review documented agreement from all original and proposed authors and check potential conflicts." %}</p>
+<form method="post" class="stack" data-author-editor data-moved-text="{% translate 'Author order updated.' %}" data-max-text="{% translate 'Author form limit reached. Mark a form for removal or complete this action before adding more.' %}">{% csrf_token %}
+<input type="hidden" name="revision" value="{{ submission.contributors_revision }}">{{ formset.management_form }}{{ formset.non_form_errors }}{{ form.non_field_errors }}
+<div class="module-list" data-author-list>{% for author_form in formset %}{% include 'publishing/_contributor_form.html' with author_form=author_form %}{% endfor %}</div>
+<template data-author-empty>{% include 'publishing/_contributor_form.html' with author_form=formset.empty_form %}</template>
+<div class="actions"><button type="button" class="button secondary small" data-author-add data-author-js hidden>{% translate "Add another author" %}</button></div>
+<div class="field">{{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}</div>
+<label class="check">{{ form.acknowledgement }} {{ form.acknowledgement.label }}</label>{{ form.acknowledgement.errors }}
+<button type="submit" class="button">{% translate "Send request for editorial review" %}</button><p class="muted" role="status" aria-live="polite" data-author-status></p>
+<noscript><p class="muted">{% translate "Without JavaScript, each request can add at most one new author. Further additions require subsequent reviewed requests." %}</p></noscript></form></section>
+<script src="{% static 'contributors_editor.js' %}" defer></script>
+{% endblock %}

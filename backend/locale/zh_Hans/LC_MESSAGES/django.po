@@ -3928,3 +3928,168 @@ msgstr "此列表不会授予账户访问权限，也不代表已取得作者同
 
 msgid "DRAFT"
 msgstr "草稿"
+
+msgid "Pending review"
+msgstr "待审核"
+
+msgid "Approved"
+msgstr "已批准"
+
+msgid "Withdrawn"
+msgstr "已撤回"
+
+msgid "Reason for the requested change"
+msgstr "申请变更的原因"
+
+msgid "I understand that this request does not notify authors or collect their agreement, and that editorial review is required."
+msgstr "我了解该申请不会自动通知作者或收集作者同意，且需要编辑审核。"
+
+msgid "Editorial outcome"
+msgstr "编辑处理结果"
+
+msgid "Choose an outcome"
+msgstr "请选择处理结果"
+
+msgid "Approve change"
+msgstr "批准变更"
+
+msgid "Decline change"
+msgstr "拒绝变更"
+
+msgid "Decision note for the submitting author"
+msgstr "给投稿人的处理说明"
+
+msgid "For approval, I confirm I have reviewed documented agreement from all original and proposed authors and assessed potential conflicts. Evidence is retained separately."
+msgstr "批准前，我确认已核查所有原作者及拟列作者的书面同意，并已评估潜在利益冲突。相关证明另行保存。"
+
+msgid "Confirm the manual checks before approving the change."
+msgstr "批准变更前，请确认已完成人工核查。"
+
+msgid "Direct editing is locked after submission. Request an editorially reviewed change instead."
+msgstr "投稿后不能直接修改，请发起由编辑审核的作者变更申请。"
+
+msgid "Author changes can be requested only before the final decision."
+msgstr "仅可在最终决定前申请作者变更。"
+
+msgid "A request is already awaiting review."
+msgstr "已有一项申请正在等待审核。"
+
+msgid "A proposed list needs at least one author and a corresponding author with an email."
+msgstr "申请名单须至少包含一位作者及一位填写邮箱的通讯作者。"
+
+msgid "Change at least one author detail before submitting the request."
+msgstr "提交申请前，请至少修改一项作者信息。"
+
+msgid "The submission or request changed; reload the page."
+msgstr "投稿或申请已发生变化，请重新加载页面。"
+
+msgid "Author change requested. No email was sent."
+msgstr "作者变更申请已记录；系统未发送邮件。"
+
+msgid "This request has already been resolved."
+msgstr "此申请已经处理。"
+
+msgid "Author change decision recorded. No email was sent."
+msgstr "作者变更处理结果已记录；系统未发送邮件。"
+
+msgid "Confirm the withdrawal."
+msgstr "请确认撤回申请。"
+
+msgid "Author change request withdrawn."
+msgstr "作者变更申请已撤回。"
+
+msgid "Resolve the pending author change request before recording an editorial decision."
+msgstr "记录编辑决定前，请先处理待审核的作者变更申请。"
+
+msgid "After submission, author changes require an editorial request before the final decision. The list is not automatically copied to production or checked against editor and reviewer accounts; assess conflicts separately."
+msgstr "投稿后至最终决定前，作者变更须提交申请并经编辑审核。名单不会自动传入制作流程或与编辑、审稿人账户比对，请单独核查利益冲突。"
+
+msgid "Author change requests"
+msgstr "作者变更申请"
+
+msgid "Request an author change"
+msgstr "申请作者变更"
+
+msgid "Changes require editorial review and manual checks. No coauthors are notified automatically."
+msgstr "作者变更须经编辑审核和人工核查；系统不会自动通知其他作者。"
+
+msgid "An author change is awaiting review. Resolve it before recording an editorial decision."
+msgstr "有一项作者变更正在等待审核；请先处理，再记录编辑决定。"
+
+msgid "View request"
+msgstr "查看申请"
+
+msgid "No author change requests yet."
+msgstr "暂无作者变更申请。"
+
+msgid "AUTHOR CHANGE"
+msgstr "作者变更"
+
+msgid "This is a fictional local test. Your proposed list will not replace the current list unless an assigned editor approves it. No email or consent requests are sent."
+msgstr "这是仅使用虚构资料的本地测试。指定编辑批准前，申请名单不会替换当前名单；系统不会发送邮件或征求同意。"
+
+msgid "List every proposed author in order and include the reason. At least one corresponding author with an email is required. The editor must review documented agreement from all original and proposed authors and check potential conflicts."
+msgstr "请按顺序列出全部拟定作者并说明原因，至少指定一位填写邮箱的通讯作者。编辑须核查所有原作者和拟列作者的书面同意，并检查潜在利益冲突。"
+
+msgid "Send request for editorial review"
+msgstr "提交编辑审核"
+
+msgid "Without JavaScript, each request can add at most one new author. Further additions require subsequent reviewed requests."
+msgstr "未启用 JavaScript 时，每次申请最多可新增一位作者；如需继续添加，请在审核完成后再次申请。"
+
+msgid "No author details recorded."
+msgstr "尚未记录作者信息。"
+
+msgid "Author change request"
+msgstr "作者名单变更申请"
+
+msgid "Requested"
+msgstr "申请时间"
+
+msgid "Compare the complete lists below. The current list changes only after editorial approval. This prototype does not collect consent, send email, check conflicts automatically or update production."
+msgstr "请对照下方完整名单。只有编辑批准后才会更新当前名单。本原型不会收集同意、发送邮件、自动核查利益冲突或更新制作信息。"
+
+msgid "CURRENT"
+msgstr "当前名单"
+
+msgid "PROPOSED"
+msgstr "申请名单"
+
+msgid "Current author list"
+msgstr "当前作者名单"
+
+msgid "Proposed author list"
+msgstr "拟变更的作者名单"
+
+msgid "Recorded outcome"
+msgstr "处理结果"
+
+msgid "The editor recorded that the manual checks were completed; the system does not verify the underlying evidence."
+msgstr "编辑已记录完成人工核查；系统不验证相关证明材料。"
+
+msgid "EDITORIAL REVIEW"
+msgstr "编辑审核"
+
+msgid "Review this request"
+msgstr "审核本次申请"
+
+msgid "Before approving, verify agreement from every original and proposed author and assess editor and reviewer conflicts. Store supporting evidence outside this prototype. The decision note is visible to the submitting author."
+msgstr "批准前，请核实每位原作者和拟列作者的同意，并评估编辑与审稿人的利益冲突。证明材料须在本原型之外保存。处理说明对投稿人可见。"
+
+msgid "Record editorial decision"
+msgstr "记录编辑处理结果"
+
+msgid "Withdraw this request"
+msgstr "撤回本次申请"
+
+msgid "You can withdraw a pending request and submit a new one. The current author list will remain unchanged."
+msgstr "您可以撤回待审核的申请并重新提交；当前作者名单保持不变。"
+
+msgid "I want to withdraw this request."
+msgstr "我确认撤回本次申请。"
+
+msgid "Withdraw request"
+msgstr "撤回申请"
+
+msgid "Author form limit reached. Mark a form for removal or complete this action before adding more."
+msgstr "已达到作者表单上限，请标记删除一项，或先完成当前操作再继续添加。"

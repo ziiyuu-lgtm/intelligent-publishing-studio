@@ -387,7 +387,7 @@ class Submission(models.Model):
     review_mode = models.CharField(max_length=16, choices=Journal.ReviewMode.choices, default=Journal.ReviewMode.DIRECT)
     title = models.CharField(_("Title"), max_length=250)
     abstract = models.TextField(_("Abstract"), max_length=10000)
-    # Contributor metadata is private and editable only before initial submission.
+    # Contributor metadata is private; after submission only a reviewed request may change it.
     contributors_config = models.JSONField(default=list, blank=True)
     contributors_revision = models.PositiveIntegerField(default=0)
     manuscript = models.FileField(_("Manuscript PDF"), upload_to=manuscript_path, max_length=255)
@@ -401,6 +401,40 @@ class Submission(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ContributorChangeRequest(models.Model):
+    """Private before/after snapshots and a human-reviewed outcome."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending review")
+        APPROVED = "approved", _("Approved")
+        DECLINED = "declined", _("Declined")
+        WITHDRAWN = "withdrawn", _("Withdrawn")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="contributor_change_requests")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="contributor_changes_requested")
+    reason = models.TextField(max_length=2000)
+    before = models.JSONField(default=list)
+    proposed = models.JSONField(default=list)
+    base_revision = models.PositiveIntegerField()
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    acknowledged = models.BooleanField(default=False)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    closed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                  related_name="contributor_changes_closed")
+    closed_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(max_length=2000, blank=True)
+    editor_attested = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-requested_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["submission"], condition=models.Q(status="pending"),
+                                    name="one_pending_contributor_change"),
+            models.CheckConstraint(condition=models.Q(status__in=["pending", "approved", "declined", "withdrawn"]),
+                                   name="valid_contributor_change_status"),
+        ]
 
 
 class EditorialAssignment(models.Model):

@@ -12,11 +12,13 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
-from .contributors import ContributorFormSet, MAX_CONTRIBUTORS, ready_to_submit, validate_contributors
-from .models import (ConflictDeclaration, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
+from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
+                           MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
+from .models import (ConflictDeclaration, ContributorChangeRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
                      PublicationDraft, ReviewAssignment, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
+CONTRIBUTOR_CHANGE_STATUSES = (*ACTIVE_REVIEW_STATUSES, Submission.Status.REVISION_REQUESTED)
 
 
 def _journal_is_active(journal):
@@ -327,6 +329,12 @@ def submission_detail(request, pk):
         context["contributors_ready"] = ready_to_submit(context["contributors"])
     except ValueError:
         context["contributors_invalid"] = True
+    if submission.status != Submission.Status.DRAFT:
+        context["contributor_changes"] = submission.contributor_change_requests.select_related("requested_by", "closed_by")[:20]
+        context["has_pending_contributor_change"] = submission.contributor_change_requests.filter(
+            status=ContributorChangeRequest.Status.PENDING).exists()
+        context["can_request_contributor_change"] = bool(author_view and
+            submission.status in CONTRIBUTOR_CHANGE_STATUSES and not context["has_pending_contributor_change"])
     if context["local_publication_enabled"]:
         from .production_views import _producer_can_manage
         draft = getattr(submission, "publication_draft", None)
@@ -349,7 +357,7 @@ def submission_contributors(request, pk):
     if not _author_can_view(request.user, submission):
         raise Http404
     if submission.status != Submission.Status.DRAFT:
-        return HttpResponse(_("The author list is locked after the initial submission."), status=409)
+        return HttpResponse(_("Direct editing is locked after submission. Request an editorially reviewed change instead."), status=409)
     try:
         initial = validate_contributors(submission.contributors_config)
     except ValueError:
@@ -383,6 +391,145 @@ def submission_contributors(request, pk):
         return render(request, "publishing/submission_contributors.html", {"submission":submission, "formset":formset}, status=400)
     formset = ContributorFormSet(prefix="authors", initial=initial)
     return render(request, "publishing/submission_contributors.html", {"submission":submission, "formset":formset})
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
+def request_contributor_change(request, pk):
+    submission = _submission(pk)
+    if not _author_can_view(request.user, submission):
+        raise Http404
+    if submission.status not in CONTRIBUTOR_CHANGE_STATUSES:
+        return HttpResponse(_("Author changes can be requested only before the final decision."), status=409)
+    if submission.contributor_change_requests.filter(status=ContributorChangeRequest.Status.PENDING).exists():
+        return HttpResponse(_("A request is already awaiting review."), status=409)
+    try:
+        initial = validate_contributors(submission.contributors_config)
+    except ValueError:
+        return HttpResponse(_("The saved author list is invalid; contact the local administrator."), status=409)
+    form = ContributorChangeForm(request.POST or None)
+    if request.method == "POST":
+        try:
+            total = int(request.POST.get("authors-TOTAL_FORMS", "-1"))
+        except ValueError:
+            total = -1
+        if (request.POST.get("authors-INITIAL_FORMS") != str(len(initial)) or
+                request.POST.get("authors-TOTAL_FORMS") != str(total) or
+                not len(initial) <= total <= MAX_CONTRIBUTORS * 2):
+            return HttpResponse(_("The author editor is out of date; reload the page."), status=409)
+        formset = ContributorFormSet(request.POST, prefix="authors", initial=initial)
+        form_valid, formset_valid = form.is_valid(), formset.is_valid()
+        if form_valid and formset_valid:
+            proposed = formset.cleaned_contributors
+            if not proposed or not ready_to_submit(proposed):
+                form.add_error(None, _("A proposed list needs at least one author and a corresponding author with an email."))
+            elif proposed == initial:
+                form.add_error(None, _("Change at least one author detail before submitting the request."))
+            else:
+                with transaction.atomic():
+                    current = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
+                    if not _author_can_view(request.user, current):
+                        raise Http404
+                    if (current.status not in CONTRIBUTOR_CHANGE_STATUSES or
+                            request.POST.get("revision") != str(current.contributors_revision) or
+                            current.contributors_config != initial or
+                            current.contributor_change_requests.filter(status=ContributorChangeRequest.Status.PENDING).exists()):
+                        return HttpResponse(_("The submission or request changed; reload the page."), status=409)
+                    change = ContributorChangeRequest.objects.create(
+                        submission=current, requested_by=request.user, reason=form.cleaned_data["reason"],
+                        before=initial, proposed=proposed, base_revision=current.contributors_revision, acknowledged=True)
+                    _event(current, request.user, "contributor_change_requested")
+                messages.success(request, _("Author change requested. No email was sent."))
+                return redirect("contributor_change_detail", pk=pk, change_id=change.pk)
+        return render(request, "publishing/contributor_change_request.html",
+                      {"submission":submission, "form":form, "formset":formset}, status=400)
+    formset = ContributorFormSet(prefix="authors", initial=initial)
+    return render(request, "publishing/contributor_change_request.html",
+                  {"submission":submission, "form":form, "formset":formset})
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
+def contributor_change_detail(request, pk, change_id):
+    submission = _submission(pk)
+    author_view = _author_can_view(request.user, submission)
+    editor_view = _editor_can_view(request.user, submission)
+    if not (author_view or editor_view):
+        raise Http404
+    change = get_object_or_404(ContributorChangeRequest.objects.select_related("requested_by", "closed_by"),
+                               pk=change_id, submission=submission)
+    try:
+        before, proposed = validate_contributors(change.before), validate_contributors(change.proposed)
+    except ValueError:
+        return HttpResponse(_("The saved author list is invalid; contact the local administrator."), status=409)
+    pending = change.status == ContributorChangeRequest.Status.PENDING
+    form = ContributorChangeDecisionForm(request.POST or None)
+    if request.method == "POST":
+        if not editor_view:
+            raise Http404
+        if not pending:
+            return HttpResponse(_("This request has already been resolved."), status=409)
+        if form.is_valid():
+            with transaction.atomic():
+                current = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
+                if not _editor_can_view(request.user, current):
+                    raise Http404
+                locked = get_object_or_404(ContributorChangeRequest.objects.select_for_update(), pk=change_id, submission=current)
+                if locked.status != ContributorChangeRequest.Status.PENDING:
+                    return HttpResponse(_("This request has already been resolved."), status=409)
+                outcome = form.cleaned_data["outcome"]
+                if outcome == ContributorChangeRequest.Status.APPROVED:
+                    try:
+                        safe_before = validate_contributors(locked.before)
+                        safe_proposed = validate_contributors(locked.proposed)
+                        safe_current = validate_contributors(current.contributors_config)
+                    except ValueError:
+                        return HttpResponse(_("The saved author list is invalid; contact the local administrator."), status=409)
+                    if (current.status not in CONTRIBUTOR_CHANGE_STATUSES or locked.requested_by_id != current.author_id or
+                            not locked.acknowledged or current.contributors_revision != locked.base_revision or
+                            safe_current != safe_before or not safe_proposed or not ready_to_submit(safe_proposed) or
+                            safe_proposed == safe_before):
+                        return HttpResponse(_("The submission or request changed; reload the page."), status=409)
+                    current.contributors_config = safe_proposed
+                    current.contributors_revision += 1
+                    current.save(update_fields=["contributors_config", "contributors_revision"])
+                locked.status = outcome
+                locked.closed_by = request.user
+                locked.closed_at = timezone.now()
+                locked.decision_note = form.cleaned_data["note"]
+                locked.editor_attested = outcome == ContributorChangeRequest.Status.APPROVED and form.cleaned_data["verified"]
+                locked.save(update_fields=["status", "closed_by", "closed_at", "decision_note", "editor_attested"])
+                _event(current, request.user, "contributor_change_reviewed")
+            messages.success(request, _("Author change decision recorded. No email was sent."))
+            return redirect("contributor_change_detail", pk=pk, change_id=change_id)
+        return render(request, "publishing/contributor_change_detail.html", {
+            "submission":submission, "change":change, "before":before, "proposed":proposed,
+            "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form}, status=400)
+    return render(request, "publishing/contributor_change_detail.html", {
+        "submission":submission, "change":change, "before":before, "proposed":proposed,
+        "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form})
+
+
+@login_required
+@never_cache
+@require_POST
+def withdraw_contributor_change(request, pk, change_id):
+    with transaction.atomic():
+        submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
+        if not _author_can_view(request.user, submission):
+            raise Http404
+        change = get_object_or_404(ContributorChangeRequest.objects.select_for_update(), pk=change_id, submission=submission)
+        if change.status != ContributorChangeRequest.Status.PENDING:
+            return HttpResponse(_("This request has already been resolved."), status=409)
+        if request.POST.get("confirm") != "yes":
+            return HttpResponse(_("Confirm the withdrawal."), status=400)
+        change.status, change.closed_by, change.closed_at = ContributorChangeRequest.Status.WITHDRAWN, request.user, timezone.now()
+        change.save(update_fields=["status", "closed_by", "closed_at"])
+        _event(submission, request.user, "contributor_change_withdrawn")
+    messages.success(request, _("Author change request withdrawn."))
+    return redirect("contributor_change_detail", pk=pk, change_id=change_id)
 
 
 @login_required
@@ -689,6 +836,8 @@ def editorial_decision(request, pk):
             review_round = _open_round(submission, locked=True)
             if not review_round or submission.status not in ACTIVE_REVIEW_STATUSES:
                 return HttpResponse(_("There is no open review round."), status=409)
+            if submission.contributor_change_requests.filter(status=ContributorChangeRequest.Status.PENDING).exists():
+                return HttpResponse(_("Resolve the pending author change request before recording an editorial decision."), status=409)
             outcome = form.cleaned_data["outcome"]
             if outcome != EditorialDecision.Outcome.REJECT and not review_round.assignments.filter(status=ReviewAssignment.Status.SUBMITTED, conflict=ReviewAssignment.Conflict.NONE).exists():
                 form.add_error("outcome", _("This decision requires a submitted review with no conflict declared."))
@@ -708,7 +857,9 @@ def editorial_decision(request, pk):
                 _event(submission, request.user, "editorial_decision")
                 messages.success(request, _("Decision recorded. No email was sent."))
                 return redirect("submission_detail", pk=pk)
-    return render(request, "publishing/decision_form.html", {"submission": submission, "form": form})
+    pending_change = submission.contributor_change_requests.filter(status=ContributorChangeRequest.Status.PENDING).first()
+    return render(request, "publishing/decision_form.html", {"submission": submission, "form": form,
+                                                               "pending_contributor_change":pending_change})
 
 
 @login_required

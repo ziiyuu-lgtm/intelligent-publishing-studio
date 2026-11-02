@@ -110,3 +110,25 @@ class BaseContributorFormSet(BaseFormSet):
 
 ContributorFormSet = formset_factory(ContributorForm, formset=BaseContributorFormSet, extra=1,
     can_order=True, can_delete=True, max_num=MAX_CONTRIBUTORS, absolute_max=MAX_CONTRIBUTORS * 2, validate_max=True)
+
+
+class ContributorChangeForm(forms.Form):
+    reason = forms.CharField(label=_("Reason for the requested change"), max_length=2000,
+                             widget=forms.Textarea(attrs={"rows":4}))
+    acknowledgement = forms.BooleanField(label=_(
+        "I understand that this request does not notify authors or collect their agreement, and that editorial review is required."))
+
+
+class ContributorChangeDecisionForm(forms.Form):
+    outcome = forms.ChoiceField(label=_("Editorial outcome"), choices=[
+        ("", _("Choose an outcome")), ("approved", _("Approve change")), ("declined", _("Decline change"))])
+    note = forms.CharField(label=_("Decision note for the submitting author"), max_length=2000,
+                           widget=forms.Textarea(attrs={"rows":3}))
+    verified = forms.BooleanField(required=False, label=_(
+        "For approval, I confirm I have reviewed documented agreement from all original and proposed authors and assessed potential conflicts. Evidence is retained separately."))
+
+    def clean(self):
+        data = super().clean()
+        if data.get("outcome") == "approved" and not data.get("verified"):
+            self.add_error("verified", _("Confirm the manual checks before approving the change."))
+        return data

@@ -480,6 +480,22 @@ except IrreversibleError:
     assert Submission24.objects.filter(pk=submission.pk).exists()
 else:
     raise AssertionError('Contributor metadata must not be silently discarded')
+change_scope = ('publishing', '0025_contributor_change_requests')
+executor = MigrationExecutor(connection)
+executor.migrate([change_scope])
+apps = executor.loader.project_state([change_scope]).apps
+Submission25 = apps.get_model('publishing', 'Submission')
+Change25 = apps.get_model('publishing', 'ContributorChangeRequest')
+assert Submission25.objects.get(pk=submission.pk).contributors_config == []
+assert not Change25.objects.exists(), 'No author change requests should be inferred'
+change25 = Change25.objects.create(submission_id=submission.pk, requested_by_id=author.pk,
+    reason='Fictional migration test', before=[], proposed=[], base_revision=0, acknowledged=True)
+try:
+    MigrationExecutor(connection).migrate([contributors_scope])
+except IrreversibleError:
+    assert Change25.objects.filter(pk=change25.pk).exists()
+else:
+    raise AssertionError('Author change history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

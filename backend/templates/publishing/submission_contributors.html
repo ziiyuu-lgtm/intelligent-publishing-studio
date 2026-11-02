@@ -6,8 +6,8 @@
 <section class="card panel stack"><p>{% translate "Add authors in their publication order, including yourself where appropriate. You may mark more than one corresponding author." %}</p>
 <div class="notice">{% translate "Use fictional test information only. Authors listed here do not receive accounts, invitations or manuscript access. These details are visible to the submitting author and assigned editors, not on the reviewer page." %}</div>
 <p class="muted">{% translate "The author list is optional in this prototype. If you add authors, designate at least one corresponding author and provide an email for every corresponding author before submitting. ORCID is optional and is not identity verification." %}</p>
-<p class="muted">{% translate "The list is locked after initial submission. It is not automatically copied to production or checked against editor and reviewer accounts; assess conflicts separately." %}</p>
-<form method="post" class="stack" data-author-editor data-moved-text="{% translate 'Author order updated.' %}" data-max-text="{% translate 'Maximum author count reached. Save deletions before adding more.' %}">{% csrf_token %}
+<p class="muted">{% translate "After submission, author changes require an editorial request before the final decision. The list is not automatically copied to production or checked against editor and reviewer accounts; assess conflicts separately." %}</p>
+<form method="post" class="stack" data-author-editor data-moved-text="{% translate 'Author order updated.' %}" data-max-text="{% translate 'Author form limit reached. Mark a form for removal or complete this action before adding more.' %}">{% csrf_token %}
 <input type="hidden" name="revision" value="{{ submission.contributors_revision }}">{{ formset.management_form }}{{ formset.non_form_errors }}
 <div class="module-list" data-author-list>{% for author_form in formset %}{% include 'publishing/_contributor_form.html' with author_form=author_form %}{% endfor %}</div>
 <template data-author-empty>{% include 'publishing/_contributor_form.html' with author_form=formset.empty_form %}</template>
