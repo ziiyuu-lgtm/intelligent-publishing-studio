@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Sign in" %} | Intelligent Publishing Studio{% endblock %}
+{% block content %}
+<section class="narrow card form-card">
+  <span class="eyebrow">{% translate "TEST WORKSPACE" %}</span>
+  <h1>{% translate "Welcome back" %}</h1>
+  <p class="muted">{% translate "Use a test account created for this isolated workspace." %}</p>
+  {% if form.errors %}<div class="notice error">{% translate "Sign-in failed. Check your username and password." %}</div>{% endif %}
+  <form method="post" class="stack">{% csrf_token %}
+    {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button class="button" type="submit">{% translate "Sign in" %}</button>
+  </form>
+</section>
+{% endblock %}

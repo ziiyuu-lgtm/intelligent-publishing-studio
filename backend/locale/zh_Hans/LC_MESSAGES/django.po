@@ -1,0 +1,436 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-02 00:10+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+#: config/settings.py:48
+msgid "English"
+msgstr "英语"
+
+#: config/settings.py:48
+msgid "Simplified Chinese"
+msgstr "简体中文"
+
+#: publishing/forms.py:18
+msgid "Choose a PDF file no larger than 10 MB."
+msgstr "请选择不超过 10 MB 的 PDF 文件。"
+
+#: publishing/forms.py:22
+msgid "The selected file does not have a PDF header."
+msgstr "所选文件不具有 PDF 文件头。"
+
+#: publishing/forms.py:27 publishing/models.py:31
+msgid "Reviewer"
+msgstr "审稿人"
+
+#: publishing/forms.py:42 templates/publishing/review_detail.html:9
+#: templates/publishing/submission_detail.html:8
+msgid "Recommendation"
+msgstr "审稿建议"
+
+#: publishing/forms.py:42
+msgid "Confidential comments to the editor"
+msgstr "给编辑的保密意见"
+
+#: publishing/forms.py:53
+msgid "Please provide comments."
+msgstr "请填写意见。"
+
+#: publishing/models.py:8 publishing/models.py:18
+msgid "Name"
+msgstr "名称"
+
+#: publishing/models.py:20
+msgid "Description"
+msgstr "简介"
+
+#: publishing/models.py:29
+msgid "Author"
+msgstr "作者"
+
+#: publishing/models.py:30
+msgid "Editor"
+msgstr "编辑"
+
+#: publishing/models.py:52
+msgid "Draft"
+msgstr "草稿"
+
+#: publishing/models.py:53
+msgid "Submitted"
+msgstr "已投稿"
+
+#: publishing/models.py:54
+msgid "Under review"
+msgstr "审稿中"
+
+#: publishing/models.py:59
+msgid "Title"
+msgstr "题目"
+
+#: publishing/models.py:60 templates/publishing/review_detail.html:5
+#: templates/publishing/submission_detail.html:5
+msgid "Abstract"
+msgstr "摘要"
+
+#: publishing/models.py:61
+msgid "Manuscript PDF"
+msgstr "稿件 PDF"
+
+#: publishing/models.py:76
+msgid "Invited"
+msgstr "已邀请"
+
+#: publishing/models.py:77
+msgid "Accepted"
+msgstr "已接受"
+
+#: publishing/models.py:78
+msgid "Declined"
+msgstr "已拒绝"
+
+#: publishing/models.py:79
+msgid "Report submitted"
+msgstr "已提交意见"
+
+#: publishing/models.py:82
+msgid "Accept"
+msgstr "接收"
+
+#: publishing/models.py:83
+msgid "Minor revision"
+msgstr "小修"
+
+#: publishing/models.py:84
+msgid "Major revision"
+msgstr "大修"
+
+#: publishing/models.py:85
+msgid "Reject"
+msgstr "拒稿"
+
+#: publishing/views.py:102
+msgid "Draft created. Review it before submitting."
+msgstr "草稿已创建，请核对后再提交。"
+
+#: publishing/views.py:131
+msgid "This draft has already been submitted."
+msgstr "该草稿已经提交。"
+
+#: publishing/views.py:136
+msgid "Submission received for editorial screening."
+msgstr "投稿已收到，等待编辑初审。"
+
+#: publishing/views.py:172
+msgid "Choose an eligible reviewer for this journal."
+msgstr "请选择具备本刊审稿权限的审稿人。"
+
+#: publishing/views.py:189
+msgid "Reviewer invitation recorded; no email was sent."
+msgstr "审稿邀请已记录；系统未发送邮件。"
+
+#: publishing/views.py:189
+msgid "This reviewer was already invited."
+msgstr "该审稿人已受邀。"
+
+#: publishing/views.py:206
+msgid "Choose accept or decline."
+msgstr "请选择接受或拒绝。"
+
+#: publishing/views.py:211
+msgid "This invitation has already been answered."
+msgstr "该邀请已作答。"
+
+#: publishing/views.py:226 publishing/views.py:231
+msgid "A report can only be sent after accepting an invitation."
+msgstr "接受邀请后才能提交审稿意见。"
+
+#: publishing/views.py:238
+msgid "Report saved for the editor."
+msgstr "审稿意见已保存，供编辑查看。"
+
+#: templates/base.html:12
+msgid "Isolated development workspace · synthetic test data only"
+msgstr "隔离开发环境 · 仅使用虚构测试数据"
+
+#: templates/base.html:15
+msgid "Main navigation"
+msgstr "主导航"
+
+#: templates/base.html:16
+msgid "Journals"
+msgstr "期刊"
+
+#: templates/base.html:18 templates/publishing/workspace.html:2
+msgid "Workspace"
+msgstr "工作台"
+
+#: templates/base.html:20
+msgid "Sign out"
+msgstr "退出登录"
+
+#: templates/base.html:22 templates/registration/login.html:2
+#: templates/registration/login.html:12
+msgid "Sign in"
+msgstr "登录"
+
+#: templates/base.html:26
+msgid "Language"
+msgstr "语言"
+
+#: templates/base.html:31
+msgid "Apply"
+msgstr "应用"
+
+#: templates/base.html:39
+msgid "Local testing version · No email, DOI or AI services connected"
+msgstr "本地测试版 · 未连接邮件、DOI 或 AI 服务"
+
+#: templates/publishing/home.html:4
+msgid "MULTI-JOURNAL WORKSPACE"
+msgstr "多刊工作台"
+
+#: templates/publishing/home.html:4
+msgid "A clearer path from manuscript to review."
+msgstr "让稿件投稿与审稿流程更清晰。"
+
+#: templates/publishing/home.html:4
+msgid "Explore the journal directory and a protected editorial workflow using fictional submissions."
+msgstr "使用虚构稿件体验期刊目录与受权限控制的编辑流程。"
+
+#: templates/publishing/home.html:4
+msgid "Open workspace"
+msgstr "进入工作台"
+
+#: templates/publishing/home.html:5
+msgid "Development preview"
+msgstr "开发预览"
+
+#: templates/publishing/home.html:5
+msgid "This is an isolated test. Do not enter real manuscripts or personal information."
+msgstr "这是隔离测试环境，请勿输入真实稿件或个人信息。"
+
+#: templates/publishing/home.html:5
+msgid "Roles"
+msgstr "角色"
+
+#: templates/publishing/home.html:5
+msgid "Author · Editor · Reviewer"
+msgstr "作者 · 编辑 · 审稿人"
+
+#: templates/publishing/home.html:8
+msgid "PUBLISHING NETWORK"
+msgstr "出版网络"
+
+#: templates/publishing/home.html:8
+msgid "Journal directory"
+msgstr "期刊目录"
+
+#: templates/publishing/home.html:8
+msgid "Separate journal roles and workspaces"
+msgstr "各期刊拥有独立的角色和工作空间"
+
+#: templates/publishing/home.html:11
+msgid "No journals have been configured yet."
+msgstr "尚未配置期刊。"
+
+#: templates/publishing/review_detail.html:3
+#: templates/publishing/submission_detail.html:3
+#: templates/publishing/submission_form.html:3
+msgid "Back to workspace"
+msgstr "返回工作台"
+
+#: templates/publishing/review_detail.html:4
+msgid "REVIEW TASK"
+msgstr "审稿任务"
+
+#: templates/publishing/review_detail.html:4
+#: templates/publishing/submission_detail.html:4
+msgid "Status"
+msgstr "状态"
+
+#: templates/publishing/review_detail.html:4
+#: templates/publishing/submission_detail.html:4
+msgid "Download PDF"
+msgstr "下载 PDF"
+
+#: templates/publishing/review_detail.html:6
+msgid "The manuscript file becomes available after you accept this invitation."
+msgstr "接受邀请后可下载稿件文件。"
+
+#: templates/publishing/review_detail.html:6
+msgid "Accept invitation"
+msgstr "接受邀请"
+
+#: templates/publishing/review_detail.html:6
+msgid "Decline"
+msgstr "拒绝"
+
+#: templates/publishing/review_detail.html:7
+msgid "You declined this invitation."
+msgstr "您已拒绝该邀请。"
+
+#: templates/publishing/review_detail.html:8
+msgid "Confidential report"
+msgstr "保密审稿意见"
+
+#: templates/publishing/review_detail.html:8
+msgid "This report is visible to the journal editor. It is not an editorial decision."
+msgstr "这份意见供期刊编辑查看，不代表编辑决定。"
+
+#: templates/publishing/review_detail.html:8
+msgid "Submit report"
+msgstr "提交审稿意见"
+
+#: templates/publishing/review_detail.html:9
+msgid "Your submitted report"
+msgstr "您提交的审稿意见"
+
+#: templates/publishing/submission_detail.html:6
+msgid "A draft is not visible to editors until you submit it."
+msgstr "提交之前，编辑无法查看草稿。"
+
+#: templates/publishing/submission_detail.html:6
+msgid "Confirm and submit"
+msgstr "确认投稿"
+
+#: templates/publishing/submission_detail.html:7
+msgid "EDITORIAL ACTIONS"
+msgstr "编辑操作"
+
+#: templates/publishing/submission_detail.html:7
+msgid "Invite a reviewer"
+msgstr "邀请审稿人"
+
+#: templates/publishing/submission_detail.html:7
+msgid "Only reviewers with a role in this journal can be selected. Invitations are recorded locally; no email is sent."
+msgstr "仅可选择具有本刊审稿角色的用户。邀请只记录在本地，不发送邮件。"
+
+#: templates/publishing/submission_detail.html:7
+msgid "Record invitation"
+msgstr "记录邀请"
+
+#: templates/publishing/submission_detail.html:8
+msgid "Review activity"
+msgstr "审稿进展"
+
+#: templates/publishing/submission_detail.html:8
+msgid "No reviewers invited yet."
+msgstr "尚未邀请审稿人。"
+
+#: templates/publishing/submission_form.html:4
+msgid "NEW DRAFT"
+msgstr "新建草稿"
+
+#: templates/publishing/submission_form.html:4
+msgid "Create a submission"
+msgstr "创建投稿"
+
+#: templates/publishing/submission_form.html:4
+msgid "Only fictional content may be used in this workspace. PDF files are stored privately for this test."
+msgstr "此工作台仅可使用虚构内容。测试用 PDF 保存在私有目录中。"
+
+#: templates/publishing/submission_form.html:6
+msgid "PDF only · maximum 10 MB"
+msgstr "仅限 PDF · 最大 10 MB"
+
+#: templates/publishing/submission_form.html:7
+msgid "Save draft"
+msgstr "保存草稿"
+
+#: templates/publishing/workspace.html:4
+msgid "YOUR WORKSPACE"
+msgstr "您的工作台"
+
+#: templates/publishing/workspace.html:4
+msgid "Good to see you."
+msgstr "欢迎使用。"
+
+#: templates/publishing/workspace.html:4
+msgid "Your journal roles determine which submissions and review tasks appear here."
+msgstr "您在期刊中的角色决定此处显示哪些稿件和审稿任务。"
+
+#: templates/publishing/workspace.html:5
+msgid "Test environment only. Use invented names and documents; no messages are sent."
+msgstr "仅供测试。请使用虚构姓名和文档；系统不会发送消息。"
+
+#: templates/publishing/workspace.html:7
+msgid "AUTHOR"
+msgstr "作者"
+
+#: templates/publishing/workspace.html:7
+msgid "My submissions"
+msgstr "我的投稿"
+
+#: templates/publishing/workspace.html:8
+msgid "Start a draft for an authorised journal."
+msgstr "为获授权的期刊创建草稿。"
+
+#: templates/publishing/workspace.html:9
+msgid "No author roles assigned."
+msgstr "尚未分配作者角色。"
+
+#: templates/publishing/workspace.html:10
+msgid "No submissions yet."
+msgstr "暂无投稿。"
+
+#: templates/publishing/workspace.html:12
+msgid "EDITOR"
+msgstr "编辑"
+
+#: templates/publishing/workspace.html:12
+msgid "Editorial queue"
+msgstr "编辑工作队列"
+
+#: templates/publishing/workspace.html:13
+msgid "Submitted manuscripts from your authorised journals."
+msgstr "来自您有权处理的期刊的已投稿件。"
+
+#: templates/publishing/workspace.html:14
+msgid "No submissions awaiting editorial work."
+msgstr "暂无待处理稿件。"
+
+#: templates/publishing/workspace.html:16
+msgid "REVIEWER"
+msgstr "审稿人"
+
+#: templates/publishing/workspace.html:16
+msgid "Review tasks"
+msgstr "审稿任务"
+
+#: templates/publishing/workspace.html:17
+msgid "Only tasks assigned to your account are shown."
+msgstr "这里只显示分配给您账户的任务。"
+
+#: templates/publishing/workspace.html:18
+msgid "No review tasks assigned."
+msgstr "暂无审稿任务。"
+
+#: templates/registration/login.html:5
+msgid "TEST WORKSPACE"
+msgstr "测试工作台"
+
+#: templates/registration/login.html:6
+msgid "Welcome back"
+msgstr "欢迎回来"
+
+#: templates/registration/login.html:7
+msgid "Use a test account created for this isolated workspace."
+msgstr "请使用为此隔离工作台创建的测试账户。"
+
+#: templates/registration/login.html:8
+msgid "Sign-in failed. Check your username and password."
+msgstr "登录失败，请检查用户名和密码。"

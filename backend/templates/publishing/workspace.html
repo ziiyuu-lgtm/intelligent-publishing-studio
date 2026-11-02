@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Workspace" %} | Intelligent Publishing Studio{% endblock %}
+{% block content %}
+<div class="page-intro"><span class="eyebrow">{% translate "YOUR WORKSPACE" %}</span><h1>{% translate "Good to see you." %}</h1><p>{% translate "Your journal roles determine which submissions and review tasks appear here." %}</p></div>
+<div class="notice">{% translate "Test environment only. Use invented names and documents; no messages are sent." %}</div>
+<div class="workspace-grid">
+  <section class="card panel"><div class="panel-heading"><div><span class="eyebrow">01 / {% translate "AUTHOR" %}</span><h2>{% translate "My submissions" %}</h2></div></div>
+    <p class="muted">{% translate "Start a draft for an authorised journal." %}</p>
+    <div class="actions">{% for journal in author_journals %}<a class="button small" href="{% url 'submission_create' journal.slug %}">+ {{ journal.name }}</a>{% empty %}<span class="muted">{% translate "No author roles assigned." %}</span>{% endfor %}</div>
+    <div class="list">{% for submission in authored %}<a class="list-row" href="{% url 'submission_detail' submission.pk %}"><span><strong>{{ submission.title }}</strong><small>{{ submission.journal.name }}</small></span><span class="status">{{ submission.get_status_display }}</span></a>{% empty %}<p class="empty-text">{% translate "No submissions yet." %}</p>{% endfor %}</div>
+  </section>
+  <section class="card panel"><div class="panel-heading"><div><span class="eyebrow">02 / {% translate "EDITOR" %}</span><h2>{% translate "Editorial queue" %}</h2></div></div>
+    <p class="muted">{% translate "Submitted manuscripts from your authorised journals." %}</p>
+    <div class="list">{% for submission in editorial %}<a class="list-row" href="{% url 'submission_detail' submission.pk %}"><span><strong>{{ submission.title }}</strong><small>{{ submission.journal.name }}</small></span><span class="status">{{ submission.get_status_display }}</span></a>{% empty %}<p class="empty-text">{% translate "No submissions awaiting editorial work." %}</p>{% endfor %}</div>
+  </section>
+  <section class="card panel full"><div class="panel-heading"><div><span class="eyebrow">03 / {% translate "REVIEWER" %}</span><h2>{% translate "Review tasks" %}</h2></div></div>
+    <p class="muted">{% translate "Only tasks assigned to your account are shown." %}</p>
+    <div class="list">{% for review in reviews %}<a class="list-row" href="{% url 'review_detail' review.pk %}"><span><strong>{{ review.submission.title }}</strong><small>{{ review.submission.journal.name }}</small></span><span class="status">{{ review.get_status_display }}</span></a>{% empty %}<p class="empty-text">{% translate "No review tasks assigned." %}</p>{% endfor %}</div>
+  </section>
+</div>
+{% endblock %}

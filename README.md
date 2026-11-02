@@ -1,8 +1,10 @@
 # Intelligent Publishing Studio
 
-Intelligent Publishing Studio is an open-source prototype for a multilingual, multi-journal scholarly publishing platform. SCIENTARA's journal group is the initial pilot scenario. This repository contains a static front-end prototype for exploring journal pages, a simulated author submission journey, an editorial workspace, journal appearance settings, and an illustrative AI-assisted check.
+Intelligent Publishing Studio is an open-source prototype for a multilingual, multi-journal scholarly publishing platform. SCIENTARA's journal group is the initial pilot scenario. This repository contains a static front-end prototype and a separate, local-development backend for testing an early submission and peer-review workflow with synthetic data.
 
-> **Prototype only.** All records and actions are simulated. The software does not upload manuscripts or send emails, and it is not connected to an AI model, DOI registration service, review service, user authentication, or production database. Do not enter real manuscripts, personal information, credentials, or unpublished research. The prototype is not suitable for production use.
+> **Development only.** The static front end is simulated and is not connected to the backend. The backend stores test accounts, metadata, reviews and PDF files locally, but lacks controls required for real manuscripts or deployment. Neither component sends email or connects to an AI model, DOI registration service or a production database. Do not enter real manuscripts, personal information, production credentials or unpublished research. Neither component is suitable for production use.
+
+The backend is described in [backend/README.md](backend/README.md) ([简体中文快速开始](backend/README.zh-CN.md)). It supports two interface languages (English and Simplified Chinese); the static prototype has its separate 12-language selector.
 
 ## Explore the prototype
 
@@ -14,14 +16,14 @@ python3 -m http.server 8080 -d dist
 
 Open `http://localhost:8080`. Serve the files over HTTP so that browsers can load the language packs. Demonstration records are stored only in the current browser session; the language preference is stored in browser local storage. The source repository is <https://github.com/ziiyuu-lgtm/intelligent-publishing-studio>.
 
-## What is available
+## Static prototype
 
 - Four illustrative SCIENTARA journal pages: AIRES, INDUSTRICS, NOVAXIS, and VERSIONICS.
 - A simulated four-step submission flow and editorial queue with fictional examples.
 - A journal appearance preview, an illustrative AI check, and a VERSIONICS dual-track review example.
 - A twelve-language selector with partial translation notices and English fallback.
 
-These interfaces are demonstrations. They do not establish actual journal policies, indexing, article processing services, or third-party AI partnerships.
+These interfaces are demonstrations. They do not establish actual journal policies, indexing, article processing services, or third-party AI partnerships. Static prototype actions do not change backend records.
 
 ## Language support
 

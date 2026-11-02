@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<section class="hero">
+  <div><span class="eyebrow">{% translate "MULTI-JOURNAL WORKSPACE" %}</span><h1>{% translate "A clearer path from manuscript to review." %}</h1><p>{% translate "Explore the journal directory and a protected editorial workflow using fictional submissions." %}</p><a class="button" href="{% if user.is_authenticated %}{% url 'workspace' %}{% else %}{% url 'login' %}{% endif %}">{% translate "Open workspace" %} <span aria-hidden="true">→</span></a></div>
+  <aside class="hero-note"><span class="dot"></span><strong>{% translate "Development preview" %}</strong><p>{% translate "This is an isolated test. Do not enter real manuscripts or personal information." %}</p><div class="hero-rule"></div><span>{% translate "Roles" %}</span><b>{% translate "Author · Editor · Reviewer" %}</b></aside>
+</section>
+<section class="section">
+  <div class="section-heading"><div><span class="eyebrow">{% translate "PUBLISHING NETWORK" %}</span><h2>{% translate "Journal directory" %}</h2></div><p>{% translate "Separate journal roles and workspaces" %}</p></div>
+  <div class="journal-grid">
+  {% for journal in journals %}<article class="card journal-card"><span class="journal-icon">{{ journal.name|slice:":1" }}</span><p class="overline">{{ journal.organisation.name }}</p><h3>{{ journal.name }}</h3><p class="muted">{{ journal.description }}</p></article>
+  {% empty %}<div class="card empty">{% translate "No journals have been configured yet." %}</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}
