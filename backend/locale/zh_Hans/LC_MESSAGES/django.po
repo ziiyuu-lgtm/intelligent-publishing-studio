@@ -4093,3 +4093,144 @@ msgstr "撤回申请"
 
 msgid "Author form limit reached. Mark a form for removal or complete this action before adding more."
 msgstr "已达到作者表单上限，请标记删除一项，或先完成当前操作再继续添加。"
+
+msgid "Original list"
+msgstr "原作者名单"
+
+msgid "Proposed list"
+msgstr "拟定作者名单"
+
+msgid "Not checked"
+msgstr "未核查"
+
+msgid "Evidence checked"
+msgstr "证明已核查"
+
+msgid "Disputed or not agreed"
+msgstr "存在争议或未同意"
+
+msgid "For approval, I confirm I checked the evidence for every original and proposed author and assessed potential conflicts."
+msgstr "批准前，我确认已逐位核查原作者及拟列作者的证明材料，并评估潜在利益冲突。"
+
+msgid "Evidence label"
+msgstr "证明材料名称"
+
+msgid "Fictional evidence PDF"
+msgstr "虚构证明材料 PDF"
+
+msgid "I confirm this file contains only fictional test information."
+msgstr "我确认该文件仅包含虚构测试信息。"
+
+msgid "Choose a PDF file no larger than 5 MB."
+msgstr "请选择不超过 5 MB 的 PDF 文件。"
+
+msgid "Manual check result"
+msgstr "人工核查结果"
+
+msgid "Supporting evidence"
+msgstr "支持性证明材料"
+
+msgid "No evidence selected"
+msgstr "未选择证明材料"
+
+msgid "Select the evidence you checked for this author."
+msgstr "请选择您为该作者核查的证明材料。"
+
+msgid "Evidence can be added only while the request is pending."
+msgstr "仅可在申请待审核期间添加证明材料。"
+
+msgid "The evidence file could not be read safely."
+msgstr "无法安全读取该证明文件。"
+
+msgid "This request has reached the evidence file limit."
+msgstr "此申请已达到证明文件数量上限。"
+
+msgid "Fictional evidence saved privately. No email was sent."
+msgstr "虚构证明已私密保存；系统未发送邮件。"
+
+msgid "The author check changed; reload the page."
+msgstr "作者核查记录已发生变化，请重新加载页面。"
+
+msgid "The selected evidence is unavailable or has changed."
+msgstr "所选证明不可用或已发生变化。"
+
+msgid "Manual author check recorded."
+msgstr "已记录作者的人工核查结果。"
+
+msgid "The saved author checks are invalid; contact the local administrator."
+msgstr "已保存的作者核查记录无效，请联系本地管理员。"
+
+msgid "Record an evidence check for every original and proposed author before approval. Each cited file must remain intact."
+msgstr "批准前，请为原名单和拟定名单中的每位作者记录证明核查结果，并确保引用文件完整。"
+
+msgid "Compare the complete lists below. The current list changes only after editorial approval. This prototype does not contact authors, verify identities, check conflicts automatically or update production."
+msgstr "请对照下方完整名单。只有编辑批准后才会更新当前名单；本原型不会联系作者、核实身份、自动检查利益冲突或更新制作信息。"
+
+msgid "PRIVATE EVIDENCE"
+msgstr "私密证明材料"
+
+msgid "Add evidence"
+msgstr "添加证明材料"
+
+msgid "Assigned editors can access all files. The submitting author can access only files they uploaded. Use fictional PDFs only."
+msgstr "指定编辑可查看全部证明；投稿人只能查看自己上传的文件。请仅使用虚构 PDF。"
+
+msgid "You can access only the files you uploaded. Assigned editors can access all files. Use fictional PDFs only."
+msgstr "您只能查看自己上传的文件；指定编辑可查看全部证明。请仅使用虚构 PDF。"
+
+msgid "No evidence files are visible to you."
+msgstr "当前没有您可查看的证明文件。"
+
+msgid "AUTHOR CONFIRMATIONS"
+msgstr "作者确认核查"
+
+msgid "Manual checks for each author"
+msgstr "逐位作者的人工核查"
+
+msgid "Record each entry in both snapshots. The same evidence may cover multiple entries, but the editor must check each one. Evidence checks do not establish identity or guarantee consent."
+msgstr "请分别核查原名单和拟定名单中的每一项。同一份证明可以用于多个条目，但编辑须逐项核对。核查记录不等于身份认证或同意保证。"
+
+msgid "Before approving, record evidence checks for all authors in both lists and assess editor and reviewer conflicts. The decision note is visible to the submitting author."
+msgstr "批准前，请记录两份名单中每位作者的证明核查，并评估编辑及审稿人的利益冲突。处理说明对投稿人可见。"
+
+msgid "Back to author change"
+msgstr "返回作者变更申请"
+
+msgid "Upload fictional test information only. Files are private to their uploader and assigned editors. A PDF header check and file digest do not verify authenticity, identity, consent or safety."
+msgstr "请仅上传虚构测试资料。文件仅对上传者及指定编辑开放；PDF 文件头和摘要检查不能证明材料真实、身份有效、作者同意或文件安全。"
+
+msgid "PDF only, maximum 5 MB per file and 50 files per request. Files are retained with the request; the system does not notify authors."
+msgstr "仅支持 PDF，每个文件不超过 5 MB，每项申请最多 50 个文件。文件与申请一同保留；系统不会通知作者。"
+
+msgid "Save private evidence"
+msgstr "保存私密证明"
+
+msgid "Review author confirmation"
+msgstr "核查作者同意"
+
+msgid "This records an editor's manual assessment, not a direct author response. Check the document and identity separately; a file or digest cannot prove agreement."
+msgstr "此处记录的是编辑的人工判断，并非作者本人直接回复。请另行核查文件及身份；文件或摘要不能证明作者同意。"
+
+msgid "Select evidence when marking an entry as checked. Mark it disputed if agreement is absent or in doubt. Each original and proposed entry must be checked before approval."
+msgstr "标记为已核查时请选择证明；如果未获同意或存在疑问，请标记为有争议。批准前须核查原名单和拟定名单中的每一项。"
+
+msgid "REVIEW HISTORY"
+msgstr "核查历史"
+
+msgid "Recorded checks"
+msgstr "已记录的核查"
+
+msgid "The most recent 50 checks are shown."
+msgstr "显示最近 50 条核查记录。"
+
+msgid "No manual checks recorded yet."
+msgstr "尚无人工核查记录。"
+
+msgid "I understand that this request does not contact authors or collect their agreement directly, and that editorial review is required."
+msgstr "我了解该申请不会直接联系作者或收集作者回复，且需要编辑审核。"
+
+msgid "The editor recorded that the manual checks were completed; the system does not verify authenticity or consent."
+msgstr "编辑已记录完成人工核查；系统不会验证材料真实性或作者是否同意。"
+
+msgid "No check recorded"
+msgstr "未记录核查"

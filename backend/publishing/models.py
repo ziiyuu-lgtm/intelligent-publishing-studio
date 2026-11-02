@@ -437,6 +437,56 @@ class ContributorChangeRequest(models.Model):
         ]
 
 
+def contributor_evidence_path(instance, filename):
+    # Never retain user-provided names or paths in private storage.
+    return f"contributor-evidence/{uuid.uuid4().hex}.pdf"
+
+
+class ContributorEvidence(models.Model):
+    """Private, fictional test evidence attached to one author-change request."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    change = models.ForeignKey(ContributorChangeRequest, on_delete=models.PROTECT, related_name="evidence_files")
+    label = models.CharField(max_length=120)
+    file = models.FileField(upload_to=contributor_evidence_path, max_length=255)
+    size = models.PositiveIntegerField()
+    sha256 = models.CharField(max_length=64)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="contributor_evidence_uploaded")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+
+class ContributorConfirmationEvent(models.Model):
+    """Append-only manual checks refer to a position in an immutable snapshot."""
+    class Side(models.TextChoices):
+        ORIGINAL = "original", _("Original list")
+        PROPOSED = "proposed", _("Proposed list")
+
+    class State(models.TextChoices):
+        UNCHECKED = "unchecked", _("Not checked")
+        CONFIRMED = "confirmed", _("Evidence checked")
+        DISPUTED = "disputed", _("Disputed or not agreed")
+
+    change = models.ForeignKey(ContributorChangeRequest, on_delete=models.PROTECT, related_name="confirmation_events")
+    side = models.CharField(max_length=10, choices=Side.choices)
+    position = models.PositiveSmallIntegerField()
+    state = models.CharField(max_length=12, choices=State.choices)
+    evidence = models.ForeignKey(ContributorEvidence, on_delete=models.PROTECT, null=True, blank=True, related_name="confirmation_events")
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="contributor_confirmations_recorded")
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["pk"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(side__in=["original", "proposed"]), name="valid_confirmation_side"),
+            models.CheckConstraint(condition=models.Q(position__lt=100), name="valid_confirmation_position"),
+            models.CheckConstraint(condition=models.Q(state__in=["unchecked", "confirmed", "disputed"]), name="valid_confirmation_state"),
+            models.CheckConstraint(condition=~models.Q(state="confirmed") | models.Q(evidence__isnull=False),
+                                   name="confirmed_requires_evidence"),
+        ]
+
+
 class EditorialAssignment(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", _("Active")

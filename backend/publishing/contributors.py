@@ -116,7 +116,7 @@ class ContributorChangeForm(forms.Form):
     reason = forms.CharField(label=_("Reason for the requested change"), max_length=2000,
                              widget=forms.Textarea(attrs={"rows":4}))
     acknowledgement = forms.BooleanField(label=_(
-        "I understand that this request does not notify authors or collect their agreement, and that editorial review is required."))
+        "I understand that this request does not contact authors or collect their agreement directly, and that editorial review is required."))
 
 
 class ContributorChangeDecisionForm(forms.Form):
@@ -125,7 +125,7 @@ class ContributorChangeDecisionForm(forms.Form):
     note = forms.CharField(label=_("Decision note for the submitting author"), max_length=2000,
                            widget=forms.Textarea(attrs={"rows":3}))
     verified = forms.BooleanField(required=False, label=_(
-        "For approval, I confirm I have reviewed documented agreement from all original and proposed authors and assessed potential conflicts. Evidence is retained separately."))
+        "For approval, I confirm I checked the evidence for every original and proposed author and assessed potential conflicts."))
 
     def clean(self):
         data = super().clean()

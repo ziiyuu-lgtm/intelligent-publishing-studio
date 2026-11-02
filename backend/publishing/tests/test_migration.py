@@ -490,12 +490,31 @@ assert Submission25.objects.get(pk=submission.pk).contributors_config == []
 assert not Change25.objects.exists(), 'No author change requests should be inferred'
 change25 = Change25.objects.create(submission_id=submission.pk, requested_by_id=author.pk,
     reason='Fictional migration test', before=[], proposed=[], base_revision=0, acknowledged=True)
+old_approved25 = Change25.objects.create(submission_id=accepted6.pk, requested_by_id=author.pk,
+    reason='Previous approval', before=[], proposed=[], base_revision=0, acknowledged=True,
+    status='approved', editor_attested=True, closed_by_id=editor.pk)
 try:
     MigrationExecutor(connection).migrate([contributors_scope])
 except IrreversibleError:
     assert Change25.objects.filter(pk=change25.pk).exists()
 else:
     raise AssertionError('Author change history must not be silently discarded')
+evidence_scope = ('publishing', '0026_contributor_evidence_and_checks')
+executor = MigrationExecutor(connection)
+executor.migrate([evidence_scope])
+apps = executor.loader.project_state([evidence_scope]).apps
+Change26 = apps.get_model('publishing', 'ContributorChangeRequest')
+Evidence26 = apps.get_model('publishing', 'ContributorEvidence')
+Confirmation26 = apps.get_model('publishing', 'ContributorConfirmationEvent')
+assert Change26.objects.filter(pk=change25.pk, reason='Fictional migration test').exists()
+assert Change26.objects.filter(pk=old_approved25.pk, status='approved', editor_attested=True).exists()
+assert not Evidence26.objects.exists() and not Confirmation26.objects.exists(), 'No evidence or consent may be inferred'
+try:
+    MigrationExecutor(connection).migrate([change_scope])
+except IrreversibleError:
+    assert Change26.objects.filter(pk=change25.pk).exists()
+else:
+    raise AssertionError('Stored evidence and manual checks must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

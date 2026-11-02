@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
+from .contributor_evidence import all_confirmations_intact, confirmation_rows
 from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
                            MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
 from .models import (ConflictDeclaration, ContributorChangeRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
@@ -465,6 +466,11 @@ def contributor_change_detail(request, pk, change_id):
     except ValueError:
         return HttpResponse(_("The saved author list is invalid; contact the local administrator."), status=409)
     pending = change.status == ContributorChangeRequest.Status.PENDING
+    try:
+        rows = confirmation_rows(change, before, proposed) if editor_view else []
+    except ValueError:
+        return HttpResponse(_("The saved author checks are invalid; contact the local administrator."), status=409)
+    evidence_files = change.evidence_files.all() if editor_view else change.evidence_files.filter(uploaded_by=request.user)
     form = ContributorChangeDecisionForm(request.POST or None)
     if request.method == "POST":
         if not editor_view:
@@ -492,6 +498,12 @@ def contributor_change_detail(request, pk, change_id):
                             safe_current != safe_before or not safe_proposed or not ready_to_submit(safe_proposed) or
                             safe_proposed == safe_before):
                         return HttpResponse(_("The submission or request changed; reload the page."), status=409)
+                    if not all_confirmations_intact(locked, safe_before, safe_proposed):
+                        form.add_error(None, _("Record an evidence check for every original and proposed author before approval. Each cited file must remain intact."))
+                        return render(request, "publishing/contributor_change_detail.html", {
+                            "submission":submission, "change":change, "before":before, "proposed":proposed,
+                            "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form,
+                            "evidence_files":evidence_files, "confirmation_rows":rows}, status=409)
                     current.contributors_config = safe_proposed
                     current.contributors_revision += 1
                     current.save(update_fields=["contributors_config", "contributors_revision"])
@@ -506,10 +518,12 @@ def contributor_change_detail(request, pk, change_id):
             return redirect("contributor_change_detail", pk=pk, change_id=change_id)
         return render(request, "publishing/contributor_change_detail.html", {
             "submission":submission, "change":change, "before":before, "proposed":proposed,
-            "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form}, status=400)
+            "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form,
+            "evidence_files":evidence_files, "confirmation_rows":rows}, status=400)
     return render(request, "publishing/contributor_change_detail.html", {
         "submission":submission, "change":change, "before":before, "proposed":proposed,
-        "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form})
+        "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form,
+        "evidence_files":evidence_files, "confirmation_rows":rows})
 
 
 @login_required

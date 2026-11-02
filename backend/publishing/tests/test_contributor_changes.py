@@ -2,10 +2,11 @@ import shutil
 import tempfile
 
 from django.db import IntegrityError, transaction
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from publishing.models import ContributorChangeRequest, Membership, Submission, SubmissionEvent
+from publishing.models import ContributorChangeRequest, ContributorEvidence, Membership, Submission, SubmissionEvent
 from publishing.tests import test_contributors, test_workflow
 
 
@@ -58,6 +59,20 @@ class ContributorChangeTests(TestCase):
     def detail_url(self, change):
         return reverse("contributor_change_detail", args=[change.submission_id, change.pk])
 
+    def upload_and_verify(self, change):
+        self.client.force_login(self.author)
+        upload = reverse("upload_contributor_evidence", args=[change.submission_id, change.pk])
+        document = SimpleUploadedFile("fictional.pdf", test_workflow.PDF, content_type="application/pdf")
+        self.assertEqual(self.client.post(upload, {"label":"Fictional collective record", "file":document, "synthetic":"on"}).status_code, 302)
+        evidence = ContributorEvidence.objects.filter(change=change).latest("created_at")
+        self.client.force_login(self.editor)
+        for side, people in [("original", change.before), ("proposed", change.proposed)]:
+            for position in range(len(people)):
+                url = reverse("record_contributor_confirmation", args=[change.submission_id, change.pk, side, position])
+                response = self.client.post(url, {"state":"confirmed", "evidence":str(evidence.pk), "last_event":"0"})
+                self.assertEqual(response.status_code, 302)
+        return evidence
+
     def test_approval_requires_attestation_preserves_history_and_excludes_reviewer(self):
         submission = self.submitted_with_authors()
         change = self.create_request(submission)
@@ -79,6 +94,8 @@ class ContributorChangeTests(TestCase):
         self.assertEqual(self.client.post(self.detail_url(change), {"outcome":"approved", "note":"Fictional evidence checked."}).status_code, 400)
         change.refresh_from_db()
         self.assertEqual(change.status, "pending")
+        self.assertEqual(self.client.post(self.detail_url(change), {"outcome":"approved", "note":"Fictional evidence checked.", "verified":"on"}).status_code, 409)
+        self.upload_and_verify(change)
         response = self.client.post(self.detail_url(change), {"outcome":"approved", "note":"Fictional evidence checked.", "verified":"on"})
         self.assertEqual(response.status_code, 302)
         submission.refresh_from_db()
@@ -187,7 +204,7 @@ class ContributorChangeTests(TestCase):
         submission = self.submitted_with_authors()
         Submission.objects.filter(pk=submission.pk).update(status=Submission.Status.REVISION_REQUESTED)
         change = self.create_request(submission)
-        self.client.force_login(self.editor)
+        self.upload_and_verify(change)
         self.assertEqual(self.client.post(self.detail_url(change),
             {"outcome":"approved", "note":"Fictional checks completed.", "verified":"on"}).status_code, 302)
         submission.refresh_from_db()
