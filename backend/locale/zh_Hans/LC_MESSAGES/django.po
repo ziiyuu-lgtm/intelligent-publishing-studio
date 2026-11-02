@@ -5050,3 +5050,138 @@ msgstr "请求暂不可用。页面不显示服务商详情，请检查配置后
 
 msgid "Create another plan"
 msgstr "创建另一份计划"
+
+msgid "Comment to address"
+msgstr "需要回应的意见"
+
+msgid "Location in revised manuscript (optional)"
+msgstr "修订稿中的位置（可选）"
+
+msgid "Enter the comment for this point."
+msgstr "请填写这一条需要回应的意见。"
+
+msgid "Comment"
+msgstr "意见"
+
+msgid "Author response"
+msgstr "作者回复"
+
+msgid "Location in revised manuscript"
+msgstr "修订稿中的位置"
+
+msgid "This response draft is unavailable; contact the local administrator."
+msgstr "回复草稿不可用，请联系本地管理员。"
+
+msgid "An existing draft was kept; the selected plan was not imported."
+msgstr "已保留现有草稿，未导入所选计划。"
+
+msgid "The revision decision changed; reload the page."
+msgstr "修回决定已更改，请重新加载页面。"
+
+msgid "The response draft changed; reload the page."
+msgstr "回复草稿已变更，请重新加载页面。"
+
+msgid "The response form is invalid."
+msgstr "回复表单无效。"
+
+msgid "The maximum number of points has been reached."
+msgstr "已达到回复条目的最大数量。"
+
+msgid "New point added. Save your draft to keep your edits."
+msgstr "已添加条目，请保存草稿以保留修改。"
+
+msgid "Add at least one comment before saving."
+msgstr "请至少填写一条意见后保存。"
+
+msgid "The response draft is incomplete or has changed; review it before continuing."
+msgstr "回复草稿尚未完成或已发生变化，请检查后再继续。"
+
+msgid "Draft a point-by-point response"
+msgstr "逐条撰写回复"
+
+msgid "The saved response draft was copied into the form below. Review and edit it before submitting; changes here do not update the saved draft."
+msgstr "已将保存的回复草稿复制到下方表单。提交前请核对和修改；此处的修改不会更新保存的草稿。"
+
+msgid "Start a response using these excerpts"
+msgstr "使用这些片段开始撰写回复"
+
+msgid "Response letter workspace"
+msgstr "回复信工作区"
+
+msgid "RESPONSE WORKSPACE"
+msgstr "回复工作区"
+
+msgid "Write your response"
+msgstr "撰写您的回复"
+
+msgid "Address each comment in your own words and record where you made changes."
+msgstr "用自己的语言逐条回应意见，并记录修改位置。"
+
+msgid "PRIVATE DRAFT"
+msgstr "私密草稿"
+
+msgid "Fictional test data only. Your draft is private to the submitting account and is not sent until you submit a revised version separately."
+msgstr "仅使用虚构测试数据。草稿仅对投稿账户可见，只有另行提交修订稿后才会发送。"
+
+msgid "Started from an AI plan"
+msgstr "由 AI 规划开始"
+
+msgid "Only selected source excerpts were copied. Verify them and write your own response; no AI claims are inserted."
+msgstr "仅复制了所选原文片段。请核对原文并自行撰写回复；系统不会插入 AI 生成的事实表述。"
+
+msgid "Comments and responses"
+msgstr "意见与回复"
+
+msgid "Response point"
+msgstr "回复条目"
+
+msgid "Use your own verified account of the work."
+msgstr "请根据已经核实的实际工作自行填写。"
+
+msgid "Remove"
+msgstr "删除"
+
+msgid "Describe only changes or analyses you actually completed."
+msgstr "仅描述您实际完成的修改或分析。"
+
+msgid "Add another point"
+msgstr "添加一条"
+
+msgid "Save response draft"
+msgstr "保存回复草稿"
+
+msgid "SAVED DRAFT"
+msgstr "已保存草稿"
+
+msgid "Your response overview"
+msgstr "回复概览"
+
+msgid "points have a response"
+msgstr "条已填写回复"
+
+msgid "The preview reflects your last saved draft."
+msgstr "预览显示上一次保存的草稿。"
+
+msgid "Use in revision form"
+msgstr "带入修回表单"
+
+msgid "Complete every response and keep the combined text within 20,000 characters to use it in the revision form."
+msgstr "请完成每条回复，并将合并文本控制在 20,000 字符以内，才能带入修回表单。"
+
+msgid "Save at least one point to see your response preview here."
+msgstr "至少保存一条回复，即可在此查看预览。"
+
+msgid "BEFORE SUBMITTING"
+msgstr "提交前"
+
+msgid "You remain in control"
+msgstr "由您掌握最终决定"
+
+msgid "Check each comment against the actual decision letter."
+msgstr "逐条对照实际的编辑决定信。"
+
+msgid "Confirm that every response reflects work you actually completed."
+msgstr "确认每条回复都反映实际完成的工作。"
+
+msgid "Review the copied text and upload the manuscript in the separate revision form."
+msgstr "在单独的修回表单中核对复制的文本并上传稿件。"

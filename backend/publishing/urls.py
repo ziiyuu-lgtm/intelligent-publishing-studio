@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -136,6 +136,7 @@ urlpatterns = [
     path("submissions/<uuid:pk>/review-copy-check/", views.review_copy_screen, name="review_copy_screen"),
     path("submissions/<uuid:pk>/revision/", views.submission_revision, name="submission_revision"),
     path("submissions/<uuid:pk>/revision-plan/", revision_plan_views.revision_plan, name="revision_plan"),
+    path("submissions/<uuid:pk>/revision-response/", revision_response_views.revision_response_builder, name="revision_response_builder"),
     path("revision-plans/<uuid:pk>/", revision_plan_views.revision_plan_result, name="revision_plan_result"),
     path("submissions/<uuid:pk>/decision/", views.editorial_decision, name="editorial_decision"),
     path("submissions/<uuid:pk>/invite/", views.review_invite, name="review_invite"),

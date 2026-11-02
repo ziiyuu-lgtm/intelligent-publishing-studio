@@ -945,7 +945,15 @@ def submission_revision(request, pk):
         raise Http404
     if submission.status != Submission.Status.REVISION_REQUESTED:
         return HttpResponse(_("A revision has not been requested."), status=409)
-    form = RevisionForm(request.POST or None, request.FILES or None, review_mode=submission.review_mode)
+    prefilled_response = None
+    if request.method == "GET":
+        from .revision_response_views import response_prefill
+        try:
+            prefilled_response = response_prefill(request, submission)
+        except ValueError:
+            return HttpResponse(_("The response draft is incomplete or has changed; review it before continuing."), status=409)
+    form = RevisionForm(request.POST or None, request.FILES or None, review_mode=submission.review_mode,
+                        initial={"author_response": prefilled_response} if prefilled_response else None)
     if request.method == "POST" and form.is_valid():
         version = None
         try:
@@ -978,4 +986,5 @@ def submission_revision(request, pk):
             raise
         messages.success(request, _("Revision submitted for a new review round."))
         return redirect("submission_detail", pk=pk)
-    return render(request, "publishing/revision_form.html", {"submission": submission, "form": form})
+    return render(request, "publishing/revision_form.html", {"submission": submission, "form": form,
+                                                              "prefilled_response": bool(prefilled_response)})

@@ -779,6 +779,22 @@ class RevisionPlanRun(models.Model):
         ordering = ["-created_at", "-pk"]
 
 
+class RevisionResponseDraft(models.Model):
+    """Author-owned, private point-by-point response for a specific decision."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="response_drafts")
+    decision = models.ForeignKey(EditorialDecision, on_delete=models.PROTECT, related_name="response_drafts")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revision_response_drafts")
+    source_run = models.ForeignKey(RevisionPlanRun, on_delete=models.PROTECT, null=True, blank=True, related_name="response_drafts")
+    entries = models.JSONField(default=list)
+    revision = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["decision", "author"], name="one_response_draft_per_author_decision")]
+
+
 class AuthorNotice(models.Model):
     """Private local notice for the submitting author, pinned to the original account."""
     class Kind(models.TextChoices):

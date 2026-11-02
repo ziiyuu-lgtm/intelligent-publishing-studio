@@ -151,4 +151,8 @@ def revision_plan_result(request, pk):
             run.decision.round.submission_id != run.submission_id or
             run.decision.round.version.submission_id != run.submission_id):
         raise Http404
-    return render(request, "publishing/revision_plan_result.html", {"run": run, "submission": run.submission})
+    current = _current_decision(run.submission)
+    can_start_response = bool(current and current.pk == run.decision_id and
+                              run.status == RevisionPlanRun.Status.COMPLETED and run.result)
+    return render(request, "publishing/revision_plan_result.html", {"run": run, "submission": run.submission,
+                                                                     "can_start_response": can_start_response})

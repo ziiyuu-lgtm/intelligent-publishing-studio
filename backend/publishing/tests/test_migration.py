@@ -587,6 +587,18 @@ except IrreversibleError:
     assert Policy31.objects.filter(pk=policy10.pk).exists()
 else:
     raise AssertionError('Revision planning history must not be silently discarded')
+response_scope = ('publishing', '0032_revisionresponsedraft')
+executor = MigrationExecutor(connection)
+executor.migrate([response_scope])
+apps = executor.loader.project_state([response_scope]).apps
+Draft32 = apps.get_model('publishing', 'RevisionResponseDraft')
+assert not Draft32.objects.exists(), 'No historical response drafts may be inferred'
+try:
+    MigrationExecutor(connection).migrate([revision_plan_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'Submission').objects.filter(pk=submission.pk).exists()
+else:
+    raise AssertionError('Response drafts must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
