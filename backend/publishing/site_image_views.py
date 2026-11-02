@@ -22,6 +22,7 @@ from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, validate_blueprint
 from .site_images import MAX_SITE_IMAGES, InvalidImage, asset_is_intact, hero_reference_valid, normalise_image, valid_display
 from .site_sections import InvalidSections as InvalidJournalSections, validate_sections as validate_journal_sections
+from .site_pages import InvalidPages, validate_pages
 from .site_views import _fingerprint as journal_fingerprint, _managed_journal, _site as journal_site
 
 
@@ -194,6 +195,7 @@ def _public_image(slug, asset_id, kind):
         raise Http404
     sections = []
     try:
+        pages = validate_pages(release.pages_config)
         if kind == "journal":
             if release.theme not in JournalSiteDraft.Theme.values or release.layout not in JournalSiteDraft.Layout.values:
                 raise ValueError
@@ -207,7 +209,7 @@ def _public_image(slug, asset_id, kind):
                 sections = validate_portal_sections(release.sections_config)
             if not _valid_snapshot(release.journals):
                 raise ValueError
-    except (ValueError, InvalidDesign, InvalidPortalSections, InvalidJournalSections) as exc:
+    except (ValueError, InvalidDesign, InvalidPortalSections, InvalidJournalSections, InvalidPages) as exc:
         raise Http404 from exc
     if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
         raise Http404
@@ -215,6 +217,8 @@ def _public_image(slug, asset_id, kind):
         raise Http404
     visible_images = {section["image_asset_id"] for section in sections
                       if section["visible"] and section.get("image_asset_id")}
+    visible_images.update(page["image_asset_id"] for page in pages
+                          if page["visible"] and page.get("image_asset_id"))
     if release.hero_asset_id != asset_id and str(asset_id) not in visible_images:
         raise Http404
     asset = get_object_or_404(site.images, pk=asset_id)

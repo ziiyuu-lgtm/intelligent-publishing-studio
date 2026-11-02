@@ -30,6 +30,7 @@ from .portal_sections import SECTION_CHOICES, InvalidSections, default_sections,
 from .portal_views import CONTENT_FIELDS, _draft_journals, _event, _fingerprint, _organisation, _render, _site
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, validate_blueprint
+from .site_pages import InvalidPages, validate_pages
 
 
 def _active(policy):
@@ -43,6 +44,7 @@ def _snapshot(policy):
 def _sections(site):
     try:
         validate_blueprint(site.design_config)
+        validate_pages(site.pages_config)
         if site.sections_config:
             validate_sections(site.sections_config)
         if not images_valid(site, site.sections_config, site):
@@ -50,7 +52,7 @@ def _sections(site):
         if site.sections_config:
             return [dict(item) for item in site.sections_config]
         return default_sections(site)
-    except (InvalidDesign, InvalidSections) as exc:
+    except (InvalidDesign, InvalidSections, InvalidPages) as exc:
         raise Http404 from exc
 
 
@@ -192,7 +194,7 @@ def preview_modules(request, slug, run_id, index):
     if index >= len(options):
         raise Http404
     design = SimpleNamespace(**{field:getattr(site, field) for field in CONTENT_FIELDS},
-        design_config=site.design_config, sections_config=materialize_option(options[index], _sections(site)),
+        design_config=site.design_config, sections_config=materialize_option(options[index], _sections(site)), pages_config=site.pages_config,
         hero_asset_id=site.hero_asset_id, hero_alt=site.hero_alt,
         hero_fit=site.hero_fit, hero_position=site.hero_position)
     return _render(request, organisation, design, _draft_journals(site), preview=True, ai_proposal_preview=True)

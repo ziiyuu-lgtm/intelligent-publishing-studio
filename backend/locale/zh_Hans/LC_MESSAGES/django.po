@@ -3166,3 +3166,84 @@ msgstr "仅上传至素材库"
 
 msgid "Upload images to this site’s library first, then select them for individual modules. Each image needs a description."
 msgstr "请先将图片上传到本网站素材库，再为各栏目选择图片。每张图片均需填写描述。"
+
+msgid "Page URL name"
+msgstr "页面网址标识"
+
+msgid "Use lowercase letters, numbers and hyphens, for example author-guidelines."
+msgstr "请使用小写字母、数字和连字符，例如 author-guidelines。"
+
+msgid "Page title"
+msgstr "页面标题"
+
+msgid "Page text"
+msgstr "页面正文"
+
+msgid "Show this page publicly after publishing"
+msgstr "发布后公开显示此页面"
+
+msgid "Each page needs a unique URL name and a title."
+msgstr "每个页面都需要唯一的网址标识和标题。"
+
+msgid "The site pages are invalid."
+msgstr "网站页面数据无效。"
+
+msgid "The site draft or its images are invalid."
+msgstr "网站草稿或其中的图片无效。"
+
+msgid "Pages saved to the draft. Preview them before publishing."
+msgstr "页面已保存到草稿，发布前请先预览。"
+
+msgid "Independent pages"
+msgstr "独立页面"
+
+msgid "PAGE DESIGN"
+msgstr "页面设计"
+
+msgid "Create pages such as About, Author Guidelines, Editorial Board or Policies, or choose your own titles. Pages inherit this site's visual design."
+msgstr "可创建期刊介绍、投稿指南、编委会、政策等页面，也可自行设置标题。页面沿用本网站的视觉设计。"
+
+msgid "Save one new blank page at a time. Use the order number to rearrange navigation; uncheck visibility to keep a page private. Changes remain in the draft until the site is published."
+msgstr "每次可填写并保存一个新页面。通过顺序编号调整导航；取消显示可使页面保持私密。发布网站前，修改仅保存在草稿中。"
+
+msgid "Upload images in the site image library first. Each page can use one image with its own description and display settings."
+msgstr "请先将图片上传到网站素材库。每个页面可使用一张图片，并单独设置图片描述与显示方式。"
+
+msgid "New page"
+msgstr "新页面"
+
+msgid "Preview saved draft page"
+msgstr "预览已保存的草稿页面"
+
+msgid "Delete this page"
+msgstr "删除此页面"
+
+msgid "Save independent pages"
+msgstr "保存独立页面"
+
+msgid "Private draft page preview. Publishing the site requires separate confirmation."
+msgstr "当前为私密草稿页面预览，发布网站需要另行确认。"
+
+msgid "Site navigation"
+msgstr "网站导航"
+
+msgid "Create separate pages for author guidelines, editorial boards, policies and other topics."
+msgstr "为投稿指南、编委会、政策等主题创建独立页面。"
+
+msgid "Manage independent pages"
+msgstr "管理独立页面"
+
+msgid "Page image"
+msgstr "页面图片"
+
+msgid "Page image description"
+msgstr "页面图片描述"
+
+msgid "Page image display"
+msgstr "页面图片显示方式"
+
+msgid "Page image focus"
+msgstr "页面图片焦点位置"
+
+msgid "Up to 20 pages are supported in this prototype. Changing a page URL name breaks links to its old address after publishing."
+msgstr "当前原型最多支持 20 个页面。更改页面网址标识后，旧链接将在发布后失效。"

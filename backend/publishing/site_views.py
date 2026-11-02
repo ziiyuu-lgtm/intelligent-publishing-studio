@@ -21,12 +21,13 @@ from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES, Journal, JournalSit
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, SAMPLES, appearance_for, legacy_to_blueprint, sample_by_id, validate_blueprint
 from .site_sections import InvalidSections, default_sections, validate_sections, visible_sections
+from .site_pages import InvalidPages, page_navigation, validate_pages
 from .site_images import hero_reference_valid
 from .module_images import image_choices, images_valid, sync_image_references
 from .views import _has_role
 
 TEXT_FIELDS = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
-SITE_FIELDS = (*TEXT_FIELDS, "design_config", "sections_config", "hero_asset_id", "hero_alt", "hero_fit", "hero_position")
+SITE_FIELDS = (*TEXT_FIELDS, "design_config", "sections_config", "pages_config", "hero_asset_id", "hero_alt", "hero_fit", "hero_position")
 
 
 def _managed_journal(user, slug, locked=False):
@@ -49,6 +50,8 @@ def _fingerprint(site):
         payload["design_config"] = site.design_config
     if site.sections_config:
         payload["sections_config"] = site.sections_config
+    if site.pages_config:
+        payload["pages_config"] = site.pages_config
     if site.hero_asset_id or site.hero_alt or site.hero_fit != "cover" or site.hero_position != "center":
         payload["hero_asset_id"] = str(site.hero_asset_id) if site.hero_asset_id else None
         payload["hero_alt"] = site.hero_alt
@@ -67,7 +70,8 @@ def _appearance(site):
 def _render_site(request, journal, design, **context):
     try:
         sections = visible_sections(design.sections_config) if design.sections_config else []
-    except InvalidSections as exc:
+        pages = validate_pages(design.pages_config)
+    except (InvalidSections, InvalidPages) as exc:
         raise Http404 from exc
     site = get_object_or_404(JournalSiteDraft, journal=journal)
     owner = site if context.get("preview") else design
@@ -87,6 +91,7 @@ def _render_site(request, journal, design, **context):
             hero_image_url = reverse(route, args=[journal.slug, design.hero_asset_id])
     return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": design,
         "appearance": _appearance(design), "sections": sections, "hero_image_url":hero_image_url,
+        "page_navigation":page_navigation(pages, "journal", journal.slug, bool(context.get("preview"))),
         "has_about_section": any(item["kind"] == "about" for item in sections), **context}))
 
 
@@ -304,6 +309,10 @@ def publish_journal_site(request, slug):
                 validate_sections(site.sections_config)
             except InvalidSections:
                 return HttpResponse(_("The page modules are invalid."), status=409)
+        try:
+            validate_pages(site.pages_config)
+        except InvalidPages:
+            return HttpResponse(_("The site pages are invalid."), status=409)
         if not hero_reference_valid(site, site.hero_asset_id, site.hero_alt, site.hero_fit, site.hero_position):
             return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         if not images_valid(site, site.sections_config, site):
@@ -345,13 +354,17 @@ def restore_journal_site(request, slug, release_id):
                 validate_sections(release.sections_config)
             except InvalidSections:
                 return HttpResponse(_("The page modules are invalid."), status=409)
+        try:
+            validate_pages(release.pages_config)
+        except InvalidPages:
+            return HttpResponse(_("The site pages are invalid."), status=409)
         if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
             return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         if not images_valid(site, release.sections_config, release):
             return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         changed = any(getattr(site, key) != getattr(release, key) for key in SITE_FIELDS)
         if changed:
-            sync_image_references(site, site, release.sections_config)
+            sync_image_references(site, site, release.sections_config, pages=release.pages_config)
             for key in SITE_FIELDS:
                 setattr(site, key, getattr(release, key))
             site.revision += 1

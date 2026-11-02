@@ -28,6 +28,7 @@ from .site_ai_modules import (MAX_BRIEF_LENGTH, PROMPT_VERSION, describe_section
                               validate_options)
 from .site_ai_views import _current, _run
 from .site_design import InvalidDesign, validate_blueprint
+from .site_pages import InvalidPages, validate_pages
 from .site_sections import SECTION_CHOICES, InvalidSections, default_sections, validate_sections
 from .site_views import SITE_FIELDS, _fingerprint, _managed_journal, _render_site, _site
 
@@ -44,6 +45,7 @@ def _sections(site):
     try:
         if site.design_config:
             validate_blueprint(site.design_config)
+        validate_pages(site.pages_config)
         if site.sections_config:
             validate_sections(site.sections_config)
         if not images_valid(site, site.sections_config, site):
@@ -51,7 +53,7 @@ def _sections(site):
         if site.sections_config:
             return [dict(item) for item in site.sections_config]
         return default_sections(site)
-    except (InvalidDesign, InvalidSections) as exc:
+    except (InvalidDesign, InvalidSections, InvalidPages) as exc:
         raise Http404 from exc
 
 

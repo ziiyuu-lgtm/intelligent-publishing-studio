@@ -393,6 +393,27 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'SiteImageAsset').objects.filter(pk=legacy_asset.pk).exists()
 else:
     raise AssertionError('Module image references must not be silently discarded')
+Reference19 = apps.get_model('publishing', 'SiteModuleImageReference')
+reference19 = Reference19.objects.create(asset_id=legacy_asset.pk, journal_draft_id=site19.pk)
+pages_scope = ('publishing', '0020_journalsitedraft_pages_config_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([pages_scope])
+apps = executor.loader.project_state([pages_scope]).apps
+site20 = apps.get_model('publishing', 'JournalSiteDraft').objects.get(pk=site19.pk)
+portal20 = apps.get_model('publishing', 'OrganisationPortalDraft').objects.get(pk=portal19.pk)
+assert site20.pages_config == [] and portal20.pages_config == []
+assert apps.get_model('publishing', 'JournalSiteRelease').objects.get(pk=release11.pk).pages_config == []
+assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.get(pk=release15.pk).pages_config == []
+assert site20.sections_config == legacy_sections and portal20.sections_config == legacy_sections
+assert site20.hero_asset_id == legacy_asset.pk and site20.hero_alt == 'Legacy hero'
+assert apps.get_model('publishing', 'SiteModuleImageReference').objects.filter(pk=reference19.pk).exists()
+assert apps.get_model('publishing', 'OrganisationPortalAIDesignRun').objects.get(pk=portal_run16.pk).site_fingerprint == 'c'*64
+try:
+    MigrationExecutor(connection).migrate([module_images_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'SiteModuleImageReference').objects.filter(pk=reference19.pk).exists()
+else:
+    raise AssertionError('Independent page snapshots must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

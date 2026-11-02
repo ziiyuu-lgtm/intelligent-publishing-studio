@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Independent pages" %} | {{ site.brand_name }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url manage_route owner.slug %}">← {% translate "Back to site design" %}</a>
+<section class="card panel">
+  <span class="eyebrow">{% translate "PAGE DESIGN" %}</span><h1>{% translate "Independent pages" %}</h1>
+  <p>{% translate "Create pages such as About, Author Guidelines, Editorial Board or Policies, or choose your own titles. Pages inherit this site's visual design." %}</p>
+  <p class="muted">{% translate "Save one new blank page at a time. Use the order number to rearrange navigation; uncheck visibility to keep a page private. Changes remain in the draft until the site is published." %}</p>
+  <p class="muted">{% translate "Upload images in the site image library first. Each page can use one image with its own description and display settings." %}</p>
+  <p class="muted">{% translate "Up to 20 pages are supported in this prototype. Changing a page URL name breaks links to its old address after publishing." %}</p>
+  <form method="post" action="{% url save_route owner.slug %}" class="stack">{% csrf_token %}
+    <input type="hidden" name="revision" value="{{ site.revision }}"><input type="hidden" name="fingerprint" value="{{ fingerprint }}">
+    {{ page_formset.management_form }}{{ page_formset.non_form_errors }}
+    {% for page_form in page_formset %}
+    <article class="module-card">
+      <div class="module-card__header"><strong>{% if page_form.initial.slug %}{{ page_form.initial.title }}{% else %}{% translate "New page" %}{% endif %}</strong>
+      {% if page_form.initial.slug %}<a class="button secondary small" href="{% url preview_route owner.slug page_form.initial.slug %}">{% translate "Preview saved draft page" %}</a>{% endif %}</div>
+      {{ page_form.non_field_errors }}
+      <div class="module-fields"><div class="field">{{ page_form.slug.label_tag }}{{ page_form.slug }}{{ page_form.slug.errors }}<small>{{ page_form.slug.help_text }}</small></div><div class="field">{{ page_form.title.label_tag }}{{ page_form.title }}{{ page_form.title.errors }}</div></div>
+      <div class="field">{{ page_form.body.label_tag }}{{ page_form.body }}{{ page_form.body.errors }}</div>
+      <div class="module-fields"><div class="field">{{ page_form.image_asset_id.label_tag }}{{ page_form.image_asset_id }}{{ page_form.image_asset_id.errors }}</div><div class="field">{{ page_form.image_alt.label_tag }}{{ page_form.image_alt }}{{ page_form.image_alt.errors }}</div><div class="field">{{ page_form.image_fit.label_tag }}{{ page_form.image_fit }}{{ page_form.image_fit.errors }}</div><div class="field">{{ page_form.image_position.label_tag }}{{ page_form.image_position }}{{ page_form.image_position.errors }}</div></div>
+      <div class="module-controls"><label class="check">{{ page_form.visible }} {{ page_form.visible.label }}</label><div class="field module-order">{{ page_form.ORDER.label_tag }}{{ page_form.ORDER }}{{ page_form.ORDER.errors }}</div><label class="check">{{ page_form.DELETE }} {% translate "Delete this page" %}</label></div>
+    </article>
+    {% endfor %}
+    <button class="button" type="submit">{% translate "Save independent pages" %}</button>
+  </form>
+</section>
+{% endblock %}

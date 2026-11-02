@@ -48,6 +48,11 @@
 .journal-site.has-hero-image .journal-site__hero-note--image{padding:0;border:0;background:transparent;overflow:hidden;border-radius:12px;max-width:100%}
 .journal-site__hero-image{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
 .journal-site__module-image{display:block;width:100%;aspect-ratio:16/10;margin:0 0 22px;object-fit:cover;border-radius:8px;background:var(--site-background,#f2f2f2)}
+.journal-site__subpage{padding:clamp(32px,6vw,72px) 6%;max-width:960px;margin:auto;overflow-wrap:anywhere}
+.journal-site__subpage h1{font:700 clamp(2.1rem,4vw,3.6rem)/1.1 Georgia,serif;margin:16px 0 28px}
+.journal-site__subpage-image{display:block;width:100%;max-height:520px;aspect-ratio:16/9;margin:0 0 30px;border-radius:10px;background:var(--site-tint)}
+.corners-square .journal-site__subpage-image{border-radius:0}
+.journal-site__subpage-text{max-width:75ch;line-height:1.8;white-space:normal}
 .corners-square .journal-site__module-image{border-radius:0}
 .has-design.feature-hidden.has-hero-image .journal-site__hero{grid-template-columns:minmax(0,1fr) minmax(190px,.38fr)}
 @media(max-width:720px){.has-design.feature-hidden.has-hero-image .journal-site__hero{grid-template-columns:1fr}}

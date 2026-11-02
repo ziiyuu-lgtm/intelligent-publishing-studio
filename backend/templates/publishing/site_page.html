@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{{ page.title }} | {{ design.brand_name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'journal_site.css' %}">{% endblock %}
+{% block content %}
+{% if preview %}<div class="notice">{% translate "Private draft page preview. Publishing the site requires separate confirmation." %}</div>{% endif %}
+<div class="journal-site{% if kind == 'journal' %} theme-{{ design.theme }} layout-{{ design.layout }}{% endif %}{% if appearance %} has-design font-{{ appearance.font }} corners-{{ appearance.corners }}{% endif %}"{% if appearance %} style="--site-accent:{{ appearance.primary }};--site-tint:{{ appearance.surface }};--site-background:{{ appearance.background }};--site-text:{{ appearance.page_text }};--site-surface-text:{{ appearance.surface_text }};--site-hero-bg:{{ appearance.hero_bg }};--site-hero-text:{{ appearance.hero_text }}"{% endif %}>
+  <header class="journal-site__masthead"><a class="journal-site__name" href="{{ home_url }}">{{ design.brand_name }}</a><nav class="journal-site__nav" aria-label="{% translate 'Site navigation' %}"><a href="{{ home_url }}">{% translate "Home" %}</a>{% for item in page_navigation %}<a href="{{ item.url }}">{{ item.title }}</a>{% endfor %}</nav></header>
+  <article class="journal-site__subpage"><span class="journal-site__label">{{ design.brand_name }}</span><h1>{{ page.title }}</h1>{% if image_url %}<img class="journal-site__subpage-image" src="{{ image_url }}" alt="{{ page.image_alt }}" style="object-fit:{{ page.image_fit }};object-position:{{ page.image_position }}">{% endif %}<div class="journal-site__subpage-text">{{ page.body|linebreaksbr }}</div></article>
+  <footer class="journal-site__footer"><span>{{ design.brand_name }}</span><span>{% translate "Fictional local test site" %}</span></footer>
+</div>
+{% endblock %}

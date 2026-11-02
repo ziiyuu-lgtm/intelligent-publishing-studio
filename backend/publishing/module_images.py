@@ -72,9 +72,16 @@ def image_ids(sections):
     return {item["image_asset_id"] for item in sections if item.get("image_asset_id")}
 
 
-def images_valid(site, sections, owner=None, check_references=True):
-    """Reject foreign, damaged or unprotected images, including hidden modules."""
-    ids = image_ids(sections)
+def images_valid(site, sections, owner=None, check_references=True, pages=None):
+    """Reject foreign, damaged or unprotected images, including hidden content."""
+    if pages is None:
+        pages = owner.pages_config if owner is not None else site.pages_config
+    try:
+        if not isinstance(sections, list) or not isinstance(pages, list):
+            return False
+        ids = image_ids(sections) | image_ids(pages)
+    except (TypeError, AttributeError):
+        return False
     if check_references:
         if owner is None:
             return False
@@ -85,11 +92,13 @@ def images_valid(site, sections, owner=None, check_references=True):
     return len(assets) == len(ids) and all(asset_is_intact(asset) for asset in assets)
 
 
-def sync_image_references(site, owner, sections):
-    """Run inside the site lock and transaction that saves the section snapshot."""
-    if not images_valid(site, sections, check_references=False):
+def sync_image_references(site, owner, sections, pages=None):
+    """Run inside the site lock and transaction that saves the site snapshot."""
+    if pages is None:
+        pages = owner.pages_config
+    if not images_valid(site, sections, check_references=False, pages=pages):
         raise ValueError("unavailable image")
-    ids = image_ids(sections)
+    ids = image_ids(sections) | image_ids(pages)
     owner_key = _owner_key(owner)
     SiteModuleImageReference.objects.filter(**{owner_key:owner}).exclude(asset_id__in=ids).delete()
     existing = {str(value) for value in owner.module_image_references.values_list("asset_id", flat=True)}
