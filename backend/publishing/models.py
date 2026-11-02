@@ -487,6 +487,52 @@ class ContributorConfirmationEvent(models.Model):
         ]
 
 
+class ContributorResponseRequest(models.Model):
+    """One manually mapped test account for one author-list entry."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Awaiting response")
+        AGREED = "agreed", _("Agreed")
+        DISAGREED = "disagreed", _("Disagreed")
+        REVOKED = "revoked", _("Cancelled")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    change = models.ForeignKey(ContributorChangeRequest, on_delete=models.PROTECT, related_name="author_response_requests")
+    side = models.CharField(max_length=10, choices=ContributorConfirmationEvent.Side.choices)
+    position = models.PositiveSmallIntegerField()
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="authorship_responses")
+    assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="authorship_response_requests_made")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    snapshot_digest = models.CharField(max_length=64)
+    revision = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    responded_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="authorship_response_requests_revoked")
+    revocation_reason = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["change", "side", "position"], condition=~models.Q(status="revoked"), name="one_live_author_response_per_entry"),
+            models.UniqueConstraint(fields=["change", "side", "recipient"], condition=~models.Q(status="revoked"), name="one_live_response_account_per_list"),
+            models.CheckConstraint(condition=models.Q(side__in=["original", "proposed"]), name="valid_response_side"),
+            models.CheckConstraint(condition=models.Q(position__lt=100), name="valid_response_position"),
+            models.CheckConstraint(condition=models.Q(status__in=["pending", "agreed", "disagreed", "revoked"]), name="valid_author_response_status"),
+        ]
+
+
+class ContributorResponseEvent(models.Model):
+    response_request = models.ForeignKey(ContributorResponseRequest, on_delete=models.PROTECT, related_name="events")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="authorship_response_events")
+    action = models.CharField(max_length=12, choices=[("issued", _("Assigned")), ("agreed", _("Agreed")),
+        ("disagreed", _("Disagreed")), ("revoked", _("Cancelled"))])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+
 class EditorialAssignment(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", _("Active")

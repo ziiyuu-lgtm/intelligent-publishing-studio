@@ -13,7 +13,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import JournalIssueForm
-from .models import EditorialAssignment, Journal, JournalIssue, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment
+from .models import ContributorResponseRequest, EditorialAssignment, Journal, JournalIssue, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment
 from .production_views import _draft, _enabled, _no_index, _producer_can_manage, _proof_intact, _source_valid, _stale
 from .views import _event, _has_role
 
@@ -99,6 +99,7 @@ def release_test_issue(request, pk):
             return HttpResponse(_("The issue needs at least one published article and no unpublished assignments."), status=409)
         submission_ids = articles.values("submission_id")
         if (articles.filter(submission__author=request.user).exists() or
+                ContributorResponseRequest.objects.filter(change__submission_id__in=submission_ids, recipient=request.user).exists() or
                 ReviewAssignment.objects.filter(submission_id__in=submission_ids, reviewer=request.user).exists() or
                 EditorialAssignment.objects.filter(submission_id__in=submission_ids, editor=request.user, status=EditorialAssignment.Status.RECUSED).exists() or
                 ProductionAssignment.objects.filter(draft__submission_id__in=submission_ids, producer=request.user, status=ProductionAssignment.Status.RECUSED).exists()):

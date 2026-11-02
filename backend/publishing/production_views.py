@@ -19,9 +19,10 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import PublicationMetadataForm, PublicationProofForm
-from .models import (EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, ProductionAssignment,
+from .models import (ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, ProductionAssignment,
                      PublicationApproval, PublicationDraft, PublicationProof, ReviewRound, Submission)
 from .views import _author_can_view, _can_coordinate, _download_version, _editor_can_view, _event, _has_role, _submission
+from .author_responses import is_response_participant
 
 
 def _enabled():
@@ -49,6 +50,7 @@ def _draft(pk, locked=False):
 def _producer_can_manage(user, draft):
     submission = draft.submission
     return (submission.status == Submission.Status.ACCEPTED and submission.author_id != user.pk
+            and not is_response_participant(user, submission)
             and _has_role(user, submission.journal, Membership.Role.PRODUCER)
             and draft.production_assignments.filter(producer=user, status=ProductionAssignment.Status.ACTIVE).exists()
             and not draft.production_assignments.filter(producer=user, status=ProductionAssignment.Status.RECUSED).exists()
@@ -167,6 +169,7 @@ def production_team(request, pk):
                 return HttpResponse(_("Production is closed or unavailable."), status=409)
             producer = get_user_model().objects.filter(pk=producer_id, is_active=True).first()
             if (not producer or producer.pk in (submission.author_id, request.user.pk) or
+                    is_response_participant(producer, submission) or
                     not _has_role(producer, submission.journal, Membership.Role.PRODUCER) or
                     submission.reviews.filter(reviewer=producer).exists() or
                     submission.editor_assignments.filter(editor=producer, status=EditorialAssignment.Status.RECUSED).exists() or
@@ -179,6 +182,7 @@ def production_team(request, pk):
         messages.success(request, _("Production assignment recorded.") if created else _("This production editor is already assigned."))
         return redirect("production_team", pk=pk)
     excluded = [submission.author_id, request.user.pk]
+    excluded += list(ContributorResponseRequest.objects.filter(change__submission=submission).values_list("recipient_id", flat=True))
     excluded += list(submission.reviews.values_list("reviewer_id", flat=True))
     excluded += list(submission.editor_assignments.filter(status=EditorialAssignment.Status.RECUSED).values_list("editor_id", flat=True))
     excluded += list(draft.production_assignments.filter(status__in=[ProductionAssignment.Status.ACTIVE,

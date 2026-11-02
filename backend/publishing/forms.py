@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.forms import BaseFormSet, formset_factory
 from django.utils.translation import gettext_lazy as _
-from .models import EditorialDecision, Journal, JournalAIPolicy, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
+from .models import ContributorResponseRequest, EditorialDecision, Journal, JournalAIPolicy, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
 from .site_design import ALIGNMENTS, COMPOSITIONS, CORNERS, DENSITIES, FONTS, HERO_STYLES, SECTION_ORDERS
 from .module_images import SectionImageForm, form_image_fields
 from .site_sections import (MAX_BODY_LENGTH, MAX_HEADING_LENGTH, MAX_SECTIONS, SECTION_CHOICES,
@@ -91,6 +91,7 @@ class InviteForm(forms.Form):
         prior_editors += list(submission.decisions.values_list("decided_by_id", flat=True))
         prior_editors += list(submission.editor_assignments.values_list("editor_id", flat=True))
         prior_editors += list(ProductionAssignment.objects.filter(draft__submission=submission).values_list("producer_id", flat=True))
+        prior_editors += list(ContributorResponseRequest.objects.filter(change__submission=submission).values_list("recipient_id", flat=True))
         prior_editors += list(Membership.objects.filter(journal=submission.journal, role=Membership.Role.EDITOR).values_list("user_id", flat=True))
         self.fields["reviewer"].queryset = get_user_model().objects.filter(
             journal_memberships__journal=submission.journal,

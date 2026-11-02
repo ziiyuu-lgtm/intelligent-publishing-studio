@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, author_response_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -117,6 +117,9 @@ urlpatterns = [
     path("submissions/<uuid:pk>/author-changes/<uuid:change_id>/evidence/", contributor_evidence_views.upload_contributor_evidence, name="upload_contributor_evidence"),
     path("submissions/<uuid:pk>/author-changes/<uuid:change_id>/evidence/<uuid:evidence_id>/", contributor_evidence_views.download_contributor_evidence, name="download_contributor_evidence"),
     path("submissions/<uuid:pk>/author-changes/<uuid:change_id>/confirmations/<str:side>/<int:position>/", contributor_evidence_views.record_contributor_confirmation, name="record_contributor_confirmation"),
+    path("submissions/<uuid:pk>/author-changes/<uuid:change_id>/accounts/<str:side>/<int:position>/", author_response_views.manage_author_response, name="manage_author_response"),
+    path("submissions/<uuid:pk>/author-changes/<uuid:change_id>/accounts/<uuid:response_id>/cancel/", author_response_views.revoke_author_response, name="revoke_author_response"),
+    path("author-responses/<uuid:response_id>/", author_response_views.respond_author_change, name="respond_author_change"),
     path("submissions/<uuid:pk>/submit/", views.submission_submit, name="submission_submit"),
     path("submissions/<uuid:pk>/file/", views.submission_file, name="submission_file"),
     path("submissions/<uuid:pk>/versions/<int:number>/file/", views.submission_version_file, name="submission_version_file"),

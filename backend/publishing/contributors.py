@@ -116,7 +116,7 @@ class ContributorChangeForm(forms.Form):
     reason = forms.CharField(label=_("Reason for the requested change"), max_length=2000,
                              widget=forms.Textarea(attrs={"rows":4}))
     acknowledgement = forms.BooleanField(label=_(
-        "I understand that this request does not contact authors or collect their agreement directly, and that editorial review is required."))
+        "I understand no message is sent automatically; author responses and editorial review require separate steps."))
 
 
 class ContributorChangeDecisionForm(forms.Form):

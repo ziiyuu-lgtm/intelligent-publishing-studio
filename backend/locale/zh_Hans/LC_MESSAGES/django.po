@@ -4234,3 +4234,180 @@ msgstr "编辑已记录完成人工核查；系统不会验证材料真实性或
 
 msgid "No check recorded"
 msgstr "未记录核查"
+
+msgid "Awaiting response"
+msgstr "等待回复"
+
+msgid "Agreed"
+msgstr "已同意"
+
+msgid "Disagreed"
+msgstr "不同意"
+
+msgid "Assigned"
+msgstr "已分配"
+
+msgid "Fictional author account"
+msgstr "虚构作者账户"
+
+msgid "I manually checked that this account corresponds to the author entry and assessed potential conflicts."
+msgstr "我已人工核对该账户与作者条目对应，并已评估潜在利益冲突。"
+
+msgid "Your response"
+msgstr "您的回复"
+
+msgid "I agree to this author-list change"
+msgstr "我同意本次作者名单变更"
+
+msgid "I do not agree to this author-list change"
+msgstr "我不同意本次作者名单变更"
+
+msgid "I reviewed both author lists and the stated reason for this fictional request."
+msgstr "我已查看本次虚构申请的两份作者名单及变更原因。"
+
+msgid "This author entry already has an active account task."
+msgstr "此作者条目已有一项有效的账户确认任务。"
+
+msgid "The selected account is no longer eligible or already assigned."
+msgstr "所选账户不再符合条件，或已被分配。"
+
+msgid "Account task created locally. No email was sent."
+msgstr "账户确认任务已在本地创建，系统未发送邮件。"
+
+msgid "Provide a cancellation reason of up to 500 characters."
+msgstr "请填写不超过 500 字符的取消原因。"
+
+msgid "An answered task cannot be cancelled. The account holder may update the response, or the editor may decline the change."
+msgstr "已有回复的任务不能取消。账户持有人可更新回复，或编辑可拒绝本次变更。"
+
+msgid "Account task cancelled; its history remains."
+msgstr "账户任务已取消，历史记录仍予保留。"
+
+msgid "Your response changed; reload the page."
+msgstr "您的回复已发生变化，请重新加载页面。"
+
+msgid "This account task has expired. Contact the editor."
+msgstr "此账户任务已过期，请联系编辑。"
+
+msgid "Your response was recorded locally. No email was sent."
+msgstr "您的回复已在本地记录，系统未发送邮件。"
+
+msgid "Resolve outstanding or disagreeing author responses before approval."
+msgstr "批准前，请处理尚未回复或表示不同意的作者账户任务。"
+
+msgid "I understand no message is sent automatically; author responses and editorial review require separate steps."
+msgstr "我了解系统不会自动发送消息；作者回复和编辑审核需要分别进行。"
+
+msgid "AUTHOR RESPONSES"
+msgstr "作者回复"
+
+msgid "Author-list confirmations"
+msgstr "作者名单确认"
+
+msgid "Fictional account tasks assigned to you are shown here; no email is sent."
+msgstr "这里显示分配给您的虚构账户任务；系统不会发送邮件。"
+
+msgid "Compare the complete lists below. The current list changes only after editorial approval. This prototype sends no email and does not verify identities, check conflicts automatically or update production."
+msgstr "请对照下方完整名单。只有编辑批准后才会更新当前名单；本原型不发送邮件，也不会核实身份、自动检查利益冲突或更新制作信息。"
+
+msgid "DIRECT ACCOUNT RESPONSES"
+msgstr "作者账户直接回复"
+
+msgid "Request author account responses"
+msgstr "发起作者账户确认"
+
+msgid "An editor can map each entry to a fictional journal author account. The account holder can agree or disagree in their workspace. The mapping and account identity are not independently verified; no email is sent. An outstanding response or disagreement blocks approval."
+msgstr "编辑可将每个作者条目关联至虚构的本刊作者账户。账户持有人可在工作台选择同意或不同意。系统不会独立核验关联关系及账户身份，也不发送邮件；未回复或不同意会阻止批准。"
+
+msgid "Manage account task"
+msgstr "管理账户任务"
+
+msgid "The reason and both author lists may be shown to author accounts selected by the editor for a response."
+msgstr "变更原因及两份作者名单可能展示给编辑指定的作者账户，以便其回复。"
+
+msgid "Manage author account task"
+msgstr "管理作者账户任务"
+
+msgid "ACCOUNT RESPONSE"
+msgstr "账户回复"
+
+msgid "Select a fictional account only after manually checking that it belongs to this author. The system does not verify identities or send emails. A task holder can see the reason and both author-name lists, but not the manuscript or evidence files."
+msgstr "请先人工核对账户与作者的对应关系，再选择虚构测试账户。系统不会核验身份或发送邮件。任务持有人可查看变更原因及两份作者姓名名单，但不能因此访问稿件或证明文件。"
+
+msgid "Assigned account"
+msgstr "指定账户"
+
+msgid "Response deadline"
+msgstr "回复期限"
+
+msgid "Reason for cancelling this task"
+msgstr "取消任务的原因"
+
+msgid "Cancel account task"
+msgstr "取消账户任务"
+
+msgid "Create account task"
+msgstr "创建账户任务"
+
+msgid "ACCOUNT TASK HISTORY"
+msgstr "账户任务历史"
+
+msgid "Previous assignments"
+msgstr "历史分配"
+
+msgid "No account tasks assigned yet."
+msgstr "尚未分配账户任务。"
+
+msgid "Confirm an author-list change"
+msgstr "确认作者名单变更"
+
+msgid "AUTHOR RESPONSE"
+msgstr "作者回复"
+
+msgid "This fictional task was assigned to your account for the author entry shown below. The platform does not independently verify identity. You may agree or disagree; your response is recorded for editorial review and is not a manuscript decision."
+msgstr "这项虚构任务已分配给您的账户，对应下方作者条目。平台不会独立核验身份。您可以选择同意或不同意；回复将供编辑审核，不构成稿件处理决定。"
+
+msgid "The response deadline has passed. A new agreement cannot be recorded; you may still record disagreement if the request remains open."
+msgstr "回复期限已过，不能新记录同意；如果申请仍在处理中，您仍可记录不同意。"
+
+msgid "YOUR RESPONSE"
+msgstr "您的回复"
+
+msgid "Your decision"
+msgstr "您的选择"
+
+msgid "You can change your response while this request remains open. A disagreement blocks approval; no email is sent."
+msgstr "申请仍在处理中时，您可以更改回复。不同意会阻止批准；系统不会发送邮件。"
+
+msgid "Record my response"
+msgstr "记录我的回复"
+
+msgid "Choose an author account"
+msgstr "请选择作者账户"
+
+msgid "The most recent 50 fictional account tasks assigned to you are shown here; no email is sent."
+msgstr "这里显示最近 50 项分配给您的虚构账户任务；系统不会发送邮件。"
+
+msgid "This author-change request is closed. Your response history is read-only."
+msgstr "本次作者变更申请已结束，您的回复历史仅供查看。"
+
+msgid "This author-change request is closed. Account task history is read-only."
+msgstr "本次作者变更申请已结束，账户任务历史仅供查看。"
+
+msgid "YOUR RESPONSE HISTORY"
+msgstr "您的回复历史"
+
+msgid "Your recorded responses"
+msgstr "您已记录的回复"
+
+msgid "The most recent 50 responses are shown."
+msgstr "显示最近 50 条回复。"
+
+msgid "No response recorded yet."
+msgstr "尚未记录回复。"
+
+msgid "View account task"
+msgstr "查看账户任务"
+
+msgid "Resolve outstanding, disagreeing or ineligible author account responses before approval."
+msgstr "批准前，请处理未回复、不同意或账户资格失效的作者确认任务。"

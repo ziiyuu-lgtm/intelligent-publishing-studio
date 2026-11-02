@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Exists, F, OuterRef
+from django.db.models import Exists, F, OuterRef, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,10 +12,11 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
+from .author_responses import author_responses_ready, is_response_participant
 from .contributor_evidence import all_confirmations_intact, confirmation_rows
 from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
                            MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
-from .models import (ConflictDeclaration, ContributorChangeRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
+from .models import (ConflictDeclaration, ContributorChangeRequest, ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
                      PublicationDraft, ReviewAssignment, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
@@ -38,6 +39,7 @@ def _editor_can_view(user, submission):
             and _has_role(user, submission.journal, Membership.Role.EDITOR)
             and submission.editor_assignments.filter(editor=user, status=EditorialAssignment.Status.ACTIVE).exists()
             and not submission.reviews.filter(reviewer=user).exists()
+            and not is_response_participant(user, submission)
             and not ProductionAssignment.objects.filter(draft__submission=submission, producer=user, status=ProductionAssignment.Status.RECUSED).exists())
 
 
@@ -45,6 +47,7 @@ def _can_coordinate(user, submission):
     return (submission.status != Submission.Status.DRAFT and submission.author_id != user.pk
             and _has_role(user, submission.journal, Membership.Role.COORDINATOR)
             and not submission.reviews.filter(reviewer=user).exists()
+            and not is_response_participant(user, submission)
             and not submission.editor_assignments.filter(editor=user, status=EditorialAssignment.Status.RECUSED).exists()
             and not ProductionAssignment.objects.filter(draft__submission=submission, producer=user, status=ProductionAssignment.Status.RECUSED).exists())
 
@@ -65,6 +68,7 @@ def _review(pk, user):
     if (assignment.round.submission_id != assignment.submission_id or
             assignment.round.version.submission_id != assignment.submission_id or
             assignment.submission.author_id == user.pk or
+            is_response_participant(user, assignment.submission) or
             ProductionAssignment.objects.filter(draft__submission=assignment.submission, producer=user).exists() or
             not _has_role(user, assignment.submission.journal, Membership.Role.REVIEWER)):
         raise Http404
@@ -138,6 +142,8 @@ def workspace(request):
         journal__memberships__role=Membership.Role.EDITOR, journal__memberships__active=True,
         editor_assignments__editor=request.user, editor_assignments__status=EditorialAssignment.Status.ACTIVE,
     ).exclude(author=request.user).exclude(reviews__reviewer=request.user).exclude(status=Submission.Status.DRAFT).exclude(
+        Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("pk"), recipient=request.user))
+    ).exclude(
         Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("pk"), producer=request.user,
                                                     status=ProductionAssignment.Status.RECUSED))
     ).select_related("journal", "author").distinct().annotate(
@@ -148,6 +154,8 @@ def workspace(request):
         submission__journal__memberships__role=Membership.Role.REVIEWER,
         submission__journal__memberships__active=True,
     ).exclude(submission__author=request.user).exclude(
+        Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("submission_id"), recipient=request.user))
+    ).exclude(
         Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("submission_id"), producer=request.user))
     ).select_related("submission__journal", "round").distinct()
     production_enabled = settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED
@@ -159,14 +167,32 @@ def workspace(request):
             submission__journal__memberships__active=True, production_assignments__producer=request.user,
             production_assignments__status=ProductionAssignment.Status.ACTIVE,
         ).exclude(submission__author=request.user).exclude(submission__reviews__reviewer=request.user).exclude(
+            Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("submission_id"), recipient=request.user))
+        ).exclude(
             Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("submission_id"), editor=request.user,
                                                       status=EditorialAssignment.Status.RECUSED))
         ).exclude(Exists(ProductionAssignment.objects.filter(draft_id=OuterRef("pk"), producer=request.user,
                                                               status=ProductionAssignment.Status.RECUSED))
         ).select_related("submission__journal").distinct()
+    author_response_tasks = ContributorResponseRequest.objects.filter(recipient=request.user, recipient__is_active=True,
+        change__submission__journal__in=author_journals
+    ).exclude(status=ContributorResponseRequest.Status.REVOKED).exclude(
+        Exists(ReviewAssignment.objects.filter(submission_id=OuterRef("change__submission_id"), reviewer=request.user))
+    ).exclude(Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("change__submission_id"), editor=request.user))
+    ).exclude(Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("change__submission_id"), assigned_by=request.user))
+    ).exclude(Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("change__submission_id"), ended_by=request.user))
+    ).exclude(Exists(EditorialDecision.objects.filter(submission_id=OuterRef("change__submission_id"), decided_by=request.user))
+    ).exclude(Exists(ReviewAssignment.objects.filter(submission_id=OuterRef("change__submission_id"), invited_by=request.user))
+    ).exclude(Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("change__submission_id"), producer=request.user))
+    ).exclude(Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("change__submission_id"), assigned_by=request.user))
+    ).exclude(Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("change__submission_id"), ended_by=request.user))
+    ).exclude(~Q(change__submission__author=request.user), Exists(Membership.objects.filter(user=request.user,
+        journal_id=OuterRef("change__submission__journal_id"), role=Membership.Role.COORDINATOR, active=True))
+    ).select_related("change__submission__journal")[:50]
     return render(request, "publishing/workspace.html", {
         "author_journals": author_journals, "authored": authored, "editorial": editorial, "reviews": reviews,
         "production": production, "local_publication_enabled": production_enabled,
+        "author_response_tasks": author_response_tasks,
         "site_manager_journals": site_manager_journals,
         "ai_manager_journals": ai_manager_journals,
         "portal_organisations": portal_organisations,
@@ -185,6 +211,8 @@ def coordination_workspace(request):
         journal__memberships__user=request.user, journal__memberships__role=Membership.Role.COORDINATOR,
         journal__memberships__active=True,
     ).exclude(status=Submission.Status.DRAFT).exclude(author=request.user).exclude(
+        Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("pk"), recipient=request.user))
+    ).exclude(
         reviews__reviewer=request.user).exclude(
         Exists(EditorialAssignment.objects.filter(submission_id=OuterRef("pk"), editor=request.user,
                                                   status=EditorialAssignment.Status.RECUSED))
@@ -219,6 +247,7 @@ def submission_editors(request, pk):
             editor = get_user_model().objects.filter(pk=editor_id, is_active=True).first()
             if (not editor or editor.pk in (submission.author_id, request.user.pk) or
                     not _has_role(editor, submission.journal, Membership.Role.EDITOR) or
+                    is_response_participant(editor, submission) or
                     submission.reviews.filter(reviewer=editor).exists() or
                     submission.editor_assignments.filter(editor=editor, status=EditorialAssignment.Status.RECUSED).exists() or
                     ProductionAssignment.objects.filter(draft__submission=submission, producer=editor, status=ProductionAssignment.Status.RECUSED).exists()):
@@ -231,6 +260,7 @@ def submission_editors(request, pk):
         return redirect("submission_editors", pk=pk)
     excluded = [submission.author_id, request.user.pk]
     excluded += list(submission.reviews.values_list("reviewer_id", flat=True))
+    excluded += list(ContributorResponseRequest.objects.filter(change__submission=submission).values_list("recipient_id", flat=True))
     excluded += list(submission.editor_assignments.filter(status__in=[EditorialAssignment.Status.ACTIVE,
                               EditorialAssignment.Status.RECUSED]).values_list("editor_id", flat=True))
     excluded += list(ProductionAssignment.objects.filter(draft__submission=submission, status=ProductionAssignment.Status.RECUSED).values_list("producer_id", flat=True))
@@ -471,6 +501,7 @@ def contributor_change_detail(request, pk, change_id):
     except ValueError:
         return HttpResponse(_("The saved author checks are invalid; contact the local administrator."), status=409)
     evidence_files = change.evidence_files.all() if editor_view else change.evidence_files.filter(uploaded_by=request.user)
+    response_requests = change.author_response_requests.select_related("recipient", "assigned_by", "revoked_by") if editor_view else []
     form = ContributorChangeDecisionForm(request.POST or None)
     if request.method == "POST":
         if not editor_view:
@@ -503,7 +534,13 @@ def contributor_change_detail(request, pk, change_id):
                         return render(request, "publishing/contributor_change_detail.html", {
                             "submission":submission, "change":change, "before":before, "proposed":proposed,
                             "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form,
-                            "evidence_files":evidence_files, "confirmation_rows":rows}, status=409)
+                            "evidence_files":evidence_files, "confirmation_rows":rows, "response_requests":response_requests}, status=409)
+                    if not author_responses_ready(locked, safe_before, safe_proposed):
+                        form.add_error(None, _("Resolve outstanding, disagreeing or ineligible author account responses before approval."))
+                        return render(request, "publishing/contributor_change_detail.html", {
+                            "submission":submission, "change":change, "before":before, "proposed":proposed,
+                            "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form,
+                            "evidence_files":evidence_files, "confirmation_rows":rows, "response_requests":response_requests}, status=409)
                     current.contributors_config = safe_proposed
                     current.contributors_revision += 1
                     current.save(update_fields=["contributors_config", "contributors_revision"])
@@ -519,11 +556,11 @@ def contributor_change_detail(request, pk, change_id):
         return render(request, "publishing/contributor_change_detail.html", {
             "submission":submission, "change":change, "before":before, "proposed":proposed,
             "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form,
-            "evidence_files":evidence_files, "confirmation_rows":rows}, status=400)
+            "evidence_files":evidence_files, "confirmation_rows":rows, "response_requests":response_requests}, status=400)
     return render(request, "publishing/contributor_change_detail.html", {
         "submission":submission, "change":change, "before":before, "proposed":proposed,
         "author_view":author_view, "editor_view":editor_view, "pending":pending, "form":form,
-        "evidence_files":evidence_files, "confirmation_rows":rows})
+        "evidence_files":evidence_files, "confirmation_rows":rows, "response_requests":response_requests})
 
 
 @login_required
@@ -591,6 +628,7 @@ def submission_file(request, pk):
     privileged = _author_can_view(request.user, submission) or _editor_can_view(request.user, submission)
     reviewer_access = False
     if (not privileged and _has_role(request.user, submission.journal, Membership.Role.REVIEWER)
+            and not is_response_participant(request.user, submission)
             and not ProductionAssignment.objects.filter(draft__submission=submission, producer=request.user).exists()):
         reviewer_access = ReviewAssignment.objects.filter(
             submission=submission, reviewer=request.user, round__submission=submission,
@@ -712,6 +750,7 @@ def review_invite(request, pk):
         if (submission.reviews.filter(invited_by=reviewer).exists() or
                 submission.decisions.filter(decided_by=reviewer).exists() or
                 submission.editor_assignments.filter(editor=reviewer).exists() or
+                is_response_participant(reviewer, submission) or
                 ProductionAssignment.objects.filter(draft__submission=submission, producer=reviewer).exists() or
                 Membership.objects.filter(user=reviewer, journal=submission.journal, role=Membership.Role.EDITOR).exists()):
             raise Http404
@@ -760,6 +799,7 @@ def review_respond(request, pk):
             review_round = _open_round(submission, locked=True)
         assignment = ReviewAssignment.objects.select_for_update().get(pk=pk)
         if (assignment.reviewer_id != request.user.pk or assignment.submission_id != submission.pk or
+                is_response_participant(request.user, submission) or
                 not _has_role(request.user, submission.journal, Membership.Role.REVIEWER)):
             raise Http404
         if not review_round or assignment.round_id != review_round.pk:
@@ -816,6 +856,7 @@ def review_report(request, pk):
         review_round = _open_round(submission, locked=True)
         assignment = ReviewAssignment.objects.select_for_update().get(pk=pk)
         if (assignment.reviewer_id != request.user.pk or assignment.submission_id != submission.pk or
+                is_response_participant(request.user, submission) or
                 not _has_role(request.user, submission.journal, Membership.Role.REVIEWER)):
             raise Http404
         if (not review_round or assignment.round_id != review_round.pk or

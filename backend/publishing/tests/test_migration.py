@@ -515,6 +515,21 @@ except IrreversibleError:
     assert Change26.objects.filter(pk=change25.pk).exists()
 else:
     raise AssertionError('Stored evidence and manual checks must not be silently discarded')
+response_scope = ('publishing', '0027_account_author_responses')
+executor = MigrationExecutor(connection)
+executor.migrate([response_scope])
+apps = executor.loader.project_state([response_scope]).apps
+Change27 = apps.get_model('publishing', 'ContributorChangeRequest')
+Response27 = apps.get_model('publishing', 'ContributorResponseRequest')
+ResponseEvent27 = apps.get_model('publishing', 'ContributorResponseEvent')
+assert Change27.objects.filter(pk=old_approved25.pk, status='approved').exists()
+assert not Response27.objects.exists() and not ResponseEvent27.objects.exists(), 'No account response may be inferred'
+try:
+    MigrationExecutor(connection).migrate([evidence_scope])
+except IrreversibleError:
+    assert Change27.objects.filter(pk=old_approved25.pk).exists()
+else:
+    raise AssertionError('Author response history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
