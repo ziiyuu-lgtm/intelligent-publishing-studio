@@ -4888,3 +4888,165 @@ msgstr "已创建草稿"
 
 msgid "Revised version submitted"
 msgstr "已提交修订稿"
+
+msgid "Enable author AI revision planning"
+msgstr "启用作者 AI 修回规划"
+
+msgid "Explore AI revision planning"
+msgstr "使用 AI 辅助修回规划"
+
+msgid "Author revision planning has a separate switch and requires confirmation for each request."
+msgstr "作者修回规划由独立开关控制，每次请求均须确认。"
+
+msgid "Revision planning"
+msgstr "修回规划"
+
+msgid "Editorial comment to address"
+msgstr "需要处理的编辑意见"
+
+msgid "Your notes (optional)"
+msgstr "您的说明（可选）"
+
+msgid "A current revision decision is required."
+msgstr "需要当前有效的修回决定。"
+
+msgid "AI revision planning is not enabled for this journal and test environment."
+msgstr "本期刊或测试环境尚未启用 AI 修回规划。"
+
+msgid "The decision or AI configuration changed; review the current details."
+msgstr "编辑决定或 AI 配置已变更，请重新查看。"
+
+msgid "AI revision planner"
+msgstr "AI 修回规划助手"
+
+msgid "Back to submission progress"
+msgstr "返回投稿进度"
+
+msgid "AI ASSISTANT"
+msgstr "AI 助手"
+
+msgid "Plan your revision"
+msgstr "规划您的修回"
+
+msgid "Turn an editorial comment into an actionable plan you can review."
+msgstr "将编辑意见整理为可供人工审核的修订计划。"
+
+msgid "AUTHOR-INITIATED"
+msgstr "由作者发起"
+
+msgid "Fictional test data only. AI can make mistakes; review all suggestions and keep control of your response."
+msgstr "仅使用虚构测试数据。AI 可能出错，请审核所有建议并自行决定回复内容。"
+
+msgid "YOUR INPUT"
+msgstr "输入内容"
+
+msgid "What would you like to address?"
+msgstr "您希望处理什么问题？"
+
+msgid "Enter only the fictional comment and notes you want to send. No manuscript or decision letter is added automatically."
+msgstr "仅输入您希望发送的虚构意见和说明。系统不会自动添加稿件或决定信。"
+
+msgid "Use an author-visible comment; do not include private or real information in this test."
+msgstr "请使用作者可见的意见；测试时不要输入真实或隐私信息。"
+
+msgid "For example, note what you intend to check without claiming the work is complete."
+msgstr "例如，说明您计划检查的内容，不要声称工作已经完成。"
+
+msgid "Before requesting a plan"
+msgstr "请求规划前"
+
+msgid "Only the text entered above is sent to OpenAI for this request. Provider charges and retention may apply."
+msgstr "本次仅向 OpenAI 发送上方输入的文本。服务商可能收费并有数据保留政策。"
+
+msgid "The plan and its quoted excerpts are saved in this test workspace; the input is not stored separately."
+msgstr "生成的计划和引用片段会保存在测试工作区；输入内容不会单独保存。"
+
+msgid "I agree to send the entered text for this request."
+msgstr "我同意为本次请求发送输入的文本。"
+
+msgid "I confirm this is fictional test content."
+msgstr "我确认这些内容是虚构的测试内容。"
+
+msgid "Generate revision plan"
+msgstr "生成修回计划"
+
+msgid "This optional task is unavailable until the journal enables it and the test server is configured."
+msgstr "期刊启用该功能且测试服务器完成配置后，才可使用此可选功能。"
+
+msgid "HOW IT WORKS"
+msgstr "使用方法"
+
+msgid "A starting point, not a decision"
+msgstr "辅助起点，由您决定"
+
+msgid "Select the issue"
+msgstr "选择问题"
+
+msgid "Provide one comment you are authorised to use."
+msgstr "提供一条您有权使用的意见。"
+
+msgid "Review the suggestions"
+msgstr "审核建议"
+
+msgid "Compare each item with the quoted source and your actual manuscript."
+msgstr "逐项对照引用原文与您的实际稿件。"
+
+msgid "Write your own response"
+msgstr "自行撰写回复"
+
+msgid "Verify every claim and make changes yourself before submitting."
+msgstr "提交前核实每项表述，并由您自行修改。"
+
+msgid "REQUEST HISTORY"
+msgstr "请求记录"
+
+msgid "Your previous plans"
+msgstr "以往的修回计划"
+
+msgid "Only your account can open these results while you own this submission."
+msgstr "在您仍拥有该投稿期间，仅您的账户可查看这些结果。"
+
+msgid "Revision plan"
+msgstr "修回计划"
+
+msgid "No plans requested yet."
+msgstr "尚无修回计划。"
+
+msgid "Your revision plan"
+msgstr "您的修回计划"
+
+msgid "AI output is unverified. Check every suggestion against your manuscript and actual work; nothing has been submitted or changed."
+msgstr "AI 输出未经核实。请根据稿件和实际工作检查每条建议；系统没有自动提交或修改任何内容。"
+
+msgid "SUGGESTED ACTIONS"
+msgstr "建议的操作"
+
+msgid "Review your plan"
+msgstr "审核您的计划"
+
+msgid "Use this as a checklist, then write your own response."
+msgstr "将其作为检查清单，然后自行撰写回复。"
+
+msgid "SOURCE EXCERPT"
+msgstr "原文片段"
+
+msgid "Suggested action"
+msgstr "建议操作"
+
+msgid "Question to address in your response"
+msgstr "回复中需要回答的问题"
+
+msgid "No suggestions were returned. You can revise the input and try again."
+msgstr "未返回建议。您可以调整输入后重试。"
+
+msgid "The request is still pending. It is not retried automatically."
+msgstr "请求仍在等待处理，不会自动重试。"
+
+msgid "The request was cancelled because its authorisation or decision changed."
+msgstr "由于授权或决定发生变化，请求已取消。"
+
+msgid "The request was unavailable. No provider details are shown; try again only after checking the configuration."
+msgstr "请求暂不可用。页面不显示服务商详情，请检查配置后再试。"
+
+msgid "Create another plan"
+msgstr "创建另一份计划"

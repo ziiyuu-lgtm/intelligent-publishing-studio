@@ -573,6 +573,20 @@ except IrreversibleError:
     assert Submission30.objects.filter(pk=submission.pk).exists()
 else:
     raise AssertionError('Author notification history must not be silently discarded')
+revision_plan_scope = ('publishing', '0031_journalaipolicy_revision_plan_enabled_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([revision_plan_scope])
+apps = executor.loader.project_state([revision_plan_scope]).apps
+Policy31 = apps.get_model('publishing', 'JournalAIPolicy')
+Run31 = apps.get_model('publishing', 'RevisionPlanRun')
+assert not Policy31.objects.get(pk=policy10.pk).revision_plan_enabled
+assert not Run31.objects.exists(), 'No historic AI requests may be inferred'
+try:
+    MigrationExecutor(connection).migrate([author_notice_scope])
+except IrreversibleError:
+    assert Policy31.objects.filter(pk=policy10.pk).exists()
+else:
+    raise AssertionError('Revision planning history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

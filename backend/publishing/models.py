@@ -309,6 +309,7 @@ class JournalAIPolicy(models.Model):
     site_pages_enabled = models.BooleanField(_("Enable AI independent-page suggestions"), default=False)
     site_page_blocks_enabled = models.BooleanField(_("Enable AI page-block suggestions"), default=False)
     site_page_layout_enabled = models.BooleanField(_("Enable AI page-layout suggestions"), default=False)
+    revision_plan_enabled = models.BooleanField(_("Enable author AI revision planning"), default=False)
     journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)
@@ -749,6 +750,33 @@ class EditorialDecision(models.Model):
 
     class Meta:
         ordering = ["round__number"]
+
+
+class RevisionPlanRun(models.Model):
+    """One expressly confirmed, author-only local test request; inputs are not saved."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Unavailable")
+        CANCELLED = "cancelled", _("Cancelled")
+
+    id = models.UUIDField(primary_key=True, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="revision_plan_runs")
+    decision = models.ForeignKey(EditorialDecision, on_delete=models.PROTECT, related_name="revision_plan_runs")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revision_plan_runs")
+    model_name = models.CharField(max_length=100)
+    prompt_version = models.CharField(max_length=60)
+    policy_revision = models.PositiveIntegerField()
+    input_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    result = models.JSONField(default=list, blank=True)
+    error_code = models.CharField(max_length=40, blank=True)
+    confirmed_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
 
 
 class AuthorNotice(models.Model):
