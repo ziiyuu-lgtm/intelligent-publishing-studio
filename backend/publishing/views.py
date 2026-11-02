@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -9,7 +10,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .forms import DecisionForm, InviteForm, ReportForm, RevisionForm, SubmissionForm
-from .models import (EditorialDecision, Journal, Membership, ReviewAssignment, ReviewRound,
+from .models import (ConflictDeclaration, EditorialDecision, Journal, Membership, ReviewAssignment, ReviewRound,
                      Submission, SubmissionEvent, SubmissionVersion)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
@@ -69,6 +70,24 @@ def _open_round(submission, locked=False):
     return review_round
 
 
+def _file_exists(field):
+    try:
+        return bool(field and field.name and field.storage.exists(field.name))
+    except OSError:
+        return False
+
+
+def _review_copy_ready(submission, version):
+    if version.submission_id != submission.pk:
+        return False
+    if submission.review_mode == Journal.ReviewMode.DIRECT:
+        return _file_exists(version.manuscript)
+    if submission.review_mode == Journal.ReviewMode.SEPARATE:
+        return bool(_file_exists(version.manuscript) and version.review_copy_confirmed and version.review_copy_checked_at and
+                    version.review_copy_checked_by_id and _file_exists(version.review_copy))
+    return False
+
+
 @require_GET
 def home(request):
     journals = Journal.objects.filter(active=True, organisation__active=True).select_related("organisation").order_by("name")
@@ -85,7 +104,8 @@ def workspace(request):
     editorial = Submission.objects.filter(
         journal__in=visible_journals, journal__memberships__user=request.user,
         journal__memberships__role=Membership.Role.EDITOR, journal__memberships__active=True,
-    ).exclude(author=request.user).exclude(reviews__reviewer=request.user).exclude(status=Submission.Status.DRAFT).select_related("journal", "author").distinct()
+    ).exclude(author=request.user).exclude(reviews__reviewer=request.user).exclude(status=Submission.Status.DRAFT).select_related("journal", "author").distinct().annotate(
+        has_reported_conflict=Exists(ReviewAssignment.objects.filter(submission_id=OuterRef("pk"), conflict=ReviewAssignment.Conflict.YES)))
     reviews = ReviewAssignment.objects.filter(
         reviewer=request.user, submission__journal__in=visible_journals,
         submission__journal__memberships__user=request.user,
@@ -104,20 +124,25 @@ def submission_create(request, slug):
     journal = get_object_or_404(Journal.objects.select_related("organisation"), slug=slug, active=True, organisation__active=True)
     if not _has_role(request.user, journal, Membership.Role.AUTHOR):
         raise Http404
-    form = SubmissionForm(request.POST or None, request.FILES or None)
+    form = SubmissionForm(request.POST or None, request.FILES or None, review_mode=journal.review_mode)
     if request.method == "POST" and form.is_valid():
         submission = form.save(commit=False)
-        submission.journal, submission.author = journal, request.user
+        submission.journal, submission.author, submission.review_mode = journal, request.user, journal.review_mode
+        version = None
         try:
             with transaction.atomic():
                 submission.save()
-                SubmissionVersion.objects.create(submission=submission, number=1,
-                    manuscript=submission.manuscript.name, uploaded_by=request.user)
+                version = SubmissionVersion(submission=submission, number=1, manuscript=submission.manuscript.name,
+                    review_copy=form.cleaned_data.get("review_copy") or "",
+                    review_copy_confirmed=form.cleaned_data.get("review_copy_confirmed", False), uploaded_by=request.user)
+                version.save()
                 _event(submission, request.user, "draft_created")
         except Exception:
             # File storage is not transactional; clean up a just-created orphan on failure.
             if submission.manuscript.name and submission.manuscript._committed:
                 submission.manuscript.storage.delete(submission.manuscript.name)
+            if version and version.review_copy.name and version.review_copy._committed:
+                version.review_copy.storage.delete(version.review_copy.name)
             raise
         messages.success(request, _("Draft created. Review it before submitting."))
         return redirect("submission_detail", pk=submission.pk)
@@ -136,8 +161,9 @@ def submission_detail(request, pk):
     review_round = _open_round(submission)
     context = {"submission": submission, "author_view": author_view, "editor_view": editor_view,
                "versions": submission.versions.all(), "decisions": submission.decisions.select_related("round"),
-               "open_round": review_round}
+               "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version))}
     if editor_view:
+        context["has_reported_conflict"] = submission.reviews.filter(conflict=ReviewAssignment.Conflict.YES).exists()
         if submission.status in ACTIVE_REVIEW_STATUSES and review_round:
             context["invite_form"] = InviteForm(submission=submission, actor=request.user)
         context["reviews"] = submission.reviews.select_related("reviewer", "round").all()
@@ -157,6 +183,12 @@ def submission_submit(request, pk):
         version = submission.versions.filter(number=1).first()
         if not version or submission.rounds.exists():
             return HttpResponse(_("The manuscript version is unavailable."), status=409)
+        if not _file_exists(version.manuscript):
+            return HttpResponse(_("The manuscript version is unavailable."), status=409)
+        if submission.review_mode not in Journal.ReviewMode.values:
+            return HttpResponse(_("The review file policy is unavailable."), status=409)
+        if submission.review_mode == Journal.ReviewMode.SEPARATE and not (version.review_copy_confirmed and _file_exists(version.review_copy)):
+            return HttpResponse(_("A confirmed reviewer copy is required."), status=409)
         ReviewRound.objects.create(submission=submission, version=version, number=1)
         submission.status = Submission.Status.SUBMITTED
         submission.submitted_at = timezone.now()
@@ -174,23 +206,28 @@ def submission_file(request, pk):
     version = submission.versions.order_by("-number").first()
     if not version:
         raise Http404
-    can_read = _author_can_view(request.user, submission) or _editor_can_view(request.user, submission)
-    if not can_read and _has_role(request.user, submission.journal, Membership.Role.REVIEWER):
-        can_read = ReviewAssignment.objects.filter(
+    privileged = _author_can_view(request.user, submission) or _editor_can_view(request.user, submission)
+    reviewer_access = False
+    if not privileged and _has_role(request.user, submission.journal, Membership.Role.REVIEWER):
+        reviewer_access = ReviewAssignment.objects.filter(
             submission=submission, reviewer=request.user, round__submission=submission,
             round__version=version, round__status=ReviewRound.Status.OPEN,
+            conflict=ReviewAssignment.Conflict.NONE,
             status__in=[ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED],
         ).exclude(submission__author=request.user).exists()
-    if not can_read:
+    if not (privileged or reviewer_access):
         raise Http404
-    return _download_version(request, submission, version)
+    return _download_version(request, submission, version, reviewer=reviewer_access)
 
 
-def _download_version(request, submission, version):
+def _download_version(request, submission, version, reviewer=False, copy=False):
     if version.submission_id != submission.pk:
         raise Http404
+    if reviewer and not _review_copy_ready(submission, version):
+        raise Http404
+    field = version.review_copy if (copy or (reviewer and submission.review_mode == Journal.ReviewMode.SEPARATE)) else version.manuscript
     try:
-        stream = version.manuscript.open("rb")
+        stream = field.open("rb")
     except (OSError, ValueError):
         raise Http404
     _event(submission, request.user, "file_downloaded")
@@ -214,12 +251,51 @@ def submission_version_file(request, pk, number):
 @login_required
 @never_cache
 @require_GET
+def submission_review_copy_file(request, pk, number):
+    submission = _submission(pk)
+    if not (_author_can_view(request.user, submission) or _editor_can_view(request.user, submission)):
+        raise Http404
+    version = get_object_or_404(SubmissionVersion, submission=submission, number=number)
+    if submission.review_mode != Journal.ReviewMode.SEPARATE or not version.review_copy:
+        raise Http404
+    return _download_version(request, submission, version, copy=True)
+
+
+@login_required
+@never_cache
+@require_GET
 def review_file(request, pk):
     assignment = _review(pk, request.user)
     if (assignment.round.status != ReviewRound.Status.OPEN or
+            assignment.conflict != ReviewAssignment.Conflict.NONE or
             assignment.status not in (ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED)):
         raise Http404
-    return _download_version(request, assignment.submission, assignment.round.version)
+    return _download_version(request, assignment.submission, assignment.round.version, reviewer=True)
+
+
+@login_required
+@never_cache
+@require_POST
+def review_copy_screen(request, pk):
+    if request.POST.get("confirmed") != "yes":
+        return HttpResponse(_("Confirm the manual checks before continuing."), status=400)
+    with transaction.atomic():
+        submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
+        if not _editor_can_view(request.user, submission):
+            raise Http404
+        review_round = _open_round(submission, locked=True)
+        if not review_round or submission.status not in ACTIVE_REVIEW_STATUSES or submission.review_mode != Journal.ReviewMode.SEPARATE:
+            return HttpResponse(_("There is no reviewer copy awaiting checks."), status=409)
+        version = SubmissionVersion.objects.select_for_update().get(pk=review_round.version_id)
+        if not version.review_copy_confirmed or not _file_exists(version.review_copy) or not _file_exists(version.manuscript):
+            return HttpResponse(_("A confirmed reviewer copy is required."), status=409)
+        if not version.review_copy_checked_at:
+            version.review_copy_checked_by = request.user
+            version.review_copy_checked_at = timezone.now()
+            version.save(update_fields=["review_copy_checked_by", "review_copy_checked_at"])
+            _event(submission, request.user, "review_copy_checked")
+    messages.success(request, _("Manual check recorded for this version."))
+    return redirect("submission_detail", pk=pk)
 
 
 @login_required
@@ -229,8 +305,11 @@ def review_invite(request, pk):
     submission = _submission(pk)
     if not _editor_can_view(request.user, submission):
         raise Http404
-    if submission.status not in ACTIVE_REVIEW_STATUSES or not _open_round(submission):
+    initial_round = _open_round(submission)
+    if submission.status not in ACTIVE_REVIEW_STATUSES or not initial_round:
         return HttpResponse(_("There is no open review round."), status=409)
+    if not _review_copy_ready(submission, initial_round.version):
+        return HttpResponse(_("The reviewer file must be available and checked before inviting reviewers."), status=409)
     form = InviteForm(request.POST, submission=submission, actor=request.user)
     if not form.is_valid():
         messages.error(request, _("Choose an eligible reviewer for this journal."))
@@ -243,10 +322,13 @@ def review_invite(request, pk):
         review_round = _open_round(submission, locked=True)
         if submission.status not in ACTIVE_REVIEW_STATUSES or not review_round:
             return HttpResponse(_("There is no open review round."), status=409)
+        if not _review_copy_ready(submission, review_round.version):
+            return HttpResponse(_("The reviewer file must be available and checked before inviting reviewers."), status=409)
         if not _has_role(reviewer, submission.journal, Membership.Role.REVIEWER):
             raise Http404
         if (submission.reviews.filter(invited_by=reviewer).exists() or
-                submission.decisions.filter(decided_by=reviewer).exists()):
+                submission.decisions.filter(decided_by=reviewer).exists() or
+                Membership.objects.filter(user=reviewer, journal=submission.journal, role=Membership.Role.EDITOR).exists()):
             raise Http404
         assignment, created = ReviewAssignment.objects.get_or_create(
             submission=submission, round=review_round, reviewer=reviewer, defaults={"invited_by": request.user},
@@ -265,33 +347,70 @@ def review_invite(request, pk):
 @require_GET
 def review_detail(request, pk):
     assignment = _review(pk, request.user)
-    form = ReportForm() if assignment.status == ReviewAssignment.Status.ACCEPTED and assignment.round.status == ReviewRound.Status.OPEN else None
-    return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form})
+    form = ReportForm() if (assignment.status == ReviewAssignment.Status.ACCEPTED and
+                            assignment.conflict == ReviewAssignment.Conflict.NONE and
+                            assignment.round.status == ReviewRound.Status.OPEN) else None
+    return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
+        "review_copy_ready": _review_copy_ready(assignment.submission, assignment.round.version)})
 
 
 @login_required
 @never_cache
 @require_POST
 def review_respond(request, pk):
-    if request.POST.get("response") not in ("accept", "decline"):
-        return HttpResponse(_("Choose accept or decline."), status=400)
+    action = request.POST.get("response")
+    if action not in ("accept", "decline", "confirm_no_conflict", "conflict"):
+        return HttpResponse(_("Choose an available response."), status=400)
+    if action in ("accept", "confirm_no_conflict") and request.POST.get("declaration") != "none":
+        return HttpResponse(_("Confirm that you have no conflict before continuing."), status=400)
+    details = request.POST.get("conflict_details", "").strip() if action == "conflict" else ""
+    if action == "conflict" and not 0 < len(details) <= 2000:
+        return HttpResponse(_("Provide a conflict explanation of up to 2000 characters."), status=400)
     candidate = _review(pk, request.user)
     with transaction.atomic():
         submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=candidate.submission_id)
-        review_round = _open_round(submission, locked=True)
+        if action in ("conflict", "confirm_no_conflict"):
+            review_round = get_object_or_404(ReviewRound.objects.select_for_update(), pk=candidate.round_id, submission=submission)
+        else:
+            review_round = _open_round(submission, locked=True)
         assignment = ReviewAssignment.objects.select_for_update().get(pk=pk)
         if (assignment.reviewer_id != request.user.pk or assignment.submission_id != submission.pk or
                 not _has_role(request.user, submission.journal, Membership.Role.REVIEWER)):
             raise Http404
-        if (not review_round or assignment.round_id != review_round.pk or
-                submission.status not in ACTIVE_REVIEW_STATUSES):
+        if not review_round or assignment.round_id != review_round.pk:
             return HttpResponse(_("This review round is closed."), status=409)
-        if assignment.status != ReviewAssignment.Status.INVITED:
-            return HttpResponse(_("This invitation has already been answered."), status=409)
-        assignment.status = ReviewAssignment.Status.ACCEPTED if request.POST["response"] == "accept" else ReviewAssignment.Status.DECLINED
-        assignment.responded_at = timezone.now()
-        assignment.save(update_fields=["status", "responded_at"])
-        _event(assignment.submission, request.user, "review_accepted" if assignment.status == ReviewAssignment.Status.ACCEPTED else "review_declined")
+        if action == "conflict":
+            if assignment.status not in (ReviewAssignment.Status.INVITED, ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED) or assignment.conflict == ReviewAssignment.Conflict.YES:
+                return HttpResponse(_("This conflict has already been recorded."), status=409)
+            if assignment.status != ReviewAssignment.Status.SUBMITTED:
+                assignment.status = ReviewAssignment.Status.CONFLICT
+            if not assignment.responded_at:
+                assignment.responded_at = timezone.now()
+            assignment.conflict, assignment.conflict_details, assignment.conflict_declared_at = ReviewAssignment.Conflict.YES, details, timezone.now()
+            assignment.save(update_fields=["status", "responded_at", "conflict", "conflict_details", "conflict_declared_at"])
+            ConflictDeclaration.objects.create(assignment=assignment, declared_by=request.user, choice=ConflictDeclaration.Choice.YES, details=details)
+            _event(submission, request.user, "review_conflict_declared")
+        elif action == "confirm_no_conflict":
+            if assignment.status not in (ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED) or assignment.conflict != ReviewAssignment.Conflict.UNKNOWN:
+                return HttpResponse(_("A declaration has already been recorded."), status=409)
+            assignment.conflict, assignment.conflict_declared_at = ReviewAssignment.Conflict.NONE, timezone.now()
+            assignment.save(update_fields=["conflict", "conflict_declared_at"])
+            ConflictDeclaration.objects.create(assignment=assignment, declared_by=request.user, choice=ConflictDeclaration.Choice.NONE)
+            _event(submission, request.user, "review_no_conflict_declared")
+        else:
+            if review_round.status != ReviewRound.Status.OPEN or submission.status not in ACTIVE_REVIEW_STATUSES:
+                return HttpResponse(_("This review round is closed."), status=409)
+            if assignment.status != ReviewAssignment.Status.INVITED:
+                return HttpResponse(_("This invitation has already been answered."), status=409)
+            assignment.status = ReviewAssignment.Status.ACCEPTED if action == "accept" else ReviewAssignment.Status.DECLINED
+            assignment.responded_at = timezone.now()
+            fields = ["status", "responded_at"]
+            if action == "accept":
+                assignment.conflict, assignment.conflict_declared_at = ReviewAssignment.Conflict.NONE, timezone.now()
+                fields += ["conflict", "conflict_declared_at"]
+                ConflictDeclaration.objects.create(assignment=assignment, declared_by=request.user, choice=ConflictDeclaration.Choice.NONE)
+            assignment.save(update_fields=fields)
+            _event(submission, request.user, "review_accepted" if action == "accept" else "review_declined")
     return redirect("review_detail", pk=pk)
 
 
@@ -302,9 +421,11 @@ def review_report(request, pk):
     assignment = _review(pk, request.user)
     form = ReportForm(request.POST)
     if not form.is_valid():
-        if assignment.status != ReviewAssignment.Status.ACCEPTED or assignment.round.status != ReviewRound.Status.OPEN:
+        if (assignment.status != ReviewAssignment.Status.ACCEPTED or assignment.round.status != ReviewRound.Status.OPEN or
+                assignment.conflict != ReviewAssignment.Conflict.NONE):
             return HttpResponse(_("A report can only be sent after accepting an invitation."), status=409)
-        return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form}, status=400)
+        return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
+            "review_copy_ready": _review_copy_ready(assignment.submission, assignment.round.version)}, status=400)
     with transaction.atomic():
         submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=assignment.submission_id)
         review_round = _open_round(submission, locked=True)
@@ -313,7 +434,8 @@ def review_report(request, pk):
                 not _has_role(request.user, submission.journal, Membership.Role.REVIEWER)):
             raise Http404
         if (not review_round or assignment.round_id != review_round.pk or
-                submission.status not in ACTIVE_REVIEW_STATUSES or assignment.status != ReviewAssignment.Status.ACCEPTED):
+                submission.status not in ACTIVE_REVIEW_STATUSES or assignment.status != ReviewAssignment.Status.ACCEPTED or
+                assignment.conflict != ReviewAssignment.Conflict.NONE):
             return HttpResponse(_("A report can only be sent after accepting an invitation."), status=409)
         assignment.recommendation = form.cleaned_data["recommendation"]
         assignment.comments = form.cleaned_data["comments"]
@@ -344,8 +466,8 @@ def editorial_decision(request, pk):
             if not review_round or submission.status not in ACTIVE_REVIEW_STATUSES:
                 return HttpResponse(_("There is no open review round."), status=409)
             outcome = form.cleaned_data["outcome"]
-            if outcome != EditorialDecision.Outcome.REJECT and not review_round.assignments.filter(status=ReviewAssignment.Status.SUBMITTED).exists():
-                form.add_error("outcome", _("This decision requires at least one submitted review."))
+            if outcome != EditorialDecision.Outcome.REJECT and not review_round.assignments.filter(status=ReviewAssignment.Status.SUBMITTED, conflict=ReviewAssignment.Conflict.NONE).exists():
+                form.add_error("outcome", _("This decision requires a submitted review with no conflict declared."))
             else:
                 decision = form.save(commit=False)
                 decision.submission, decision.round, decision.decided_by = submission, review_round, request.user
@@ -374,7 +496,7 @@ def submission_revision(request, pk):
         raise Http404
     if submission.status != Submission.Status.REVISION_REQUESTED:
         return HttpResponse(_("A revision has not been requested."), status=409)
-    form = RevisionForm(request.POST or None, request.FILES or None)
+    form = RevisionForm(request.POST or None, request.FILES or None, review_mode=submission.review_mode)
     if request.method == "POST" and form.is_valid():
         version = None
         try:
@@ -391,6 +513,8 @@ def submission_revision(request, pk):
                 version = SubmissionVersion(
                     submission=submission, number=latest.number + 1, uploaded_by=request.user,
                     manuscript=form.cleaned_data["manuscript"], author_response=form.cleaned_data["author_response"],
+                    review_copy=form.cleaned_data.get("review_copy") or "",
+                    review_copy_confirmed=form.cleaned_data.get("review_copy_confirmed", False),
                 )
                 version.save()
                 ReviewRound.objects.create(submission=submission, version=version, number=previous_round.number + 1)
@@ -400,6 +524,8 @@ def submission_revision(request, pk):
         except Exception:
             if version and version.manuscript.name and version.manuscript._committed:
                 version.manuscript.storage.delete(version.manuscript.name)
+            if version and version.review_copy.name and version.review_copy._committed:
+                version.review_copy.storage.delete(version.review_copy.name)
             raise
         messages.success(request, _("Revision submitted for a new review round."))
         return redirect("submission_detail", pk=pk)

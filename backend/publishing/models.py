@@ -14,11 +14,16 @@ class Organisation(models.Model):
 
 
 class Journal(models.Model):
+    class ReviewMode(models.TextChoices):
+        DIRECT = "direct", _("Standard review copy")
+        SEPARATE = "separate", _("Separate reviewer copy")
+
     organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="journals")
     name = models.CharField(_("Name"), max_length=200)
     slug = models.SlugField(unique=True)
     description = models.TextField(_("Description"), blank=True)
     active = models.BooleanField(default=True)
+    review_mode = models.CharField(_("Review file policy"), max_length=16, choices=ReviewMode.choices, default=ReviewMode.SEPARATE)
 
     def __str__(self):
         return self.name
@@ -59,6 +64,8 @@ class Submission(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="submissions")
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="submissions")
+    # Policy is captured at draft creation and does not change mid-submission.
+    review_mode = models.CharField(max_length=16, choices=Journal.ReviewMode.choices, default=Journal.ReviewMode.DIRECT)
     title = models.CharField(_("Title"), max_length=250)
     abstract = models.TextField(_("Abstract"), max_length=10000)
     manuscript = models.FileField(_("Manuscript PDF"), upload_to=manuscript_path, max_length=255)
@@ -78,6 +85,10 @@ class SubmissionVersion(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="versions")
     number = models.PositiveIntegerField()
     manuscript = models.FileField(_("Manuscript PDF"), upload_to=manuscript_path, max_length=255)
+    review_copy = models.FileField(_("Reviewer PDF"), upload_to=manuscript_path, max_length=255, blank=True)
+    review_copy_confirmed = models.BooleanField(default=False)
+    review_copy_checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="review_copies_checked")
+    review_copy_checked_at = models.DateTimeField(null=True, blank=True)
     author_response = models.TextField(_("Response to the editor"), max_length=20000, blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -116,7 +127,13 @@ class ReviewAssignment(models.Model):
         INVITED = "invited", _("Invited")
         ACCEPTED = "accepted", _("Accepted")
         DECLINED = "declined", _("Declined")
+        CONFLICT = "conflict", _("Conflict declared")
         SUBMITTED = "submitted", _("Report submitted")
+
+    class Conflict(models.TextChoices):
+        UNKNOWN = "unknown", _("Not declared")
+        NONE = "none", _("No conflict declared")
+        YES = "yes", _("Conflict declared")
 
     class Recommendation(models.TextChoices):
         ACCEPT = "accept", _("Accept")
@@ -130,6 +147,9 @@ class ReviewAssignment(models.Model):
     reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_assignments")
     invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_invitations_sent")
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.INVITED)
+    conflict = models.CharField(max_length=10, choices=Conflict.choices, default=Conflict.UNKNOWN)
+    conflict_details = models.TextField(max_length=2000, blank=True)
+    conflict_declared_at = models.DateTimeField(null=True, blank=True)
     recommendation = models.CharField(max_length=16, choices=Recommendation.choices, blank=True)
     comments = models.TextField(blank=True, max_length=20000)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -139,6 +159,21 @@ class ReviewAssignment(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=["round", "reviewer"], name="unique_reviewer_per_round")]
         ordering = ["-created_at"]
+
+
+class ConflictDeclaration(models.Model):
+    class Choice(models.TextChoices):
+        NONE = "none", _("No conflict declared")
+        YES = "yes", _("Conflict declared")
+
+    assignment = models.ForeignKey(ReviewAssignment, on_delete=models.PROTECT, related_name="conflict_history")
+    declared_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    choice = models.CharField(max_length=10, choices=Choice.choices)
+    details = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
 
 
 class EditorialDecision(models.Model):

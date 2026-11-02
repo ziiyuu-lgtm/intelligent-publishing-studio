@@ -61,6 +61,26 @@ except IrreversibleError:
     assert Assignment.objects.get(pk=assignment.pk).round_id == round.pk
 else:
     raise AssertionError('Migration must not silently discard revision history')
+privacy = ('publishing', '0003_journal_review_mode_reviewassignment_conflict_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([privacy])
+apps = executor.loader.project_state([privacy]).apps
+Journal3 = apps.get_model('publishing', 'Journal')
+Submission3 = apps.get_model('publishing', 'Submission')
+Assignment3 = apps.get_model('publishing', 'ReviewAssignment')
+Version3 = apps.get_model('publishing', 'SubmissionVersion')
+assert Journal3.objects.get(pk=journal.pk).review_mode == 'direct'
+assert Submission3.objects.get(pk=submission.pk).review_mode == 'direct'
+assert Assignment3.objects.get(pk=assignment.pk).conflict == 'unknown'
+assert not Version3.objects.get(submission_id=submission.pk, number=1).review_copy
+new_journal = Journal3.objects.create(organisation_id=org.pk, name='New test journal', slug='new-journal')
+assert new_journal.review_mode == 'separate'
+try:
+    MigrationExecutor(connection).migrate([new])
+except IrreversibleError:
+    assert Journal3.objects.get(pk=journal.pk).review_mode == 'direct'
+else:
+    raise AssertionError('Privacy migration must not silently discard declarations')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

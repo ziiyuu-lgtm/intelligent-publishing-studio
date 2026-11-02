@@ -11,7 +11,7 @@
   </section>
   <section class="card panel"><div class="panel-heading"><div><span class="eyebrow">02 / {% translate "EDITOR" %}</span><h2>{% translate "Editorial queue" %}</h2></div></div>
     <p class="muted">{% translate "Submitted manuscripts from your authorised journals." %}</p>
-    <div class="list">{% for submission in editorial %}<a class="list-row" href="{% url 'submission_detail' submission.pk %}"><span><strong>{{ submission.title }}</strong><small>{{ submission.journal.name }}</small></span><span class="status">{{ submission.get_status_display }}</span></a>{% empty %}<p class="empty-text">{% translate "No submissions awaiting editorial work." %}</p>{% endfor %}</div>
+    <div class="list">{% for submission in editorial %}<a class="list-row" href="{% url 'submission_detail' submission.pk %}"><span><strong>{{ submission.title }}</strong><small>{{ submission.journal.name }}{% if submission.has_reported_conflict %} · {% translate "Conflict declared" %}{% endif %}</small></span><span class="status">{{ submission.get_status_display }}</span></a>{% empty %}<p class="empty-text">{% translate "No submissions awaiting editorial work." %}</p>{% endfor %}</div>
   </section>
   <section class="card panel full"><div class="panel-heading"><div><span class="eyebrow">03 / {% translate "REVIEWER" %}</span><h2>{% translate "Review tasks" %}</h2></div></div>
     <p class="muted">{% translate "Only tasks assigned to your account are shown." %}</p>
