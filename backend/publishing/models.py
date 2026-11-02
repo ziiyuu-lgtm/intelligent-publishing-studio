@@ -24,6 +24,7 @@ class Journal(models.Model):
     description = models.TextField(_("Description"), blank=True)
     active = models.BooleanField(default=True)
     review_mode = models.CharField(_("Review file policy"), max_length=16, choices=ReviewMode.choices, default=ReviewMode.SEPARATE)
+    allow_openai_metadata = models.BooleanField(_("Allow OpenAI metadata suggestions"), default=False)
 
     def __str__(self):
         return self.name
@@ -174,6 +175,48 @@ class ConflictDeclaration(models.Model):
 
     class Meta:
         ordering = ["created_at", "pk"]
+
+
+class AIConsent(models.Model):
+    """Author consent is bound to a particular version and metadata fingerprint."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="ai_consents")
+    granted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    provider = models.CharField(max_length=20, default="openai")
+    purpose = models.CharField(max_length=60)
+    data_fingerprint = models.CharField(max_length=64)
+    granted_at = models.DateTimeField(auto_now_add=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["version", "provider"], condition=models.Q(revoked_at__isnull=True), name="one_active_ai_consent_per_version")]
+        ordering = ["-granted_at"]
+
+
+class AIAssistanceRun(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Unavailable")
+        CANCELLED = "cancelled", _("Cancelled")
+
+    # The form supplies this UUID so resubmission cannot duplicate a request.
+    id = models.UUIDField(primary_key=True, editable=False)
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="ai_runs")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    consent = models.ForeignKey(AIConsent, on_delete=models.PROTECT)
+    provider = models.CharField(max_length=20, default="openai")
+    model_name = models.CharField(max_length=100)
+    prompt_version = models.CharField(max_length=60)
+    data_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    result = models.JSONField(default=list, blank=True)
+    error_code = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
 
 class EditorialDecision(models.Model):

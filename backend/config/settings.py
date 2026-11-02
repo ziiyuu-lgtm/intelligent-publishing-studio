@@ -1,5 +1,6 @@
 """Local development settings. This configuration is deliberately not production-ready."""
 from pathlib import Path
+import os
 import secrets
 from django.utils.translation import gettext_lazy as _
 
@@ -66,3 +67,8 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Local development only. A real provider call also requires journal permission,
+# explicit author consent for the exact metadata, and confirmation per request.
+IPS_OPENAI_ENABLED = os.environ.get("IPS_OPENAI_ENABLED") == "1"
+IPS_OPENAI_MODEL = os.environ.get("IPS_OPENAI_MODEL", "").strip()

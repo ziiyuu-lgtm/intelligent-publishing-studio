@@ -2,7 +2,7 @@
 
 Intelligent Publishing Studio is an open-source prototype for a multilingual, multi-journal scholarly publishing platform. SCIENTARA's journal group is the initial pilot scenario. This repository contains a static front-end prototype and a separate, local-development backend for testing submission, editorial decisions, revisions, and multiple review rounds with synthetic data.
 
-> **Development only.** The static front end is simulated and is not connected to the backend. The backend stores test accounts, metadata, reviews and PDF files locally, but lacks controls required for real manuscripts or deployment. Neither component sends email or connects to an AI model, DOI registration service or a production database. Do not enter real manuscripts, personal information, production credentials or unpublished research. Neither component is suitable for production use.
+> **Development only.** The static front end is simulated and is not connected to the backend. The backend stores test accounts, metadata, reviews and PDF files locally, but lacks controls required for real manuscripts or deployment. An optional OpenAI metadata-only adapter is disabled by default and requires explicit author and operator actions; it has only been tested with a mock provider. Neither component sends email or connects to a DOI registration service or a production database. Do not enter real manuscripts, personal information, production credentials or unpublished research. Neither component is suitable for production use.
 
 The backend is described in [backend/README.md](backend/README.md) ([简体中文快速开始](backend/README.zh-CN.md)). It supports two interface languages (English and Simplified Chinese); the static prototype has its separate 12-language selector.
 

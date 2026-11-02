@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import ai_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -14,6 +14,11 @@ urlpatterns = [
     path("submissions/<uuid:pk>/revision/", views.submission_revision, name="submission_revision"),
     path("submissions/<uuid:pk>/decision/", views.editorial_decision, name="editorial_decision"),
     path("submissions/<uuid:pk>/invite/", views.review_invite, name="review_invite"),
+    path("submissions/<uuid:pk>/checks/", ai_views.checks_page, name="checks_page"),
+    path("submissions/<uuid:pk>/ai-consent/", ai_views.grant_ai_consent, name="grant_ai_consent"),
+    path("ai-consents/<uuid:pk>/revoke/", ai_views.revoke_ai_consent, name="revoke_ai_consent"),
+    path("submissions/<uuid:pk>/ai-suggestions/", ai_views.request_ai_suggestions, name="request_ai_suggestions"),
+    path("ai-suggestions/<uuid:pk>/", ai_views.ai_result, name="ai_result"),
     path("reviews/<uuid:pk>/", views.review_detail, name="review_detail"),
     path("reviews/<uuid:pk>/file/", views.review_file, name="review_file"),
     path("reviews/<uuid:pk>/respond/", views.review_respond, name="review_respond"),

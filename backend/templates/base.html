@@ -36,6 +36,6 @@
     {% if messages %}<div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
     {% block content %}{% endblock %}
   </main>
-  <footer class="footer"><span>Intelligent Publishing Studio</span><span>{% translate "Local testing version · No email, DOI or AI services connected" %}</span></footer>
+  <footer class="footer"><span>Intelligent Publishing Studio</span><span>{% translate "Local testing version · No email or DOI; external AI is optional and disabled by default" %}</span></footer>
 </body>
 </html>

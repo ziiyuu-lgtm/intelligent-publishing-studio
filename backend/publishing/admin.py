@@ -10,7 +10,7 @@ class OrganisationAdmin(admin.ModelAdmin):
 
 @admin.register(Journal)
 class JournalAdmin(admin.ModelAdmin):
-    list_display = ("name", "organisation", "slug", "review_mode", "active")
+    list_display = ("name", "organisation", "slug", "review_mode", "allow_openai_metadata", "active")
     prepopulated_fields = {"slug": ("name",)}
 
 

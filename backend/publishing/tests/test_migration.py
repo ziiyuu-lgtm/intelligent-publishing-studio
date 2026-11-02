@@ -81,6 +81,20 @@ except IrreversibleError:
     assert Journal3.objects.get(pk=journal.pk).review_mode == 'direct'
 else:
     raise AssertionError('Privacy migration must not silently discard declarations')
+ai = ('publishing', '0004_journal_allow_openai_metadata_aiconsent_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([ai])
+apps = executor.loader.project_state([ai]).apps
+Journal4 = apps.get_model('publishing', 'Journal')
+Consent4 = apps.get_model('publishing', 'AIConsent')
+assert Journal4.objects.get(pk=journal.pk).allow_openai_metadata is False
+assert not Consent4.objects.exists()
+try:
+    MigrationExecutor(connection).migrate([privacy])
+except IrreversibleError:
+    assert Journal4.objects.get(pk=journal.pk).allow_openai_metadata is False
+else:
+    raise AssertionError('AI consent migration must not silently discard records')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:
