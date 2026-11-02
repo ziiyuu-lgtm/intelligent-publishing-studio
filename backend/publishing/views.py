@@ -126,6 +126,8 @@ def workspace(request):
         memberships__role=Membership.Role.AI_MANAGER, memberships__active=True).distinct().order_by("name") if settings.DEBUG else visible_journals.none()
     portal_organisations = Organisation.objects.filter(active=True, memberships__user=request.user,
         memberships__role=OrganisationMembership.Role.PORTAL_MANAGER, memberships__active=True).distinct().order_by("name")
+    portal_ai_organisations = Organisation.objects.filter(active=True, memberships__user=request.user,
+        memberships__role=OrganisationMembership.Role.AI_MANAGER, memberships__active=True).distinct().order_by("name")
     authored = Submission.objects.filter(author=request.user, journal__in=visible_journals).select_related("journal")
     editorial = Submission.objects.filter(
         journal__in=visible_journals, journal__memberships__user=request.user,
@@ -164,6 +166,7 @@ def workspace(request):
         "site_manager_journals": site_manager_journals,
         "ai_manager_journals": ai_manager_journals,
         "portal_organisations": portal_organisations,
+        "portal_ai_organisations": portal_ai_organisations,
         "is_coordinator": Membership.objects.filter(user=request.user, role=Membership.Role.COORDINATOR,
              active=True, journal__active=True, journal__organisation__active=True).exists(),
     })

@@ -57,6 +57,7 @@ class OrganisationMembership(models.Model):
     """An explicit organisation role; journal roles never imply this role."""
     class Role(models.TextChoices):
         PORTAL_MANAGER = "portal_manager", _("Publisher portal manager")
+        AI_MANAGER = "ai_manager", _("Publisher AI manager")
 
     organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="memberships")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_memberships")
@@ -108,6 +109,59 @@ class OrganisationPortalEvent(models.Model):
     revision = models.PositiveIntegerField()
     source_release = models.ForeignKey(OrganisationPortalRelease, on_delete=models.PROTECT, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+
+class OrganisationAIPolicy(models.Model):
+    organisation = models.OneToOneField(Organisation, on_delete=models.PROTECT, related_name="ai_policy")
+    portal_design_enabled = models.BooleanField(_("Enable publisher portal AI design"), default=False)
+    portal_daily_limit = models.PositiveSmallIntegerField(_("Publisher portal AI request limit per 24 hours"), default=10,
+        validators=[MinValueValidator(1), MaxValueValidator(100)])
+    revision = models.PositiveIntegerField(default=1)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(portal_daily_limit__gte=1, portal_daily_limit__lte=100),
+                                               name="org_ai_portal_limit_range")]
+
+
+class OrganisationAIPolicyEvent(models.Model):
+    policy = models.ForeignKey(OrganisationAIPolicy, on_delete=models.PROTECT, related_name="events")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    revision = models.PositiveIntegerField()
+    configuration = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-revision", "-pk"]
+        constraints = [models.UniqueConstraint(fields=["policy", "revision"], name="unique_org_ai_policy_revision")]
+
+
+class OrganisationPortalAIDesignRun(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Unavailable")
+        CANCELLED = "cancelled", _("Cancelled")
+
+    id = models.UUIDField(primary_key=True, editable=False)
+    site = models.ForeignKey(OrganisationPortalDraft, on_delete=models.PROTECT, related_name="ai_design_runs")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    model_name = models.CharField(max_length=100)
+    prompt_version = models.CharField(max_length=60)
+    policy_revision = models.PositiveIntegerField()
+    site_revision = models.PositiveIntegerField()
+    site_fingerprint = models.CharField(max_length=64)
+    brief_fingerprint = models.CharField(max_length=64)
+    options = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    error_code = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    applied_option = models.PositiveSmallIntegerField(null=True, blank=True)
+    applied_revision = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-pk"]

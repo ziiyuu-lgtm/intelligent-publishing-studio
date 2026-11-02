@@ -1,9 +1,10 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, issue_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_views, views
+from . import ai_policy_views, ai_views, issue_views, portal_ai_views, portal_policy_views, portal_views, production_views, site_ai_module_views, site_ai_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
     path("workspace/", views.workspace, name="workspace"),
+    path("publishers/<slug:slug>/ai-policy/", portal_policy_views.manage_policy, name="manage_publisher_ai_policy"),
     path("publishers/<slug:slug>/site/", portal_views.public_portal, name="public_publisher_portal"),
     path("publishers/<slug:slug>/site/manage/", portal_views.manage_portal, name="manage_publisher_portal"),
     path("publishers/<slug:slug>/site/start/", portal_views.start_portal, name="start_publisher_portal"),
@@ -12,6 +13,10 @@ urlpatterns = [
     path("publishers/<slug:slug>/site/samples/<slug:sample_id>/preview/", portal_views.preview_sample, name="preview_publisher_sample"),
     path("publishers/<slug:slug>/site/samples/<slug:sample_id>/apply/", portal_views.apply_sample, name="apply_publisher_sample"),
     path("publishers/<slug:slug>/site/appearance/", portal_views.edit_appearance, name="edit_publisher_appearance"),
+    path("publishers/<slug:slug>/site/ai-design/", portal_ai_views.request_design, name="request_publisher_ai_design"),
+    path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/", portal_ai_views.result, name="publisher_ai_result"),
+    path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/preview/<int:index>/", portal_ai_views.preview_option, name="preview_publisher_ai_option"),
+    path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/apply/<int:index>/", portal_ai_views.apply_option, name="apply_publisher_ai_option"),
     path("publishers/<slug:slug>/site/publish/", portal_views.publish_portal, name="publish_publisher_portal"),
     path("publishers/<slug:slug>/site/restore/<int:release_id>/", portal_views.restore_portal, name="restore_publisher_portal"),
     path("coordination/", views.coordination_workspace, name="coordination_workspace"),

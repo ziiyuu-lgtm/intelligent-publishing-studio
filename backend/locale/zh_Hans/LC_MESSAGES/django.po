@@ -2926,3 +2926,57 @@ msgstr "查看出版社门户"
 
 msgid "Restored journal selections use current journal names when previewed and republished."
 msgstr "恢复所选期刊后，预览和再次发布时将使用期刊当前名称。"
+
+msgid "Publisher AI manager"
+msgstr "出版社 AI 管理员"
+
+msgid "Enable publisher portal AI design"
+msgstr "启用出版社门户 AI 设计"
+
+msgid "Publisher portal AI request limit per 24 hours"
+msgstr "出版社门户每 24 小时 AI 请求上限"
+
+msgid "AI portal design is not enabled for this publisher and test environment."
+msgstr "此出版社或测试环境尚未启用 AI 门户设计。"
+
+msgid "The publisher portal's local AI request limit has been reached."
+msgstr "出版社门户已达到本地 AI 测试请求上限。"
+
+msgid "Publisher AI policy saved for local testing."
+msgstr "出版社 AI 策略已保存，用于本地测试。"
+
+msgid "Publisher AI policy"
+msgstr "出版社 AI 策略"
+
+msgid "Control AI visual design suggestions for this fictional publisher portal."
+msgstr "管理虚构出版社门户的 AI 视觉设计建议。"
+
+msgid "This separate policy covers publisher portal visual design only. It does not change journal AI policies or grant manuscript access."
+msgstr "此独立策略仅控制出版社门户视觉设计，不会改变期刊 AI 策略，也不授予稿件访问权限。"
+
+msgid "A portal manager must confirm each request. Every attempt counts towards the portal limit, including failed and cancelled requests. The account limit of three requests in 24 hours is shared with journal AI tasks."
+msgstr "门户管理员必须逐次确认请求。每次尝试均计入门户额度，包括失败和取消的请求。账户每 24 小时三次的上限与期刊 AI 任务共用。"
+
+msgid "I confirm this policy for the publisher."
+msgstr "我确认将此策略用于该出版社。"
+
+msgid "AI publisher portal design"
+msgstr "AI 出版社门户设计"
+
+msgid "Describe a fictional publisher and the style you want. AI can propose visual settings that you can preview and customise."
+msgstr "描述虚构出版社及所需风格，AI 可以提出视觉设置建议，供您预览和自定义。"
+
+msgid "The brief and current visual settings are sent to OpenAI. Portal text, journal names and manuscripts are not sent automatically. Use fictional information only; do not include personal information. API use may incur charges and provider retention may apply."
+msgstr "设计需求和当前视觉设置将发送至 OpenAI；系统不会自动发送门户正文、期刊名称或稿件。请仅使用虚构信息，不要输入个人信息。API 调用可能产生费用，服务商可能保留数据。"
+
+msgid "This prototype supports custom colours and the available layout controls; it does not yet generate arbitrary layouts, images or website text."
+msgstr "当前原型支持自定义颜色及现有版式控件，尚不能生成任意布局、图片或网站正文。"
+
+msgid "The publisher has not enabled AI portal design in its AI policy."
+msgstr "出版社尚未在 AI 策略中启用门户设计。"
+
+msgid "For example: keep my colours but create a modern, welcoming scholarly publisher portal."
+msgstr "例如：保留当前颜色，设计一个现代、亲切的学术出版社门户。"
+
+msgid "Manage AI design permissions and request limits for a publisher portal."
+msgstr "管理出版社门户的 AI 设计权限与请求上限。"

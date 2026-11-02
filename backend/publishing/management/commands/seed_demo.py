@@ -40,6 +40,11 @@ class Command(BaseCommand):
             user = get_user_model().objects.create_user(username=username, password=password)
             OrganisationMembership.objects.create(user=user, organisation=organisation, role=OrganisationMembership.Role.PORTAL_MANAGER)
             credentials.append(("portal_manager", username, password))
+            username = f"test_publisher_ai_manager_{suffix}"
+            password = secrets.token_urlsafe(24)
+            user = get_user_model().objects.create_user(username=username, password=password)
+            OrganisationMembership.objects.create(user=user, organisation=organisation, role=OrganisationMembership.Role.AI_MANAGER)
+            credentials.append(("publisher_ai_manager", username, password))
         self.stdout.write(self.style.WARNING("Synthetic data only. These generated credentials are shown once; keep them private."))
         for role, username, password in credentials:
             self.stdout.write(f"{role}: {username}  password: {password}")

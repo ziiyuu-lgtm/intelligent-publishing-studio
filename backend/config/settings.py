@@ -68,8 +68,8 @@ CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Local development only. A real provider call also requires journal permission,
-# explicit author consent for the exact metadata, and confirmation per request.
+# Local development only. Provider calls also require the applicable journal or
+# publisher policy and role, metadata consent where applicable, and confirmation.
 IPS_OPENAI_ENABLED = os.environ.get("IPS_OPENAI_ENABLED") == "1"
 IPS_OPENAI_MODEL = os.environ.get("IPS_OPENAI_MODEL", "").strip()
 

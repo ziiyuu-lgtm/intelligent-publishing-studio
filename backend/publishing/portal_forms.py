@@ -2,7 +2,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from .forms import JournalAppearanceForm
-from .models import Journal
+from .models import Journal, OrganisationAIPolicy
 
 MAX_JOURNALS = 50
 
@@ -33,3 +33,9 @@ class PortalAppearanceForm(JournalAppearanceForm):
         super().__init__(*args, **kwargs)
         self.fields["section_order"].choices = (("about_first", _("Publisher introduction first")),
                                                   ("archive_first", _("Journal list first")))
+
+
+class OrganisationAIPolicyForm(forms.ModelForm):
+    class Meta:
+        model = OrganisationAIPolicy
+        fields = ["portal_design_enabled", "portal_daily_limit"]

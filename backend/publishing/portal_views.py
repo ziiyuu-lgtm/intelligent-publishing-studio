@@ -2,9 +2,11 @@
 import hashlib
 import json
 import re
+import uuid
 from types import SimpleNamespace
 
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import F
@@ -14,7 +16,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import (Journal, JournalSiteDraft, Organisation, OrganisationMembership,
+from .models import (Journal, JournalSiteDraft, Organisation, OrganisationAIPolicy, OrganisationMembership,
                      OrganisationPortalDraft, OrganisationPortalEvent, OrganisationPortalRelease)
 from .portal_forms import MAX_JOURNALS, PortalAppearanceForm, PortalContentForm
 from .production_views import _enabled, _no_index
@@ -135,18 +137,23 @@ def _render(request, organisation, design, journals, **extra):
         "organisation":organisation, "design":design, "appearance":appearance, "journals":journals, **extra}))
 
 
-def _context(organisation, site, content_form=None, appearance_form=None):
+def _context(organisation, site, content_form=None, appearance_form=None, user=None):
     try:
         design = validate_blueprint(site.design_config)
     except InvalidDesign as exc:
         raise Http404 from exc
     initial = {key:getattr(site, key) for key in CONTENT_FIELDS}
     initial["journals"] = site.journal_ids if _valid_ids(site.journal_ids) else []
+    policy = OrganisationAIPolicy.objects.filter(organisation=organisation).first()
+    from .ai_views import _provider_configured
     return {"organisation":organisation, "site":site, "fingerprint":_fingerprint(site),
         "form":content_form if content_form is not None else PortalContentForm(organisation=organisation, initial=initial),
         "appearance_form":appearance_form if appearance_form is not None else PortalAppearanceForm(initial=design),
         "samples":[{**sample, "appearance":appearance_for(sample["config"])} for sample in SAMPLES],
-        "releases":site.releases.select_related("published_by")}
+        "releases":site.releases.select_related("published_by"),
+        "ai_design_enabled":bool(policy and policy.portal_design_enabled), "ai_provider_configured":_provider_configured(),
+        "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
+        "ai_request_id":uuid.uuid4(), "ai_design_runs":site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
 
 
 def _stale(request, site):
@@ -165,7 +172,7 @@ def manage_portal(request, slug):
     organisation = _organisation(request.user, slug)
     site = OrganisationPortalDraft.objects.filter(organisation=organisation).select_related("current_release").first()
     return render(request, "publishing/manage_publisher_portal.html",
-                  _context(organisation, site) if site else {"organisation":organisation})
+                  _context(organisation, site, user=request.user) if site else {"organisation":organisation})
 
 
 @login_required
@@ -195,7 +202,7 @@ def edit_portal(request, slug):
     site = _site(organisation)
     form = PortalContentForm(request.POST, organisation=organisation)
     if not form.is_valid():
-        return render(request, "publishing/manage_publisher_portal.html", _context(organisation, site, content_form=form), status=400)
+        return render(request, "publishing/manage_publisher_portal.html", _context(organisation, site, content_form=form, user=request.user), status=400)
     with transaction.atomic():
         organisation = _organisation(request.user, slug, locked=True)
         site = _site(organisation, locked=True)
@@ -275,7 +282,7 @@ def edit_appearance(request, slug):
     site = _site(organisation)
     form = PortalAppearanceForm(request.POST)
     if not form.is_valid():
-        return render(request, "publishing/manage_publisher_portal.html", _context(organisation, site, appearance_form=form), status=400)
+        return render(request, "publishing/manage_publisher_portal.html", _context(organisation, site, appearance_form=form, user=request.user), status=400)
     with transaction.atomic():
         organisation = _organisation(request.user, slug, locked=True)
         site = _site(organisation, locked=True)

@@ -307,6 +307,30 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'JournalSiteRelease').objects.filter(pk=release11.pk).exists()
 else:
     raise AssertionError('Portal versions must not be silently discarded')
+OrgMembership15 = apps.get_model('publishing', 'OrganisationMembership')
+OrgMembership15.objects.create(organisation_id=org.pk, user_id=editor.pk, role='portal_manager')
+Portal15 = apps.get_model('publishing', 'OrganisationPortalDraft')
+Release15 = apps.get_model('publishing', 'OrganisationPortalRelease')
+portal15 = Portal15.objects.create(organisation_id=org.pk, created_by_id=editor.pk, brand_name='Fictional',
+    headline='Portal', introduction='Test', design_config={}, journal_ids=[journal.pk])
+release15 = Release15.objects.create(site_id=portal15.pk, revision=1, published_by_id=editor.pk,
+    brand_name='Fictional', headline='Portal', introduction='Test', design_config={}, journals=[])
+Portal15.objects.filter(pk=portal15.pk).update(current_release_id=release15.pk)
+portal_ai_scope = ('publishing', '0016_organisation_portal_ai')
+executor = MigrationExecutor(connection)
+executor.migrate([portal_ai_scope])
+apps = executor.loader.project_state([portal_ai_scope]).apps
+assert not apps.get_model('publishing', 'OrganisationAIPolicy').objects.exists()
+assert not apps.get_model('publishing', 'OrganisationMembership').objects.filter(role='ai_manager').exists()
+assert apps.get_model('publishing', 'OrganisationPortalDraft').objects.get(pk=portal15.pk).current_release_id == release15.pk
+assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.filter(pk=release15.pk).exists()
+assert not apps.get_model('publishing', 'JournalAIPolicy').objects.get(pk=policy10.pk).site_modules_enabled
+try:
+    MigrationExecutor(connection).migrate([portal_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.filter(pk=release15.pk).exists()
+else:
+    raise AssertionError('Publisher AI history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

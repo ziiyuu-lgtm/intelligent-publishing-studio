@@ -198,3 +198,5 @@ class EditorialAssignmentTests(TestCase):
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.AI_MANAGER, active=True).exists())
         self.assertTrue(OrganisationMembership.objects.filter(organisation=journal.organisation,
             role=OrganisationMembership.Role.PORTAL_MANAGER, active=True).exists())
+        self.assertTrue(OrganisationMembership.objects.filter(organisation=journal.organisation,
+            role=OrganisationMembership.Role.AI_MANAGER, active=True).exists())
