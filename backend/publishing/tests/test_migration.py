@@ -194,6 +194,26 @@ except IrreversibleError:
     assert Issue9.objects.filter(pk=issue8.pk).exists()
 else:
     raise AssertionError('Site design history must not be silently discarded')
+Journal9 = apps.get_model('publishing', 'Journal')
+Journal9.objects.filter(pk=journal.pk).update(allow_openai_metadata=True)
+site9 = Site9.objects.create(journal_id=journal.pk, brand_name='Fictional site', headline='Fictional headline',
+                            introduction='Fictional introduction', created_by_id=editor.pk)
+policy_scope = ('publishing', '0010_aiassistancerun_policy_revision_and_more')
+executor = MigrationExecutor(connection)
+executor.migrate([policy_scope])
+apps = executor.loader.project_state([policy_scope]).apps
+Policy10 = apps.get_model('publishing', 'JournalAIPolicy')
+Site10 = apps.get_model('publishing', 'JournalSiteDraft')
+Membership10 = apps.get_model('publishing', 'Membership')
+assert Site10.objects.get(pk=site9.pk).brand_name == 'Fictional site'
+assert not Policy10.objects.exists(), 'No AI policy should be inferred, even if the old switch was enabled'
+assert not Membership10.objects.filter(role='ai_manager').exists(), 'No AI manager role should be inferred'
+try:
+    MigrationExecutor(connection).migrate([site_scope])
+except IrreversibleError:
+    assert Site10.objects.filter(pk=site9.pk).exists()
+else:
+    raise AssertionError('AI policy history must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

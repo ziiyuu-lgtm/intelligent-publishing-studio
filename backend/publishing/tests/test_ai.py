@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from publishing.ai_provider import OPENAI_RESPONSES_URL, PROMPT_VERSION, ProviderError, _NoRedirect, _parse_response, metadata_fingerprint
-from publishing.models import AIConsent, AIAssistanceRun, EditorialAssignment, Journal, Membership, Organisation, Submission, SubmissionVersion
+from publishing.models import AIConsent, AIAssistanceRun, EditorialAssignment, Journal, JournalAIPolicy, Membership, Organisation, Submission, SubmissionVersion
 
 
 def mock_response(evidence="Fictional abstract.", observation="Clarify this sentence.", suggestion="Use a more specific phrase."):
@@ -19,7 +19,7 @@ def mock_response(evidence="Fictional abstract.", observation="Clarify this sent
     ]}]}
 
 
-@override_settings(IPS_OPENAI_ENABLED=True, IPS_OPENAI_MODEL="test-model", PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+@override_settings(DEBUG=True, IPS_OPENAI_ENABLED=True, IPS_OPENAI_MODEL="test-model", PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class AIWorkflowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -48,13 +48,15 @@ class AIWorkflowTests(TestCase):
 
     def allow(self):
         Journal.objects.filter(pk=self.journal.pk).update(allow_openai_metadata=True)
+        JournalAIPolicy.objects.update_or_create(journal=self.journal, defaults={"metadata_enabled":True, "allow_author":True,
+            "allow_editor":True, "journal_daily_limit":10})
 
     def grant(self):
         self.allow()
         self.client.force_login(self.author)
         current = Submission.objects.get(pk=self.submission.pk)
         response = self.client.post(reverse("grant_ai_consent", args=[self.submission.pk]),
-                                    {"version":str(self.version.pk), "fingerprint":metadata_fingerprint(self.version.pk, current.title, current.abstract), "confirm":"yes", "synthetic":"yes"})
+                                    {"version":str(self.version.pk), "fingerprint":metadata_fingerprint(self.version.pk, current.title, current.abstract), "policy_revision":str(JournalAIPolicy.objects.get(journal=self.journal).revision), "confirm":"yes", "synthetic":"yes"})
         self.assertEqual(response.status_code, 302)
         return AIConsent.objects.get(version=self.version, revoked_at__isnull=True)
 
@@ -62,6 +64,8 @@ class AIWorkflowTests(TestCase):
         self.client.force_login(actor or self.author)
         current = Submission.objects.get(pk=self.submission.pk)
         data = {"request_id":str(run_id or uuid.uuid4()), "version":str(self.version.pk), "model":"test-model", "fingerprint":metadata_fingerprint(self.version.pk, current.title, current.abstract), "confirm":"yes", "synthetic":"yes"}
+        policy = JournalAIPolicy.objects.filter(journal=self.journal).first()
+        data["policy_revision"] = str(policy.revision if policy else 0)
         data.update(overrides)
         return self.client.post(reverse("request_ai_suggestions", args=[self.submission.pk]), data)
 
@@ -119,7 +123,7 @@ class AIWorkflowTests(TestCase):
         page = self.client.get(reverse("checks_page", args=[self.submission.pk]))
         self.assertContains(page, "The author has not authorised")
         current = Submission.objects.get(pk=self.submission.pk)
-        self.client.post(reverse("grant_ai_consent", args=[self.submission.pk]), {"version":str(self.version.pk), "fingerprint":metadata_fingerprint(self.version.pk, current.title, current.abstract), "confirm":"yes", "synthetic":"yes"})
+        self.client.post(reverse("grant_ai_consent", args=[self.submission.pk]), {"version":str(self.version.pk), "fingerprint":metadata_fingerprint(self.version.pk, current.title, current.abstract), "policy_revision":str(JournalAIPolicy.objects.get(journal=self.journal).revision), "confirm":"yes", "synthetic":"yes"})
         old.refresh_from_db()
         self.assertIsNotNone(old.revoked_at)
         self.assertEqual(AIConsent.objects.filter(version=self.version).count(), 2)
@@ -139,7 +143,7 @@ class AIWorkflowTests(TestCase):
         Submission.objects.filter(pk=self.submission.pk).update(abstract="Updated fictional abstract.")
         self.client.force_login(self.author)
         response = self.client.post(reverse("grant_ai_consent", args=[self.submission.pk]),
-                                    {"version":str(self.version.pk), "fingerprint":old_fingerprint, "confirm":"yes", "synthetic":"yes"})
+                                    {"version":str(self.version.pk), "fingerprint":old_fingerprint, "policy_revision":str(JournalAIPolicy.objects.get(journal=self.journal).revision), "confirm":"yes", "synthetic":"yes"})
         self.assertEqual(response.status_code, 409)
         self.assertFalse(AIConsent.objects.exists())
         self.grant()
@@ -169,6 +173,7 @@ class AIWorkflowTests(TestCase):
         run = AIAssistanceRun.objects.get(pk=request_id)
         self.assertEqual(run.status, AIAssistanceRun.Status.COMPLETED)
         self.assertEqual(run.prompt_version, PROMPT_VERSION)
+        self.assertEqual(run.policy_revision, JournalAIPolicy.objects.get(journal=self.journal).revision)
         provider_request = self.transport_mock.call_args.args[0]
         self.assertEqual(provider_request.full_url, OPENAI_RESPONSES_URL)
         payload = json.loads(provider_request.data.decode("utf-8"))
@@ -286,6 +291,83 @@ class AIWorkflowTests(TestCase):
         run = AIAssistanceRun.objects.get()
         EditorialAssignment.objects.filter(submission=self.submission, editor=self.editor).update(status="revoked")
         self.assertEqual(self.client.get(reverse("ai_result", args=[run.pk])).status_code, 404)
+
+    def test_missing_policy_and_debug_off_fail_closed(self):
+        Journal.objects.filter(pk=self.journal.pk).update(allow_openai_metadata=True)
+        self.assertEqual(self.run_request().status_code, 409)
+        self.allow()
+        with override_settings(DEBUG=False):
+            self.assertEqual(self.run_request().status_code, 409)
+        self.assertFalse(AIAssistanceRun.objects.exists())
+        self.transport_mock.assert_not_called()
+
+    def test_requesting_roles_are_independently_enforced(self):
+        self.grant()
+        JournalAIPolicy.objects.filter(journal=self.journal).update(allow_editor=False)
+        self.assertEqual(self.run_request(actor=self.editor).status_code, 403)
+        self.client.force_login(self.editor)
+        self.assertContains(self.client.get(reverse("checks_page", args=[self.submission.pk])), "This role is not enabled")
+        JournalAIPolicy.objects.filter(journal=self.journal).update(allow_author=False, allow_editor=True)
+        self.assertEqual(self.run_request(actor=self.author).status_code, 403)
+        self.transport_mock.side_effect = None
+        self.transport_mock.return_value = mock_response()
+        self.assertEqual(self.run_request(actor=self.editor).status_code, 302)
+        self.assertEqual(self.transport_mock.call_count, 1)
+
+    def test_policy_change_requires_fresh_confirmation(self):
+        self.grant()
+        policy = JournalAIPolicy.objects.get(journal=self.journal)
+        old_revision = str(policy.revision)
+        JournalAIPolicy.objects.filter(pk=policy.pk).update(revision=policy.revision + 1, journal_daily_limit=9)
+        self.assertEqual(self.run_request(policy_revision=old_revision).status_code, 409)
+        self.client.force_login(self.author)
+        current = Submission.objects.get(pk=self.submission.pk)
+        data = {"version":str(self.version.pk), "fingerprint":metadata_fingerprint(self.version.pk, current.title, current.abstract),
+                "policy_revision":old_revision, "confirm":"yes", "synthetic":"yes"}
+        self.assertEqual(self.client.post(reverse("grant_ai_consent", args=[self.submission.pk]), data).status_code, 409)
+        self.assertFalse(AIAssistanceRun.objects.exists())
+        self.transport_mock.assert_not_called()
+
+    def test_policy_change_before_network_cancels_the_request(self):
+        self.grant()
+        def restrict_editor(submission, actor, action):
+            if action == "ai_suggestion_requested":
+                JournalAIPolicy.objects.filter(journal=self.journal).update(allow_editor=False)
+        with patch("publishing.ai_views._event", side_effect=restrict_editor):
+            self.assertEqual(self.run_request(actor=self.editor).status_code, 302)
+        self.assertEqual(AIAssistanceRun.objects.get().status, AIAssistanceRun.Status.CANCELLED)
+        self.transport_mock.assert_not_called()
+
+    def test_journal_budget_counts_attempts_across_people_but_not_other_journals(self):
+        self.grant()
+        JournalAIPolicy.objects.filter(journal=self.journal).update(journal_daily_limit=1)
+        other = Journal.objects.create(organisation=self.journal.organisation, name="Other fictional journal", slug="other-ai-budget")
+        other_submission = Submission.objects.create(journal=other, author=self.outsider, title="Other title", abstract="Other abstract",
+            manuscript="manuscripts/other.pdf", status=Submission.Status.SUBMITTED)
+        other_version = SubmissionVersion.objects.create(submission=other_submission, number=1, manuscript="manuscripts/other.pdf", uploaded_by=self.outsider)
+        other_consent = AIConsent.objects.create(version=other_version, granted_by=self.outsider, purpose=PROMPT_VERSION, data_fingerprint="other")
+        AIAssistanceRun.objects.create(id=uuid.uuid4(), version=other_version, requested_by=self.outsider, consent=other_consent,
+            model_name="test-model", prompt_version=PROMPT_VERSION, data_fingerprint="other", status=AIAssistanceRun.Status.FAILED)
+        self.transport_mock.side_effect = None
+        self.transport_mock.return_value = mock_response()
+        self.assertEqual(self.run_request(actor=self.author).status_code, 302)
+        self.assertEqual(self.run_request(actor=self.editor).status_code, 429)
+        self.assertEqual(self.transport_mock.call_count, 1)
+
+    def test_failed_and_cancelled_attempts_count_towards_journal_limit(self):
+        self.grant()
+        JournalAIPolicy.objects.filter(journal=self.journal).update(journal_daily_limit=2)
+        self.assertEqual(self.run_request(actor=self.author).status_code, 302)
+        self.assertEqual(AIAssistanceRun.objects.get().status, AIAssistanceRun.Status.FAILED)
+        def restrict_editor(submission, actor, action):
+            if action == "ai_suggestion_requested":
+                JournalAIPolicy.objects.filter(journal=self.journal).update(allow_editor=False)
+        with patch("publishing.ai_views._event", side_effect=restrict_editor):
+            self.assertEqual(self.run_request(actor=self.editor).status_code, 302)
+        self.assertEqual(AIAssistanceRun.objects.filter(status=AIAssistanceRun.Status.CANCELLED).count(), 1)
+        JournalAIPolicy.objects.filter(journal=self.journal).update(allow_editor=True)
+        self.assertEqual(self.run_request(actor=self.author).status_code, 429)
+        self.assertEqual(self.transport_mock.call_count, 1)
 
     def test_checks_page_supports_simplified_chinese(self):
         self.client.force_login(self.author)

@@ -1,6 +1,7 @@
 import uuid
 from django.conf import settings
 from django.db import models
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
 
@@ -38,6 +39,7 @@ class Membership(models.Model):
         COORDINATOR = "coordinator", _("Editorial coordinator")
         PRODUCER = "producer", _("Production editor")
         SITE_MANAGER = "site_manager", _("Journal site manager")
+        AI_MANAGER = "ai_manager", _("Journal AI manager")
 
     journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="memberships")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_memberships")
@@ -101,6 +103,40 @@ class JournalSiteEvent(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-pk"]
+
+
+class JournalAIPolicy(models.Model):
+    """Fail-closed policy for the existing metadata-only local test task."""
+
+    journal = models.OneToOneField(Journal, on_delete=models.PROTECT, related_name="ai_policy")
+    metadata_enabled = models.BooleanField(_("Enable metadata writing suggestions"), default=False)
+    allow_author = models.BooleanField(_("Allow submitting authors to request suggestions"), default=False)
+    allow_editor = models.BooleanField(_("Allow assigned editors to request suggestions"), default=False)
+    journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
+        validators=[MinValueValidator(1), MaxValueValidator(100)])
+    revision = models.PositiveIntegerField(default=1)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(journal_daily_limit__gte=1, journal_daily_limit__lte=100),
+                                   name="ai_policy_daily_limit_range"),
+            models.CheckConstraint(condition=models.Q(metadata_enabled=False) | models.Q(allow_author=True) | models.Q(allow_editor=True),
+                                   name="ai_policy_enabled_requires_requester"),
+        ]
+
+
+class JournalAIPolicyEvent(models.Model):
+    policy = models.ForeignKey(JournalAIPolicy, on_delete=models.PROTECT, related_name="events")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    revision = models.PositiveIntegerField()
+    # Configuration values only: never include manuscript text or credentials.
+    configuration = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-revision", "-pk"]
+        constraints = [models.UniqueConstraint(fields=["policy", "revision"], name="unique_ai_policy_revision")]
 
 
 def manuscript_path(instance, filename):
@@ -282,6 +318,7 @@ class AIAssistanceRun(models.Model):
     provider = models.CharField(max_length=20, default="openai")
     model_name = models.CharField(max_length=100)
     prompt_version = models.CharField(max_length=60)
+    policy_revision = models.PositiveIntegerField(null=True, blank=True)
     data_fingerprint = models.CharField(max_length=64)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     result = models.JSONField(default=list, blank=True)

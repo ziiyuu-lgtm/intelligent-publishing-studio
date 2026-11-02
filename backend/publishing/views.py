@@ -118,6 +118,8 @@ def workspace(request):
     author_journals = visible_journals.filter(memberships__user=request.user, memberships__role=Membership.Role.AUTHOR, memberships__active=True).distinct()
     site_manager_journals = visible_journals.filter(memberships__user=request.user,
         memberships__role=Membership.Role.SITE_MANAGER, memberships__active=True).distinct().order_by("name")
+    ai_manager_journals = visible_journals.filter(memberships__user=request.user,
+        memberships__role=Membership.Role.AI_MANAGER, memberships__active=True).distinct().order_by("name") if settings.DEBUG else visible_journals.none()
     authored = Submission.objects.filter(author=request.user, journal__in=visible_journals).select_related("journal")
     editorial = Submission.objects.filter(
         journal__in=visible_journals, journal__memberships__user=request.user,
@@ -154,6 +156,7 @@ def workspace(request):
         "author_journals": author_journals, "authored": authored, "editorial": editorial, "reviews": reviews,
         "production": production, "local_publication_enabled": production_enabled,
         "site_manager_journals": site_manager_journals,
+        "ai_manager_journals": ai_manager_journals,
         "is_coordinator": Membership.objects.filter(user=request.user, role=Membership.Role.COORDINATOR,
              active=True, journal__active=True, journal__organisation__active=True).exists(),
     })

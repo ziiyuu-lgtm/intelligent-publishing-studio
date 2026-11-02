@@ -24,6 +24,7 @@ class Command(BaseCommand):
                 ("coordinator", journal_a, Membership.Role.COORDINATOR),
                 ("producer", journal_a, Membership.Role.PRODUCER),
                 ("site_manager", journal_a, Membership.Role.SITE_MANAGER),
+                ("ai_manager", journal_a, Membership.Role.AI_MANAGER),
                 ("reviewer", journal_a, Membership.Role.REVIEWER),
                 ("other_editor", journal_b, Membership.Role.EDITOR),
             ]:

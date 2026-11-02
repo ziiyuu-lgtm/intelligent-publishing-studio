@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_views, issue_views, production_views, site_views, views
+from . import ai_policy_views, ai_views, issue_views, production_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -11,6 +11,7 @@ urlpatterns = [
     path("editorial-assignments/<int:pk>/remove/", views.remove_editor_assignment, name="remove_editor_assignment"),
     path("editorial-assignments/<int:pk>/recuse/", views.recuse_editor, name="recuse_editor"),
     path("journals/<slug:slug>/new/", views.submission_create, name="submission_create"),
+    path("journals/<slug:slug>/ai-policy/", ai_policy_views.manage_ai_policy, name="manage_ai_policy"),
     path("journals/<slug:slug>/site/", site_views.public_journal_site, name="public_journal_site"),
     path("journals/<slug:slug>/site/manage/", site_views.manage_journal_site, name="manage_journal_site"),
     path("journals/<slug:slug>/site/start/", site_views.start_journal_site, name="start_journal_site"),

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from .models import EditorialDecision, Journal, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
+from .models import EditorialDecision, Journal, JournalAIPolicy, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
 
 MAX_MANUSCRIPT_BYTES = 10 * 1024 * 1024
 
@@ -147,3 +147,15 @@ class JournalSiteForm(forms.ModelForm):
         model = JournalSiteDraft
         fields = ["brand_name", "headline", "tagline", "introduction", "theme", "layout"]
         widgets = {"introduction": forms.Textarea(attrs={"rows": 7})}
+
+
+class JournalAIPolicyForm(forms.ModelForm):
+    class Meta:
+        model = JournalAIPolicy
+        fields = ["metadata_enabled", "allow_author", "allow_editor", "journal_daily_limit"]
+
+    def clean(self):
+        data = super().clean()
+        if data.get("metadata_enabled") and not (data.get("allow_author") or data.get("allow_editor")):
+            raise forms.ValidationError(_("Enable at least one requester role before enabling this task."))
+        return data
