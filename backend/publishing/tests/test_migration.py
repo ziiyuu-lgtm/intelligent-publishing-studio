@@ -352,6 +352,23 @@ except IrreversibleError:
     assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.filter(pk=release15.pk).exists()
 else:
     raise AssertionError('Publisher modules must not be silently discarded')
+image_scope = ('publishing', '0018_site_images')
+executor = MigrationExecutor(connection)
+executor.migrate([image_scope])
+apps = executor.loader.project_state([image_scope]).apps
+assert not apps.get_model('publishing', 'SiteImageAsset').objects.exists()
+site18 = apps.get_model('publishing', 'JournalSiteDraft').objects.get(pk=site11.pk)
+portal18 = apps.get_model('publishing', 'OrganisationPortalDraft').objects.get(pk=portal15.pk)
+assert site18.hero_asset_id is None and site18.hero_alt == '' and site18.current_release_id == release11.pk
+assert portal18.hero_asset_id is None and portal18.hero_alt == '' and portal18.current_release_id == release15.pk
+assert (site18.hero_fit, site18.hero_position, portal18.hero_fit, portal18.hero_position) == ('cover', 'center', 'cover', 'center')
+assert apps.get_model('publishing', 'OrganisationPortalAIDesignRun').objects.get(pk=portal_run16.pk).site_fingerprint == 'c'*64
+try:
+    MigrationExecutor(connection).migrate([portal_modules_scope])
+except IrreversibleError:
+    assert apps.get_model('publishing', 'OrganisationPortalRelease').objects.filter(pk=release15.pk).exists()
+else:
+    raise AssertionError('Published site images must not be silently discarded')
 print('legacy workflow preserved')
 '''
         with tempfile.TemporaryDirectory(prefix="ips-migration-") as temp_dir:

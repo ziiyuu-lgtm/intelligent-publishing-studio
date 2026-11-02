@@ -12,17 +12,19 @@ from django.db import transaction
 from django.db.models import F
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import (Journal, JournalSiteDraft, Organisation, OrganisationAIPolicy, OrganisationMembership,
+from .models import (HERO_FIT_CHOICES, HERO_POSITION_CHOICES, Journal, JournalSiteDraft, Organisation, OrganisationAIPolicy, OrganisationMembership,
                      OrganisationPortalDraft, OrganisationPortalEvent, OrganisationPortalRelease)
 from .portal_forms import MAX_JOURNALS, PortalAppearanceForm, PortalContentForm, PortalSectionFormSet
 from .portal_sections import InvalidSections as InvalidPortalSections, default_sections, validate_sections, visible_sections
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, SAMPLES, appearance_for, sample_by_id, validate_blueprint
 from .site_sections import InvalidSections as InvalidJournalSections, visible_sections as visible_journal_sections
+from .site_images import hero_reference_valid
 
 CONTENT_FIELDS = ("brand_name", "headline", "tagline", "introduction")
 
@@ -67,6 +69,8 @@ def _linked_journal_ids(organisation, journal_ids):
                 visible_journal_sections(release.sections_config)
         except (InvalidDesign, InvalidJournalSections):
             continue
+        if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
+            continue
         available.add(site.journal_id)
     return available
 
@@ -98,6 +102,11 @@ def _fingerprint(site):
     # Keep existing saved fingerprints valid until a modular layout is saved.
     if site.sections_config:
         payload["sections_config"] = site.sections_config
+    if site.hero_asset_id or site.hero_alt or site.hero_fit != "cover" or site.hero_position != "center":
+        payload["hero_asset_id"] = str(site.hero_asset_id) if site.hero_asset_id else None
+        payload["hero_alt"] = site.hero_alt
+        payload["hero_fit"] = site.hero_fit
+        payload["hero_position"] = site.hero_position
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -138,8 +147,16 @@ def _render(request, organisation, design, journals, **extra):
         sections = visible_sections(design.sections_config) if design.sections_config else []
     except (InvalidDesign, InvalidPortalSections) as exc:
         raise Http404 from exc
+    hero_image_url = ""
+    if design.hero_asset_id or design.hero_alt or design.hero_fit != "cover" or design.hero_position != "center":
+        site = get_object_or_404(OrganisationPortalDraft, organisation=organisation)
+        if not hero_reference_valid(site, design.hero_asset_id, design.hero_alt, design.hero_fit, design.hero_position):
+            raise Http404
+        if design.hero_asset_id:
+            route = "private_portal_image" if extra.get("preview") else "public_portal_image"
+            hero_image_url = reverse(route, args=[organisation.slug, design.hero_asset_id])
     return _no_index(render(request, "publishing/publisher_portal.html", {
-        "organisation":organisation, "design":design, "appearance":appearance, "journals":journals,
+        "organisation":organisation, "design":design, "appearance":appearance, "journals":journals, "hero_image_url":hero_image_url,
         "sections":sections, "has_about_section":not sections or any(item["kind"] == "about" for item in sections),
         "has_journals_section":not sections or any(item["kind"] == "journals" for item in sections), **extra}))
 
@@ -164,6 +181,11 @@ def _context(organisation, site, content_form=None, appearance_form=None, sectio
         "ai_modules_enabled":bool(policy and policy.portal_modules_enabled), "ai_provider_configured":_provider_configured(),
         "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
         "ai_request_id":uuid.uuid4(), "ai_module_request_id":uuid.uuid4(),
+        "image_assets":site.images.defer("image_data"),
+        "image_slug":organisation.slug, "image_upload_route":"upload_portal_image",
+        "image_select_route":"select_portal_image", "image_clear_route":"clear_portal_image",
+        "image_delete_route":"delete_portal_image", "image_private_route":"private_portal_image",
+        "hero_fit_choices":HERO_FIT_CHOICES, "hero_position_choices":HERO_POSITION_CHOICES,
         "ai_design_runs":site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
 
 
@@ -256,7 +278,9 @@ def preview_sample(request, slug, sample_id):
     except InvalidDesign as exc:
         raise Http404 from exc
     design = SimpleNamespace(**{field:getattr(site, field) for field in CONTENT_FIELDS},
-                             design_config=sample["config"], sections_config=site.sections_config)
+                             design_config=sample["config"], sections_config=site.sections_config,
+                             hero_asset_id=site.hero_asset_id, hero_alt=site.hero_alt,
+                             hero_fit=site.hero_fit, hero_position=site.hero_position)
     return _render(request, organisation, design, _draft_journals(site), preview=True, sample_preview=True)
 
 
@@ -353,6 +377,8 @@ def publish_portal(request, slug):
             config = validate_blueprint(site.design_config)
             if site.sections_config:
                 validate_sections(site.sections_config)
+            if not hero_reference_valid(site, site.hero_asset_id, site.hero_alt, site.hero_fit, site.hero_position):
+                raise ValueError("invalid hero image")
         except (ValueError, InvalidDesign, InvalidPortalSections):
             return HttpResponse(_("The portal draft or journal selection is invalid."), status=409)
         if _stale(request, site):
@@ -364,6 +390,7 @@ def publish_portal(request, slug):
         snapshots = [{"id":j.pk, "slug":j.slug, "name":j.name} for j in journals]
         release = OrganisationPortalRelease.objects.create(site=site, revision=site.revision,
             published_by=request.user, design_config=config, sections_config=site.sections_config, journals=snapshots,
+            hero_asset_id=site.hero_asset_id, hero_alt=site.hero_alt, hero_fit=site.hero_fit, hero_position=site.hero_position,
             **{key:getattr(site, key) for key in CONTENT_FIELDS})
         site.current_release = release
         site.save(update_fields=["current_release"])
@@ -389,6 +416,8 @@ def restore_portal(request, slug, release_id):
             config = validate_blueprint(release.design_config)
             if release.sections_config:
                 validate_sections(release.sections_config)
+            if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
+                raise ValueError("invalid hero image")
             if not _valid_snapshot(release.journals):
                 raise ValueError
             ids = [item["id"] for item in release.journals]
@@ -398,15 +427,19 @@ def restore_portal(request, slug, release_id):
         except (ValueError, InvalidDesign, InvalidPortalSections):
             return HttpResponse(_("Some journals in this version are unavailable. Update the draft manually."), status=409)
         changed = any(getattr(site, key) != getattr(release, key) for key in CONTENT_FIELDS)
-        changed = changed or site.design_config != config or site.journal_ids != ids or site.sections_config != release.sections_config
+        changed = (changed or site.design_config != config or site.journal_ids != ids or
+                   site.sections_config != release.sections_config or site.hero_asset_id != release.hero_asset_id or
+                   site.hero_alt != release.hero_alt or site.hero_fit != release.hero_fit or site.hero_position != release.hero_position)
         if changed:
             for key in CONTENT_FIELDS:
                 setattr(site, key, getattr(release, key))
             site.design_config = config
             site.sections_config = release.sections_config
+            site.hero_asset_id, site.hero_alt = release.hero_asset_id, release.hero_alt
+            site.hero_fit, site.hero_position = release.hero_fit, release.hero_position
             site.journal_ids = ids
             site.revision += 1
-            site.save(update_fields=[*CONTENT_FIELDS, "design_config", "sections_config", "journal_ids", "revision"])
+            site.save(update_fields=[*CONTENT_FIELDS, "design_config", "sections_config", "journal_ids", "hero_asset", "hero_alt", "hero_fit", "hero_position", "revision"])
             _event(site, request.user, "portal_draft_restored", release)
     messages.success(request, _("Version restored to the draft; publish separately after review."))
     return redirect("manage_publisher_portal", slug=slug)

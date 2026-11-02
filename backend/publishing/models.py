@@ -4,6 +4,10 @@ from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
+HERO_FIT_CHOICES = (("cover", _("Crop to fill")), ("contain", _("Fit the entire image")))
+HERO_POSITION_CHOICES = (("center", _("Centre")), ("top", _("Top")), ("bottom", _("Bottom")),
+                         ("left", _("Left")), ("right", _("Right")))
+
 
 class Organisation(models.Model):
     name = models.CharField(_("Name"), max_length=200)
@@ -79,6 +83,10 @@ class OrganisationPortalDraft(models.Model):
     introduction = models.TextField(_("Publisher introduction"), max_length=4000)
     design_config = models.JSONField(default=dict)
     sections_config = models.JSONField(default=list, blank=True)
+    hero_asset = models.ForeignKey("SiteImageAsset", on_delete=models.PROTECT, null=True, blank=True, related_name="+")
+    hero_alt = models.CharField(_("Image description"), max_length=200, blank=True)
+    hero_fit = models.CharField(_("Image display"), max_length=8, choices=HERO_FIT_CHOICES, default="cover")
+    hero_position = models.CharField(_("Image focus"), max_length=8, choices=HERO_POSITION_CHOICES, default="center")
     journal_ids = models.JSONField(default=list)
     revision = models.PositiveIntegerField(default=1)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_portals_created")
@@ -95,6 +103,10 @@ class OrganisationPortalRelease(models.Model):
     introduction = models.TextField(_("Publisher introduction"), max_length=4000)
     design_config = models.JSONField(default=dict)
     sections_config = models.JSONField(default=list, blank=True)
+    hero_asset = models.ForeignKey("SiteImageAsset", on_delete=models.PROTECT, null=True, blank=True, related_name="+")
+    hero_alt = models.CharField(_("Image description"), max_length=200, blank=True)
+    hero_fit = models.CharField(_("Image display"), max_length=8, choices=HERO_FIT_CHOICES, default="cover")
+    hero_position = models.CharField(_("Image focus"), max_length=8, choices=HERO_POSITION_CHOICES, default="center")
     journals = models.JSONField(default=list)
     published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="organisation_portal_releases")
     published_at = models.DateTimeField(auto_now_add=True)
@@ -189,6 +201,10 @@ class JournalSiteDraft(models.Model):
     layout = models.CharField(_("Page layout"), max_length=16, choices=Layout.choices, default=Layout.CLASSIC)
     design_config = models.JSONField(default=dict, blank=True)
     sections_config = models.JSONField(default=list, blank=True)
+    hero_asset = models.ForeignKey("SiteImageAsset", on_delete=models.PROTECT, null=True, blank=True, related_name="+")
+    hero_alt = models.CharField(_("Image description"), max_length=200, blank=True)
+    hero_fit = models.CharField(_("Image display"), max_length=8, choices=HERO_FIT_CHOICES, default="cover")
+    hero_position = models.CharField(_("Image focus"), max_length=8, choices=HERO_POSITION_CHOICES, default="center")
     revision = models.PositiveIntegerField(default=1)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_sites_created")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -206,6 +222,10 @@ class JournalSiteRelease(models.Model):
     layout = models.CharField(_("Page layout"), max_length=16, choices=JournalSiteDraft.Layout.choices)
     design_config = models.JSONField(default=dict, blank=True)
     sections_config = models.JSONField(default=list, blank=True)
+    hero_asset = models.ForeignKey("SiteImageAsset", on_delete=models.PROTECT, null=True, blank=True, related_name="+")
+    hero_alt = models.CharField(_("Image description"), max_length=200, blank=True)
+    hero_fit = models.CharField(_("Image display"), max_length=8, choices=HERO_FIT_CHOICES, default="cover")
+    hero_position = models.CharField(_("Image focus"), max_length=8, choices=HERO_POSITION_CHOICES, default="center")
     published_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="journal_site_releases")
     published_at = models.DateTimeField(auto_now_add=True)
 
@@ -224,6 +244,27 @@ class JournalSiteEvent(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-pk"]
+
+
+class SiteImageAsset(models.Model):
+    """Re-encoded local test image; each asset belongs to exactly one site."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    journal_site = models.ForeignKey(JournalSiteDraft, on_delete=models.PROTECT, null=True, blank=True, related_name="images")
+    portal_site = models.ForeignKey(OrganisationPortalDraft, on_delete=models.PROTECT, null=True, blank=True, related_name="images")
+    image_data = models.BinaryField()
+    media_type = models.CharField(max_length=16)
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+    sha256 = models.CharField(max_length=64)
+    default_alt = models.CharField(_("Image description"), max_length=200)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [models.CheckConstraint(condition=(
+            models.Q(journal_site__isnull=False, portal_site__isnull=True) |
+            models.Q(journal_site__isnull=True, portal_site__isnull=False)), name="site_image_exactly_one_owner")]
 
 
 class JournalAIPolicy(models.Model):

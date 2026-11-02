@@ -10,20 +10,22 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import JournalAppearanceForm, JournalSectionFormSet, JournalSiteForm
 from .ai_views import _policy, _provider_configured
-from .models import Journal, JournalSiteDraft, JournalSiteEvent, JournalSiteRelease, Membership
+from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES, Journal, JournalSiteDraft, JournalSiteEvent, JournalSiteRelease, Membership
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, SAMPLES, appearance_for, legacy_to_blueprint, sample_by_id, validate_blueprint
 from .site_sections import InvalidSections, default_sections, validate_sections, visible_sections
+from .site_images import hero_reference_valid
 from .views import _has_role
 
 TEXT_FIELDS = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
-SITE_FIELDS = (*TEXT_FIELDS, "design_config", "sections_config")
+SITE_FIELDS = (*TEXT_FIELDS, "design_config", "sections_config", "hero_asset_id", "hero_alt", "hero_fit", "hero_position")
 
 
 def _managed_journal(user, slug, locked=False):
@@ -46,6 +48,11 @@ def _fingerprint(site):
         payload["design_config"] = site.design_config
     if site.sections_config:
         payload["sections_config"] = site.sections_config
+    if site.hero_asset_id or site.hero_alt or site.hero_fit != "cover" or site.hero_position != "center":
+        payload["hero_asset_id"] = str(site.hero_asset_id) if site.hero_asset_id else None
+        payload["hero_alt"] = site.hero_alt
+        payload["hero_fit"] = site.hero_fit
+        payload["hero_position"] = site.hero_position
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -61,8 +68,16 @@ def _render_site(request, journal, design, **context):
         sections = visible_sections(design.sections_config) if design.sections_config else []
     except InvalidSections as exc:
         raise Http404 from exc
+    hero_image_url = ""
+    if design.hero_asset_id or design.hero_alt or design.hero_fit != "cover" or design.hero_position != "center":
+        site = get_object_or_404(JournalSiteDraft, journal=journal)
+        if not hero_reference_valid(site, design.hero_asset_id, design.hero_alt, design.hero_fit, design.hero_position):
+            raise Http404
+        if design.hero_asset_id:
+            route = "private_journal_image" if context.get("preview") else "public_journal_image"
+            hero_image_url = reverse(route, args=[journal.slug, design.hero_asset_id])
     return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": design,
-        "appearance": _appearance(design), "sections": sections,
+        "appearance": _appearance(design), "sections": sections, "hero_image_url":hero_image_url,
         "has_about_section": any(item["kind"] == "about" for item in sections), **context}))
 
 
@@ -83,6 +98,11 @@ def _context(journal, site, form=None, user=None, appearance_form=None, section_
             "ai_modules_enabled": bool(policy and policy.site_modules_enabled), "ai_provider_configured": _provider_configured(),
             "ai_policy_revision": policy.revision if policy else 0, "ai_model_name": settings.IPS_OPENAI_MODEL,
             "ai_request_id": uuid.uuid4(), "ai_module_request_id": uuid.uuid4(),
+            "image_assets":site.images.defer("image_data"),
+            "image_slug":journal.slug, "image_upload_route":"upload_journal_image",
+            "image_select_route":"select_journal_image", "image_clear_route":"clear_journal_image",
+            "image_delete_route":"delete_journal_image", "image_private_route":"private_journal_image",
+            "hero_fit_choices":HERO_FIT_CHOICES, "hero_position_choices":HERO_POSITION_CHOICES,
             "ai_design_runs": site.ai_design_runs.filter(requested_by=user)[:10] if user else []}
 
 
@@ -272,6 +292,8 @@ def publish_journal_site(request, slug):
                 validate_sections(site.sections_config)
             except InvalidSections:
                 return HttpResponse(_("The page modules are invalid."), status=409)
+        if not hero_reference_valid(site, site.hero_asset_id, site.hero_alt, site.hero_fit, site.hero_position):
+            return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         if site.current_release_id and (site.current_release.site_id != site.pk or site.current_release.revision == site.revision):
             return HttpResponse(_("This version is already published or unavailable."), status=409)
         release = JournalSiteRelease.objects.create(site=site, revision=site.revision, published_by=request.user,
@@ -308,6 +330,8 @@ def restore_journal_site(request, slug, release_id):
                 validate_sections(release.sections_config)
             except InvalidSections:
                 return HttpResponse(_("The page modules are invalid."), status=409)
+        if not hero_reference_valid(site, release.hero_asset_id, release.hero_alt, release.hero_fit, release.hero_position):
+            return HttpResponse(_("The selected image is unavailable or damaged."), status=409)
         changed = any(getattr(site, key) != getattr(release, key) for key in SITE_FIELDS)
         if changed:
             for key in SITE_FIELDS:

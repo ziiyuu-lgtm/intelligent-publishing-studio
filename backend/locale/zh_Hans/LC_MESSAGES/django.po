@@ -3034,3 +3034,99 @@ msgstr "出版社尚未在 AI 策略中启用模块编排。"
 
 msgid "Send this brief and the current module structure to OpenAI for one request."
 msgstr "本次请求将设计需求和当前模块结构发送给 OpenAI。"
+
+msgid "Choose a single-frame JPEG, PNG or WebP image up to 5 MB, 4096 pixels per side and 12 megapixels, and provide an image description."
+msgstr "请选择单帧 JPEG、PNG 或 WebP 图片，文件不超过 5 MB、每边不超过 4096 像素且总像素不超过 1200 万，并填写图片描述。"
+
+msgid "This site has reached its local image-library limit."
+msgstr "该网站的本地图片库已达到数量上限。"
+
+msgid "Confirm deletion of the unused image."
+msgstr "请确认删除未使用的图片。"
+
+msgid "This image is used by a draft or published version and cannot be deleted."
+msgstr "该图片正被草稿或已发布版本使用，无法删除。"
+
+msgid "SITE IMAGES"
+msgstr "网站图片"
+
+msgid "Hero image and image library"
+msgstr "首页主视觉图片与图片库"
+
+msgid "Upload a fictional image and add a description. Single-frame JPEG, PNG or WebP only: up to 5 MB, 4096 pixels per side and 12 megapixels. Images are re-encoded and metadata is removed."
+msgstr "上传虚构图片并填写描述。仅支持单帧 JPEG、PNG 或 WebP：不超过 5 MB、每边不超过 4096 像素且总像素不超过 1200 万。图片会重新编码并移除元数据。"
+
+msgid "Each site can keep up to 50 images. Images used by a draft or published version cannot be deleted."
+msgstr "每个网站最多保存 50 张图片。草稿或已发布版本使用的图片不能删除。"
+
+msgid "Upload and set draft image"
+msgstr "上传并设为草稿图片"
+
+msgid "My site's image library"
+msgstr "本网站图片库"
+
+msgid "Image description"
+msgstr "图片描述"
+
+msgid "Confirm that the image is fictional test data."
+msgstr "请确认该图片属于虚构测试数据。"
+
+msgid "Image added to the draft. Preview it before publishing."
+msgstr "图片已加入草稿，请在发布前预览。"
+
+msgid "Provide an image description of at most 200 characters."
+msgstr "请填写不超过 200 个字符的图片描述。"
+
+msgid "The selected image is unavailable or damaged."
+msgstr "所选图片不可用或已损坏。"
+
+msgid "Fictional image"
+msgstr "虚构测试图片"
+
+msgid "I confirm that this image is fictional test data."
+msgstr "我确认该图片属于虚构测试数据。"
+
+msgid "Remove image from draft"
+msgstr "从草稿中移除图片"
+
+msgid "Selected in draft"
+msgstr "草稿已选用"
+
+msgid "Use in draft"
+msgstr "在草稿中使用"
+
+msgid "Delete this unused image."
+msgstr "删除此未使用的图片。"
+
+msgid "Delete image"
+msgstr "删除图片"
+
+msgid "No images uploaded yet."
+msgstr "尚未上传图片。"
+
+msgid "Crop to fill"
+msgstr "裁切填满"
+
+msgid "Fit the entire image"
+msgstr "完整显示图片"
+
+msgid "Centre"
+msgstr "居中"
+
+msgid "Top"
+msgstr "顶部"
+
+msgid "Bottom"
+msgstr "底部"
+
+msgid "Right"
+msgstr "右侧"
+
+msgid "Image display"
+msgstr "图片显示方式"
+
+msgid "Image focus"
+msgstr "图片焦点位置"
+
+msgid "Provide a valid image description and display setting."
+msgstr "请填写有效的图片描述并选择有效的显示设置。"
