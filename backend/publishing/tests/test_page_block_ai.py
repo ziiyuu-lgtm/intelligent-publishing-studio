@@ -80,6 +80,7 @@ class PageBlockAITests(TestCase):
                 "choice_0-1-body":"Choose an image", "choice_0-1-visible":"on", "choice_0-1-ORDER":"1"}
         for i in range(2):
             data[f"choice_0-{i}-design_form_present"] = "yes"
+            data[f"choice_0-{i}-grid_form_present"] = "yes"
             data[f"choice_0-{i}-design_enabled"] = "on"
             for key, value in DESIGN.items():
                 data[f"choice_0-{i}-design_{key}"] = str(value)

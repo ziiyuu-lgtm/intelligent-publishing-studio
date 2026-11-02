@@ -162,7 +162,7 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
             candidate = validate_pages([page_override])[0]
         except InvalidPages as exc:
             raise Http404 from exc
-        protected = ("slug", "visible", "image_asset_id", "image_alt", "image_fit", "image_position", "blocks")
+        protected = ("slug", "visible", "image_asset_id", "image_alt", "image_fit", "image_position", "blocks", "block_layout")
         if any(candidate.get(key) != page.get(key) for key in protected):
             raise Http404
         page = candidate
@@ -184,6 +184,7 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
     for block in page.get("blocks", []):
         if block["visible"]:
             block = dict(block)
+            block.setdefault("grid_span", 12)
             block["image_url"] = reverse(image_route, args=[slug, block["image_asset_id"]]) if block.get("image_asset_id") else ""
             block["appearance"] = block_appearance(block["design"]) if block.get("design") else None
             blocks.append(block)

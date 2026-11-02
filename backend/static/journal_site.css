@@ -86,3 +86,7 @@
 .journal-site__page-block.has-block-design.block-layout-image_right.has-image .journal-site__page-block-image{grid-column:2;grid-row:1}
 .journal-site__page-block.has-block-design.block-layout-image_right.has-image>div{grid-column:1;grid-row:1}
 @media(max-width:720px){.journal-site__page-block.has-block-design{width:100%}.journal-site__page-block.has-block-design.block-layout-image_left.has-image,.journal-site__page-block.has-block-design.block-layout-image_right.has-image{grid-template-columns:1fr}.journal-site__page-block.has-block-design.block-layout-image_right.has-image .journal-site__page-block-image,.journal-site__page-block.has-block-design.block-layout-image_right.has-image>div{grid-column:auto;grid-row:auto}}
+/* Per-page twelve-column layouts preserve source order; narrow screens stack. */
+.journal-site__page-blocks.has-block-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--block-grid-gap);align-items:var(--block-grid-align)}
+.journal-site__page-blocks.has-block-grid>.journal-site__page-block{grid-column:span var(--block-grid-span,12)}
+@media(max-width:720px){.journal-site__page-blocks.has-block-grid{grid-template-columns:minmax(0,1fr)}.journal-site__page-blocks.has-block-grid>.journal-site__page-block{grid-column:1 / -1}}

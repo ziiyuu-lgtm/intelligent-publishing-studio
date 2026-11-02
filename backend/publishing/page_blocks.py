@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .module_images import IMAGE_FIELDS, SectionImageForm, form_image_fields, validate_image_fields
 from .block_design import BlockDesignForm, validate_block_design
+from .page_block_layout import GridSpanForm, validate_grid_span
 
 MAX_PAGE_BLOCKS = 20
 KINDS = (("text", _("Text")), ("image", _("Image and text")),
@@ -43,7 +44,7 @@ def validate_blocks(blocks):
     result = []
     for item in blocks:
         if (not isinstance(item, dict) or not BLOCK_FIELDS.issubset(item) or
-                set(item) - BLOCK_FIELDS - IMAGE_FIELDS - {"design"}):
+                set(item) - BLOCK_FIELDS - IMAGE_FIELDS - {"design", "grid_span"}):
             raise ValueError("invalid block fields")
         kind, heading, body, visible, label, url = (item[key] for key in
             ("kind", "heading", "body", "visible", "link_label", "link_url"))
@@ -55,17 +56,18 @@ def validate_blocks(blocks):
         heading, body, label, url = heading.strip(), body.strip(), label.strip(), url.strip()
         image = validate_image_fields(item)
         design = {"design":validate_block_design(item["design"])} if "design" in item else {}
+        placement = {"grid_span":validate_grid_span(item["grid_span"])} if "grid_span" in item else {}
         if bool(label) != bool(url) or (kind == "link" and not url):
             raise ValueError("incomplete link")
         url = validate_link(url)
         if not (heading or body or image or url):
             raise ValueError("empty block")
         result.append({"kind":kind, "heading":heading, "body":body, "visible":visible,
-                       "link_label":label, "link_url":url, **image, **design})
+                       "link_label":label, "link_url":url, **image, **design, **placement})
     return result
 
 
-class PageBlockForm(SectionImageForm, BlockDesignForm):
+class PageBlockForm(SectionImageForm, BlockDesignForm, GridSpanForm):
     kind = forms.ChoiceField(label=_("Block style"), choices=(("", _("Choose a style")), *KINDS))
     heading = forms.CharField(label=_("Block heading"), max_length=120, required=False)
     body = forms.CharField(label=_("Block text"), max_length=10000, required=False,
@@ -111,6 +113,8 @@ class BasePageBlockFormSet(BaseFormSet):
                      **form_image_fields(data)}
             if data.get("design_enabled"):
                 block["design"] = data["design"]
+            if data.get("grid_span") not in (None, 12):
+                block["grid_span"] = data["grid_span"]
             order = data.get("ORDER")
             active.append(((order is None, order if order is not None else 0, index), block))
         try:

@@ -12,3 +12,13 @@
     }
   });
 })();
+/* Optional width shortcuts leave the numeric field available without JavaScript. */
+(() => {
+  document.addEventListener('click', event => {
+    const button = event.target.closest('[data-grid-span-value]');
+    if (!button) return;
+    const field = document.getElementById(button.dataset.target);
+    const value = Number(button.dataset.gridSpanValue);
+    if (field && Number.isInteger(value) && value >= 1 && value <= 12) field.value = String(value);
+  });
+})();

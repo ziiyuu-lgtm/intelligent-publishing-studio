@@ -3682,3 +3682,63 @@ msgstr "选择强调颜色"
 
 msgid "Enter hexadecimal colours directly when JavaScript is disabled."
 msgstr "未启用 JavaScript 时，请直接输入十六进制颜色。"
+
+msgid "Align to top"
+msgstr "顶部对齐"
+
+msgid "Match row height"
+msgstr "同一行等高"
+
+msgid "Grid width (1–12 columns)"
+msgstr "网格宽度（1–12 列）"
+
+msgid "Leave blank for full width. Use 6 for half, 4 for one third, or 8 for two thirds."
+msgstr "留空表示占满整行；6 表示半行，4 表示三分之一行，8 表示三分之二行。"
+
+msgid "Reload the block editor before changing grid placement."
+msgstr "请重新加载区块编辑器后再修改网格位置。"
+
+msgid "Arrange blocks side by side in a responsive grid"
+msgstr "使用自适应网格并排排列区块"
+
+msgid "Gap between blocks (px)"
+msgstr "区块间距（像素）"
+
+msgid "Alignment within a row"
+msgstr "同一行的对齐方式"
+
+msgid "Reload the page editor before changing its grid layout."
+msgstr "请重新加载页面编辑器后再修改网格布局。"
+
+msgid "Choose a valid block gap and row alignment."
+msgstr "请选择有效的区块间距和行内对齐方式。"
+
+msgid "Page block layout"
+msgstr "页面区块布局"
+
+msgid "Use 12 columns to combine blocks in flexible widths. Blocks wrap in order; on narrow screens they stack for readability."
+msgstr "使用 12 列网格自由组合区块宽度。区块按顺序自动换行，在窄屏上会纵向排列以便阅读。"
+
+msgid "Grid widths affect the preview when the saved page grid is enabled. Otherwise they are retained for later use."
+msgstr "启用已保存的页面网格后，网格宽度会影响预览；未启用时，宽度设置将保留供以后使用。"
+
+msgid "Common block widths"
+msgstr "常用区块宽度"
+
+msgid "Full width"
+msgstr "整行"
+
+msgid "One half"
+msgstr "二分之一"
+
+msgid "One third"
+msgstr "三分之一"
+
+msgid "Two thirds"
+msgstr "三分之二"
+
+msgid "One quarter"
+msgstr "四分之一"
+
+msgid "When the grid is enabled, this is a percentage of the block's assigned grid area."
+msgstr "启用网格时，该比例以区块所占的网格区域为基准。"

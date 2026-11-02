@@ -34,7 +34,8 @@ def block_appearance(value):
 class BlockDesignForm(forms.Form):
     design_enabled = forms.BooleanField(label=_("Customise this block's visual design"), required=False)
     design_layout = forms.ChoiceField(label=_("Block image layout"), required=False, choices=(("", _("Choose a layout")), *LAYOUTS))
-    design_width = forms.IntegerField(label=_("Block width (%)"), required=False, min_value=40, max_value=100)
+    design_width = forms.IntegerField(label=_("Block width (%)"), required=False, min_value=40, max_value=100,
+        help_text=_("When the grid is enabled, this is a percentage of the block's assigned grid area."))
     design_background = forms.RegexField(label=_("Block background colour"), regex=r"^#[0-9a-fA-F]{6}$", max_length=7, required=False,
                                          widget=forms.TextInput(attrs={"placeholder":"#ffffff", "data-block-colour-input":"true"}))
     design_accent = forms.RegexField(label=_("Block accent colour"), regex=r"^#[0-9a-fA-F]{6}$", max_length=7, required=False,

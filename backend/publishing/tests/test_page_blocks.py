@@ -48,9 +48,15 @@ class PageBlockTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = {"revision":str(response.context["site"].revision), "fingerprint":response.context["fingerprint"],
                 "sections-TOTAL_FORMS":str(len(entries)), "sections-INITIAL_FORMS":str(len(response.context["page"].get("blocks", []))),
-                "sections-MIN_NUM_FORMS":"0", "sections-MAX_NUM_FORMS":"20"}
+                "sections-MIN_NUM_FORMS":"0", "sections-MAX_NUM_FORMS":"20", "layout-form_present":"yes"}
+        layout = response.context["page"].get("block_layout")
+        if layout:
+            data.update({"layout-enabled":"on", "layout-gap":str(layout["gap"]), "layout-alignment":layout["alignment"]})
         for i, entry in enumerate(entries):
             data[f"sections-{i}-design_form_present"] = "yes"
+            data[f"sections-{i}-grid_form_present"] = "yes"
+            if "grid_span" in entry:
+                data[f"sections-{i}-grid_span"] = str(entry["grid_span"])
             for key in ("kind", "heading", "body", "image_asset_id", "image_alt", "image_fit", "image_position", "link_label", "link_url"):
                 data[f"sections-{i}-{key}"] = str(entry.get(key, ""))
             if entry.get("design"):
@@ -194,6 +200,8 @@ class PageBlockTests(TestCase):
                 self.assertContains(response, "链接地址")
                 self.assertContains(response, "区块视觉设计")
                 self.assertContains(response, "选择背景颜色")
+                self.assertContains(response, "页面区块布局")
+                self.assertContains(response, "三分之二")
 
     @override_settings(IPS_OPENAI_ENABLED=True, IPS_OPENAI_MODEL="test-model")
     @patch.dict(os.environ, {"OPENAI_API_KEY":"fictional-key"})

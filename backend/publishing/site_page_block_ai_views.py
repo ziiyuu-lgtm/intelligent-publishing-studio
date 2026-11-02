@@ -252,7 +252,8 @@ def _edit(request, slug, run_id, index, kind):
     except (ValueError, TypeError):
         return HttpResponse(_("The suggested blocks are invalid or exceed the page limit."), status=400)
     initial = [{**{key:block[key] for key in ("kind", "heading", "body", "visible")},
-                **({"design":block["design"]} if "design" in block else {})} for block in blocks]
+                **({"design":block["design"]} if "design" in block else {}),
+                **({"grid_span":block["grid_span"]} if "grid_span" in block else {})} for block in blocks]
     formset = ReviewedBlockFormSet(prefix=f"choice_{index}", initial=initial)
     return _result(request, slug, run_id, kind, edit_error=(index, formset))
 
