@@ -13,6 +13,8 @@ from .ai_provider import ProviderError
 from .site_design import InvalidDesign, validate_blueprint
 from .page_ai_provider import request_page_suggestions
 from .page_block_ai_provider import MAX_OPTIONS as MAX_BLOCK_OPTIONS, request_block_suggestions
+from .page_layout_ai_provider import (MAX_OPTIONS as MAX_LAYOUT_OPTIONS, request_layout_suggestions,
+                                      validate_descriptors as validate_layout_descriptors)
 from .page_blocks import MAX_PAGE_BLOCKS
 
 METADATA_WRITING = "metadata_writing"
@@ -24,6 +26,8 @@ SITE_PAGE = "site_page"
 PUBLISHER_PAGE = "publisher_page"
 SITE_PAGE_BLOCKS = "site_page_blocks"
 PUBLISHER_PAGE_BLOCKS = "publisher_page_blocks"
+SITE_PAGE_LAYOUT = "site_page_layout"
+PUBLISHER_PAGE_LAYOUT = "publisher_page_layout"
 OPENAI = "openai"
 
 
@@ -32,8 +36,20 @@ class GatewayRejected(ValueError):
 
 
 def run_ai_task(*, task, provider, model, api_key, payload):
-    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES, SITE_PAGE, PUBLISHER_PAGE, SITE_PAGE_BLOCKS, PUBLISHER_PAGE_BLOCKS):
+    if provider != OPENAI or task not in (METADATA_WRITING, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES, SITE_PAGE, PUBLISHER_PAGE, SITE_PAGE_BLOCKS, PUBLISHER_PAGE_BLOCKS, SITE_PAGE_LAYOUT, PUBLISHER_PAGE_LAYOUT):
         raise GatewayRejected("unsupported_task_or_provider")
+    if task in (SITE_PAGE_LAYOUT, PUBLISHER_PAGE_LAYOUT):
+        if (not isinstance(payload, dict) or set(payload) != {"brief", "blocks", "requested_options"} or
+                not isinstance(payload["brief"], str) or type(payload["requested_options"]) is not int or
+                not 1 <= payload["requested_options"] <= MAX_LAYOUT_OPTIONS):
+            raise GatewayRejected("unsupported_input_fields")
+        try:
+            descriptors = validate_layout_descriptors(payload["blocks"])
+        except ProviderError as exc:
+            raise GatewayRejected("invalid_blocks") from exc
+        return request_layout_suggestions(api_key=api_key, model=model, brief=payload["brief"],
+            blocks=descriptors, requested_options=payload["requested_options"],
+            site_kind="journal" if task == SITE_PAGE_LAYOUT else "publisher")
     if task in (SITE_PAGE_BLOCKS, PUBLISHER_PAGE_BLOCKS):
         if (not isinstance(payload, dict) or set(payload) != {"brief", "available_slots", "requested_options"} or
                 not isinstance(payload["brief"], str) or type(payload["available_slots"]) is not int or
