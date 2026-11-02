@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 00:10+0000\n"
+"POT-Creation-Date: 2026-11-02 00:24+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,36 +16,62 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-#: config/settings.py:48
+
+#: config/settings.py:49
 msgid "English"
 msgstr "英语"
 
-#: config/settings.py:48
+#: config/settings.py:49
 msgid "Simplified Chinese"
 msgstr "简体中文"
 
-#: publishing/forms.py:18
+#: publishing/forms.py:11
 msgid "Choose a PDF file no larger than 10 MB."
 msgstr "请选择不超过 10 MB 的 PDF 文件。"
 
-#: publishing/forms.py:22
+#: publishing/forms.py:15
 msgid "The selected file does not have a PDF header."
 msgstr "所选文件不具有 PDF 文件头。"
 
-#: publishing/forms.py:27 publishing/models.py:31
+#: publishing/forms.py:30
+msgid "Revised manuscript PDF"
+msgstr "修回稿件 PDF"
+
+#: publishing/forms.py:31 publishing/models.py:81
+#: templates/publishing/submission_detail.html:9
+msgid "Response to the editor"
+msgstr "给编辑的回复"
+
+#: publishing/forms.py:39
+msgid "Please provide a response."
+msgstr "请填写回复。"
+
+#: publishing/forms.py:47
+msgid "Editorial decision"
+msgstr "编辑决定"
+
+#: publishing/forms.py:47 publishing/models.py:154
+msgid "Message to the author"
+msgstr "给作者的说明"
+
+#: publishing/forms.py:53
+msgid "Please provide a message for the author."
+msgstr "请填写给作者的说明。"
+
+#: publishing/forms.py:58 publishing/models.py:31
 msgid "Reviewer"
 msgstr "审稿人"
 
-#: publishing/forms.py:42 templates/publishing/review_detail.html:9
-#: templates/publishing/submission_detail.html:8
+#: publishing/forms.py:75 templates/publishing/review_detail.html:10
+#: templates/publishing/submission_detail.html:11
 msgid "Recommendation"
 msgstr "审稿建议"
 
-#: publishing/forms.py:42
+#: publishing/forms.py:75
 msgid "Confidential comments to the editor"
 msgstr "给编辑的保密意见"
 
-#: publishing/forms.py:53
+#: publishing/forms.py:86
 msgid "Please provide comments."
 msgstr "请填写意见。"
 
@@ -77,90 +103,143 @@ msgstr "已投稿"
 msgid "Under review"
 msgstr "审稿中"
 
-#: publishing/models.py:59
+#: publishing/models.py:55
+msgid "Revision requested"
+msgstr "需要修回"
+
+#: publishing/models.py:56 publishing/models.py:117
+msgid "Accepted"
+msgstr "已接受"
+
+#: publishing/models.py:57
+msgid "Rejected"
+msgstr "已拒稿"
+
+#: publishing/models.py:62
 msgid "Title"
 msgstr "题目"
 
-#: publishing/models.py:60 templates/publishing/review_detail.html:5
+#: publishing/models.py:63 templates/publishing/review_detail.html:5
 #: templates/publishing/submission_detail.html:5
 msgid "Abstract"
 msgstr "摘要"
 
-#: publishing/models.py:61
+#: publishing/models.py:64 publishing/models.py:80
 msgid "Manuscript PDF"
 msgstr "稿件 PDF"
 
-#: publishing/models.py:76
+#: publishing/models.py:95
+msgid "Open"
+msgstr "进行中"
+
+#: publishing/models.py:96
+msgid "Closed"
+msgstr "已结束"
+
+#: publishing/models.py:116
 msgid "Invited"
 msgstr "已邀请"
 
-#: publishing/models.py:77
-msgid "Accepted"
-msgstr "已接受"
-
-#: publishing/models.py:78
+#: publishing/models.py:118
 msgid "Declined"
 msgstr "已拒绝"
 
-#: publishing/models.py:79
+#: publishing/models.py:119
 msgid "Report submitted"
 msgstr "已提交意见"
 
-#: publishing/models.py:82
+#: publishing/models.py:122 publishing/models.py:148
 msgid "Accept"
 msgstr "接收"
 
-#: publishing/models.py:83
+#: publishing/models.py:123 publishing/models.py:146
 msgid "Minor revision"
 msgstr "小修"
 
-#: publishing/models.py:84
+#: publishing/models.py:124 publishing/models.py:147
 msgid "Major revision"
 msgstr "大修"
 
-#: publishing/models.py:85
+#: publishing/models.py:125 publishing/models.py:149
 msgid "Reject"
 msgstr "拒稿"
 
-#: publishing/views.py:102
+#: publishing/views.py:122
 msgid "Draft created. Review it before submitting."
 msgstr "草稿已创建，请核对后再提交。"
 
-#: publishing/views.py:131
+#: publishing/views.py:156
 msgid "This draft has already been submitted."
 msgstr "该草稿已经提交。"
 
-#: publishing/views.py:136
+#: publishing/views.py:159
+msgid "The manuscript version is unavailable."
+msgstr "稿件版本不可用。"
+
+#: publishing/views.py:165
 msgid "Submission received for editorial screening."
 msgstr "投稿已收到，等待编辑初审。"
 
-#: publishing/views.py:172
+#: publishing/views.py:233 publishing/views.py:245 publishing/views.py:336
+#: publishing/views.py:345
+msgid "There is no open review round."
+msgstr "当前没有进行中的审稿轮次。"
+
+#: publishing/views.py:236
 msgid "Choose an eligible reviewer for this journal."
 msgstr "请选择具备本刊审稿权限的审稿人。"
 
-#: publishing/views.py:189
+#: publishing/views.py:259
 msgid "Reviewer invitation recorded; no email was sent."
 msgstr "审稿邀请已记录；系统未发送邮件。"
 
-#: publishing/views.py:189
+#: publishing/views.py:259
 msgid "This reviewer was already invited."
 msgstr "该审稿人已受邀。"
 
-#: publishing/views.py:206
+#: publishing/views.py:277
 msgid "Choose accept or decline."
 msgstr "请选择接受或拒绝。"
 
-#: publishing/views.py:211
+#: publishing/views.py:288
+msgid "This review round is closed."
+msgstr "本轮审稿已结束。"
+
+#: publishing/views.py:290
 msgid "This invitation has already been answered."
 msgstr "该邀请已作答。"
 
-#: publishing/views.py:226 publishing/views.py:231
+#: publishing/views.py:306 publishing/views.py:317
 msgid "A report can only be sent after accepting an invitation."
 msgstr "接受邀请后才能提交审稿意见。"
 
-#: publishing/views.py:238
+#: publishing/views.py:324
 msgid "Report saved for the editor."
 msgstr "审稿意见已保存，供编辑查看。"
+
+#: publishing/views.py:348
+msgid "This decision requires at least one submitted review."
+msgstr "此决定需要至少一份已提交的审稿意见。"
+
+#: publishing/views.py:363
+msgid "Decision recorded. No email was sent."
+msgstr "编辑决定已记录；系统未发送邮件。"
+
+#: publishing/views.py:376
+msgid "A revision has not been requested."
+msgstr "编辑尚未要求修回。"
+
+#: publishing/views.py:386
+msgid "A revision has already been submitted."
+msgstr "修回稿已经提交。"
+
+#: publishing/views.py:390
+msgid "The previous version is unavailable."
+msgstr "上一版本不可用。"
+
+#: publishing/views.py:404
+msgid "Revision submitted for a new review round."
+msgstr "修回稿已提交，并已开启新一轮审稿。"
 
 #: templates/base.html:12
 msgid "Isolated development workspace · synthetic test data only"
@@ -198,6 +277,31 @@ msgstr "应用"
 #: templates/base.html:39
 msgid "Local testing version · No email, DOI or AI services connected"
 msgstr "本地测试版 · 未连接邮件、DOI 或 AI 服务"
+
+#: templates/publishing/decision_form.html:2
+#: templates/publishing/revision_form.html:2
+msgid "Back to submission"
+msgstr "返回稿件"
+
+#: templates/publishing/decision_form.html:3
+msgid "EDITORIAL DECISION"
+msgstr "编辑决定"
+
+#: templates/publishing/decision_form.html:3
+msgid "Record a decision"
+msgstr "记录编辑决定"
+
+#: templates/publishing/decision_form.html:4
+msgid "Only the message entered here is shared with the author. Review reports and reviewer identities remain confidential. Recording a decision closes this round; unfinished invitations and reviews can no longer be completed."
+msgstr "只有此处填写的说明会展示给作者；审稿报告和审稿人身份仍保密。记录决定后，本轮将结束，未完成的邀请和审稿将不能继续。"
+
+#: templates/publishing/decision_form.html:5
+msgid "Acceptance and revision requests require at least one submitted review. Rejection can be recorded without a review."
+msgstr "录用和修回决定需要至少一份已提交的审稿意见；拒稿可以在没有审稿意见时记录。"
+
+#: templates/publishing/decision_form.html:6
+msgid "Confirm decision"
+msgstr "确认决定"
 
 #: templates/publishing/home.html:4
 msgid "MULTI-JOURNAL WORKSPACE"
@@ -258,46 +362,84 @@ msgid "REVIEW TASK"
 msgstr "审稿任务"
 
 #: templates/publishing/review_detail.html:4
+#: templates/publishing/submission_detail.html:8
+#: templates/publishing/submission_detail.html:10
+#: templates/publishing/submission_detail.html:11
+#: templates/publishing/workspace.html:18
+msgid "Round"
+msgstr "审稿轮次"
+
+#: templates/publishing/review_detail.html:4
+#: templates/publishing/submission_detail.html:9
+msgid "Version"
+msgstr "版本"
+
+#: templates/publishing/review_detail.html:4
 #: templates/publishing/submission_detail.html:4
 msgid "Status"
 msgstr "状态"
 
 #: templates/publishing/review_detail.html:4
-#: templates/publishing/submission_detail.html:4
+#: templates/publishing/submission_detail.html:9
 msgid "Download PDF"
 msgstr "下载 PDF"
 
 #: templates/publishing/review_detail.html:6
+msgid "This review round is closed. The manuscript is no longer available from this task."
+msgstr "本轮审稿已结束，此任务不再提供稿件下载。"
+
+#: templates/publishing/review_detail.html:7
 msgid "The manuscript file becomes available after you accept this invitation."
 msgstr "接受邀请后可下载稿件文件。"
 
-#: templates/publishing/review_detail.html:6
+#: templates/publishing/review_detail.html:7
 msgid "Accept invitation"
 msgstr "接受邀请"
 
-#: templates/publishing/review_detail.html:6
+#: templates/publishing/review_detail.html:7
 msgid "Decline"
 msgstr "拒绝"
 
-#: templates/publishing/review_detail.html:7
+#: templates/publishing/review_detail.html:8
 msgid "You declined this invitation."
 msgstr "您已拒绝该邀请。"
 
-#: templates/publishing/review_detail.html:8
+#: templates/publishing/review_detail.html:9
 msgid "Confidential report"
 msgstr "保密审稿意见"
 
-#: templates/publishing/review_detail.html:8
+#: templates/publishing/review_detail.html:9
 msgid "This report is visible to the journal editor. It is not an editorial decision."
 msgstr "这份意见供期刊编辑查看，不代表编辑决定。"
 
-#: templates/publishing/review_detail.html:8
+#: templates/publishing/review_detail.html:9
 msgid "Submit report"
 msgstr "提交审稿意见"
 
-#: templates/publishing/review_detail.html:9
+#: templates/publishing/review_detail.html:10
 msgid "Your submitted report"
 msgstr "您提交的审稿意见"
+
+#: templates/publishing/revision_form.html:3
+msgid "AUTHOR REVISION"
+msgstr "作者修回"
+
+#: templates/publishing/revision_form.html:3
+msgid "Submit a revised manuscript"
+msgstr "提交修回稿"
+
+#: templates/publishing/revision_form.html:4
+msgid "This saves a new version and opens a new review round. Earlier files and decisions remain unchanged."
+msgstr "此操作将保存新版本并开启新一轮审稿，先前文件和决定保持不变。"
+
+#: templates/publishing/revision_form.html:5
+#: templates/publishing/submission_detail.html:7
+msgid "Submit revised version"
+msgstr "提交修回版本"
+
+#: templates/publishing/submission_detail.html:4
+msgid "Download latest PDF"
+msgstr "下载最新 PDF"
 
 #: templates/publishing/submission_detail.html:6
 msgid "A draft is not visible to editors until you submit it."
@@ -308,26 +450,51 @@ msgid "Confirm and submit"
 msgstr "确认投稿"
 
 #: templates/publishing/submission_detail.html:7
+msgid "The editor has requested a revision."
+msgstr "编辑已要求修回。"
+
+#: templates/publishing/submission_detail.html:8
 msgid "EDITORIAL ACTIONS"
 msgstr "编辑操作"
 
-#: templates/publishing/submission_detail.html:7
+#: templates/publishing/submission_detail.html:8
 msgid "Invite a reviewer"
 msgstr "邀请审稿人"
 
-#: templates/publishing/submission_detail.html:7
+#: templates/publishing/submission_detail.html:8
 msgid "Only reviewers with a role in this journal can be selected. Invitations are recorded locally; no email is sent."
 msgstr "仅可选择具有本刊审稿角色的用户。邀请只记录在本地，不发送邮件。"
 
-#: templates/publishing/submission_detail.html:7
+#: templates/publishing/submission_detail.html:8
 msgid "Record invitation"
 msgstr "记录邀请"
 
 #: templates/publishing/submission_detail.html:8
+msgid "Make an editorial decision"
+msgstr "作出编辑决定"
+
+#: templates/publishing/submission_detail.html:9
+msgid "Version history"
+msgstr "稿件版本记录"
+
+#: templates/publishing/submission_detail.html:10
+msgid "Editorial decisions"
+msgstr "编辑决定"
+
+#: templates/publishing/submission_detail.html:10
+msgid "No decisions have been recorded."
+msgstr "尚未记录编辑决定。"
+
+#: templates/publishing/submission_detail.html:11
 msgid "Review activity"
 msgstr "审稿进展"
 
-#: templates/publishing/submission_detail.html:8
+#: templates/publishing/submission_detail.html:11
+#: templates/publishing/workspace.html:18
+msgid "Round closed"
+msgstr "本轮已结束"
+
+#: templates/publishing/submission_detail.html:11
 msgid "No reviewers invited yet."
 msgstr "尚未邀请审稿人。"
 

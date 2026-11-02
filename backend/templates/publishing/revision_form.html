@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}<a class="back" href="{% url 'submission_detail' submission.pk %}">← {% translate "Back to submission" %}</a>
+<section class="narrow card form-card"><span class="eyebrow">{% translate "AUTHOR REVISION" %}</span><h1>{% translate "Submit a revised manuscript" %}</h1><p class="muted">{{ submission.title }}</p>
+<div class="notice">{% translate "This saves a new version and opens a new review round. Earlier files and decisions remain unchanged." %}</div>
+<form class="stack" method="post" enctype="multipart/form-data">{% csrf_token %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<button class="button" type="submit">{% translate "Submit revised version" %}</button></form></section>{% endblock %}

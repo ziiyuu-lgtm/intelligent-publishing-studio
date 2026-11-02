@@ -52,6 +52,9 @@ class Submission(models.Model):
         DRAFT = "draft", _("Draft")
         SUBMITTED = "submitted", _("Submitted")
         UNDER_REVIEW = "under_review", _("Under review")
+        REVISION_REQUESTED = "revision_requested", _("Revision requested")
+        ACCEPTED = "accepted", _("Accepted")
+        REJECTED = "rejected", _("Rejected")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="submissions")
@@ -59,7 +62,7 @@ class Submission(models.Model):
     title = models.CharField(_("Title"), max_length=250)
     abstract = models.TextField(_("Abstract"), max_length=10000)
     manuscript = models.FileField(_("Manuscript PDF"), upload_to=manuscript_path, max_length=255)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.DRAFT)
     created_at = models.DateTimeField(auto_now_add=True)
     submitted_at = models.DateTimeField(blank=True, null=True)
 
@@ -69,6 +72,43 @@ class Submission(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class SubmissionVersion(models.Model):
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="versions")
+    number = models.PositiveIntegerField()
+    manuscript = models.FileField(_("Manuscript PDF"), upload_to=manuscript_path, max_length=255)
+    author_response = models.TextField(_("Response to the editor"), max_length=20000, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["submission", "number"], name="unique_submission_version"),
+            models.CheckConstraint(condition=models.Q(number__gte=1), name="positive_version_number"),
+        ]
+        ordering = ["number"]
+
+
+class ReviewRound(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", _("Open")
+        CLOSED = "closed", _("Closed")
+
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="rounds")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="review_rounds")
+    number = models.PositiveIntegerField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["submission", "number"], name="unique_submission_round"),
+            models.UniqueConstraint(fields=["submission"], condition=models.Q(status="open"), name="one_open_round_per_submission"),
+            models.CheckConstraint(condition=models.Q(number__gte=1), name="positive_round_number"),
+        ]
+        ordering = ["number"]
 
 
 class ReviewAssignment(models.Model):
@@ -86,6 +126,7 @@ class ReviewAssignment(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="reviews")
+    round = models.ForeignKey(ReviewRound, on_delete=models.PROTECT, related_name="assignments")
     reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_assignments")
     invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_invitations_sent")
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.INVITED)
@@ -96,8 +137,26 @@ class ReviewAssignment(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["submission", "reviewer"], name="unique_reviewer_per_submission")]
+        constraints = [models.UniqueConstraint(fields=["round", "reviewer"], name="unique_reviewer_per_round")]
         ordering = ["-created_at"]
+
+
+class EditorialDecision(models.Model):
+    class Outcome(models.TextChoices):
+        MINOR = "minor", _("Minor revision")
+        MAJOR = "major", _("Major revision")
+        ACCEPT = "accept", _("Accept")
+        REJECT = "reject", _("Reject")
+
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="decisions")
+    round = models.OneToOneField(ReviewRound, on_delete=models.PROTECT, related_name="decision")
+    outcome = models.CharField(max_length=12, choices=Outcome.choices)
+    author_message = models.TextField(_("Message to the author"), max_length=20000)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["round__number"]
 
 
 class SubmissionEvent(models.Model):

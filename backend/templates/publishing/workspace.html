@@ -15,7 +15,7 @@
   </section>
   <section class="card panel full"><div class="panel-heading"><div><span class="eyebrow">03 / {% translate "REVIEWER" %}</span><h2>{% translate "Review tasks" %}</h2></div></div>
     <p class="muted">{% translate "Only tasks assigned to your account are shown." %}</p>
-    <div class="list">{% for review in reviews %}<a class="list-row" href="{% url 'review_detail' review.pk %}"><span><strong>{{ review.submission.title }}</strong><small>{{ review.submission.journal.name }}</small></span><span class="status">{{ review.get_status_display }}</span></a>{% empty %}<p class="empty-text">{% translate "No review tasks assigned." %}</p>{% endfor %}</div>
+    <div class="list">{% for review in reviews %}<a class="list-row" href="{% url 'review_detail' review.pk %}"><span><strong>{{ review.submission.title }}</strong><small>{{ review.submission.journal.name }} · {% translate "Round" %} {{ review.round.number }}</small></span><span class="status">{% if review.round.status == 'closed' %}{% translate "Round closed" %}{% else %}{{ review.get_status_display }}{% endif %}</span></a>{% empty %}<p class="empty-text">{% translate "No review tasks assigned." %}</p>{% endfor %}</div>
   </section>
 </div>
 {% endblock %}

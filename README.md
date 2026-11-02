@@ -1,6 +1,6 @@
 # Intelligent Publishing Studio
 
-Intelligent Publishing Studio is an open-source prototype for a multilingual, multi-journal scholarly publishing platform. SCIENTARA's journal group is the initial pilot scenario. This repository contains a static front-end prototype and a separate, local-development backend for testing an early submission and peer-review workflow with synthetic data.
+Intelligent Publishing Studio is an open-source prototype for a multilingual, multi-journal scholarly publishing platform. SCIENTARA's journal group is the initial pilot scenario. This repository contains a static front-end prototype and a separate, local-development backend for testing submission, editorial decisions, revisions, and multiple review rounds with synthetic data.
 
 > **Development only.** The static front end is simulated and is not connected to the backend. The backend stores test accounts, metadata, reviews and PDF files locally, but lacks controls required for real manuscripts or deployment. Neither component sends email or connects to an AI model, DOI registration service or a production database. Do not enter real manuscripts, personal information, production credentials or unpublished research. Neither component is suitable for production use.
 

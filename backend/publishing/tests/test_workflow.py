@@ -4,7 +4,10 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from publishing.models import Journal, Membership, Organisation, ReviewAssignment, Submission, SubmissionEvent
+from unittest.mock import patch
+from pathlib import Path
+from publishing.models import (EditorialDecision, Journal, Membership, Organisation, ReviewAssignment,
+                               ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 
 PDF = b"%PDF-1.4\n% fictional test document\n%%EOF\n"
 
@@ -216,3 +219,183 @@ class WorkflowTests(TestCase):
         self.assertEqual(self.client.get(reverse("logout")).status_code, 405)
         self.assertEqual(self.client.post(reverse("logout")).status_code, 302)
         self.assertEqual(self.client.get(reverse("workspace")).status_code, 302)
+
+    def finish_review(self, assignment, report="Confidential report for the editor"):
+        self.client.force_login(assignment.reviewer)
+        self.assertEqual(self.client.post(reverse("review_respond", args=[assignment.pk]), {"response": "accept"}).status_code, 302)
+        self.assertEqual(self.client.post(reverse("review_report", args=[assignment.pk]), {"recommendation": "major", "comments": report}).status_code, 302)
+
+    def decide(self, submission, outcome="major", message="Please revise the synthetic manuscript."):
+        self.client.force_login(self.editor)
+        return self.client.post(reverse("editorial_decision", args=[submission.pk]), {"outcome": outcome, "author_message": message})
+
+    def revise(self, submission, content=b"%PDF-1.4\n% revised fictional paper\n%%EOF\n", response="We addressed the editor's request."):
+        self.client.force_login(self.author)
+        return self.client.post(reverse("submission_revision", args=[submission.pk]), {
+            "manuscript": SimpleUploadedFile("revision.pdf", content, content_type="application/pdf"),
+            "author_response": response,
+        })
+
+    def test_two_rounds_preserve_versions_and_scope_reviewer_access(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        first = self.invite(submission)
+        self.finish_review(first, "First confidential review")
+        self.assertEqual(self.decide(submission, "major", "Please revise section two.").status_code, 302)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, Submission.Status.REVISION_REQUESTED)
+        self.assertEqual(ReviewRound.objects.get(submission=submission, number=1).status, ReviewRound.Status.CLOSED)
+        self.client.force_login(self.author)
+        author_page = self.client.get(reverse("submission_detail", args=[submission.pk]))
+        self.assertContains(author_page, "Please revise section two.")
+        self.assertNotContains(author_page, "First confidential review")
+        self.assertNotContains(author_page, self.reviewer.username)
+        revised_pdf = b"%PDF-1.4\n% different version\n%%EOF\n"
+        self.assertEqual(self.revise(submission, revised_pdf).status_code, 302)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, Submission.Status.SUBMITTED)
+        self.assertEqual(list(submission.versions.values_list("number", flat=True)), [1, 2])
+        first_version = submission.versions.get(number=1)
+        second_version = submission.versions.get(number=2)
+        self.assertNotEqual(first_version.manuscript.name, second_version.manuscript.name)
+        with first_version.manuscript.open("rb") as original:
+            self.assertEqual(original.read(), PDF)
+        self.assertEqual(submission.rounds.get(number=2).version_id, second_version.pk)
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.get(reverse("review_file", args=[first.pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("submission_file", args=[submission.pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("submission_version_file", args=[submission.pk, 1])).status_code, 404)
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.post(reverse("review_invite", args=[submission.pk]), {"reviewer": self.reviewer.pk}).status_code, 302)
+        second = ReviewAssignment.objects.get(submission=submission, reviewer=self.reviewer, round__number=2)
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.get(reverse("review_file", args=[second.pk])).status_code, 404)
+        self.assertEqual(self.client.post(reverse("review_respond", args=[second.pk]), {"response": "accept"}).status_code, 302)
+        revised_response = self.client.get(reverse("review_file", args=[second.pk]))
+        self.assertEqual(b"".join(revised_response.streaming_content), revised_pdf)
+        self.assertEqual(self.client.post(reverse("review_report", args=[second.pk]), {"recommendation": "accept", "comments": "Second confidential review"}).status_code, 302)
+        self.assertEqual(self.decide(submission, "accept", "Accepted after review.").status_code, 302)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, Submission.Status.ACCEPTED)
+        self.assertEqual(EditorialDecision.objects.filter(submission=submission).count(), 2)
+        self.client.force_login(self.author)
+        author_page = self.client.get(reverse("submission_detail", args=[submission.pk]))
+        self.assertContains(author_page, "Accepted after review.")
+        self.assertNotContains(author_page, "Second confidential review")
+        self.assertEqual(self.client.get(reverse("submission_revision", args=[submission.pk])).status_code, 409)
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.post(reverse("editorial_decision", args=[submission.pk]), {"outcome":"reject", "author_message":"Duplicate"}).status_code, 409)
+
+    def test_decision_requires_review_except_for_desk_rejection(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        for outcome in ["accept", "minor", "major"]:
+            result = self.decide(submission, outcome)
+            self.assertEqual(result.status_code, 200)
+            self.assertTrue(result.context["form"].errors)
+        self.assertFalse(EditorialDecision.objects.filter(submission=submission).exists())
+        self.client.force_login(self.other_editor)
+        self.assertEqual(self.client.post(reverse("editorial_decision", args=[submission.pk]), {"outcome":"reject", "author_message":"No"}).status_code, 404)
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.post(reverse("editorial_decision", args=[submission.pk]), {"outcome":"reject", "author_message":"No"}).status_code, 404)
+        self.assertEqual(self.decide(submission, "reject", "The submission is outside scope.").status_code, 302)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, Submission.Status.REJECTED)
+        self.assertEqual(submission.rounds.get(number=1).status, ReviewRound.Status.CLOSED)
+
+    def test_closing_round_freezes_unfinished_reviews(self):
+        extra_reviewer = get_user_model().objects.create_user("reviewer-two", password="a-long-synthetic-password")
+        Membership.objects.create(user=extra_reviewer, journal=self.journal, role=Membership.Role.REVIEWER)
+        submission = self.create_draft()
+        self.submit(submission)
+        first = self.invite(submission)
+        self.finish_review(first)
+        self.client.force_login(self.editor)
+        self.client.post(reverse("review_invite", args=[submission.pk]), {"reviewer": extra_reviewer.pk})
+        second = ReviewAssignment.objects.get(submission=submission, reviewer=extra_reviewer)
+        self.client.force_login(extra_reviewer)
+        self.client.post(reverse("review_respond", args=[second.pk]), {"response": "accept"})
+        self.assertEqual(self.decide(submission).status_code, 302)
+        self.client.force_login(extra_reviewer)
+        self.assertEqual(self.client.get(reverse("review_file", args=[second.pk])).status_code, 404)
+        self.assertEqual(self.client.post(reverse("review_report", args=[second.pk]), {"recommendation":"accept", "comments":"Too late"}).status_code, 409)
+        self.assertEqual(self.client.post(reverse("review_respond", args=[second.pk]), {"response":"accept"}).status_code, 409)
+        second.refresh_from_db()
+        self.assertEqual(second.status, ReviewAssignment.Status.ACCEPTED)
+
+    def test_revision_requires_valid_pdf_response_and_author(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        review = self.invite(submission)
+        self.finish_review(review)
+        self.decide(submission)
+        self.client.force_login(self.other_editor)
+        self.assertEqual(self.client.get(reverse("submission_revision", args=[submission.pk])).status_code, 404)
+        self.assertEqual(self.revise(submission, b"not a PDF").status_code, 200)
+        self.assertEqual(self.revise(submission, response="  ").status_code, 200)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, Submission.Status.REVISION_REQUESTED)
+        self.assertEqual(submission.versions.count(), 1)
+        self.assertEqual(self.revise(submission).status_code, 302)
+        self.assertEqual(self.revise(submission).status_code, 409)
+        self.assertEqual(submission.versions.count(), 2)
+        self.assertEqual(submission.events.filter(action="revision_submitted").count(), 1)
+
+    def test_failed_revision_transaction_removes_uploaded_orphan(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        review = self.invite(submission)
+        self.finish_review(review)
+        self.decide(submission)
+        before = set(Path(self.media_dir).rglob("*.pdf"))
+        with patch("publishing.views.ReviewRound.objects.create", side_effect=RuntimeError("synthetic failure")):
+            with self.assertRaises(RuntimeError):
+                self.revise(submission)
+        self.assertEqual(set(Path(self.media_dir).rglob("*.pdf")), before)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, Submission.Status.REVISION_REQUESTED)
+        self.assertEqual(submission.versions.count(), 1)
+
+    def test_assigned_reviewer_cannot_act_as_editor_for_same_submission(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        review = self.invite(submission)
+        Membership.objects.create(user=self.reviewer, journal=self.journal, role=Membership.Role.EDITOR)
+        self.finish_review(review)
+        self.client.force_login(self.reviewer)
+        self.assertNotContains(self.client.get(reverse("workspace")), "Editorial decision")
+        self.assertEqual(self.client.get(reverse("submission_detail", args=[submission.pk])).status_code, 404)
+        self.assertEqual(self.client.post(reverse("editorial_decision", args=[submission.pk]), {"outcome":"reject", "author_message":"Conflict"}).status_code, 404)
+
+    def test_csrf_blocks_editor_decision_and_revision(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.editor)
+        self.assertEqual(client.post(reverse("editorial_decision", args=[submission.pk]), {"outcome":"reject", "author_message":"No"}).status_code, 403)
+        client.force_login(self.author)
+        self.assertEqual(client.post(reverse("submission_revision", args=[submission.pk]), {}).status_code, 403)
+        self.assertFalse(EditorialDecision.objects.filter(submission=submission).exists())
+
+    def test_prior_editor_cannot_be_invited_as_reviewer_in_later_round(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        review = self.invite(submission)
+        self.finish_review(review)
+        self.decide(submission)
+        self.revise(submission)
+        Membership.objects.create(user=self.editor, journal=self.journal, role=Membership.Role.REVIEWER)
+        second_editor = get_user_model().objects.create_user("second-editor", password="a-long-synthetic-password")
+        Membership.objects.create(user=second_editor, journal=self.journal, role=Membership.Role.EDITOR)
+        self.client.force_login(second_editor)
+        self.client.post(reverse("review_invite", args=[submission.pk]), {"reviewer": self.editor.pk})
+        self.assertFalse(ReviewAssignment.objects.filter(submission=submission, reviewer=self.editor).exists())
+
+    def test_new_decision_form_is_available_in_simplified_chinese(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        self.client.force_login(self.editor)
+        self.client.post(reverse("set_language"), {"language": "zh-hans", "next": "/"})
+        response = self.client.get(reverse("editorial_decision", args=[submission.pk]))
+        self.assertContains(response, "记录编辑决定")
+        self.assertContains(response, "给作者的说明")
