@@ -7020,3 +7020,93 @@ msgstr "候选图片"
 
 msgid "AFTER"
 msgstr "候选"
+
+msgid "Compare review reports"
+msgstr "比较审稿报告"
+
+msgid "REVIEW REPORTS"
+msgstr "审稿报告"
+
+msgid "Read the reports together and consider each recommendation in context."
+msgstr "并排阅读报告，结合上下文考虑每一项建议。"
+
+msgid "PRIVATE TO ASSIGNED EDITORS"
+msgstr "仅限已指派编辑查看"
+
+msgid "MANUSCRIPT"
+msgstr "稿件"
+
+msgid "Review round"
+msgstr "审稿轮次"
+
+msgid "View"
+msgstr "查看"
+
+msgid "Round overview"
+msgstr "本轮概览"
+
+msgid "Reports available"
+msgstr "可比较报告"
+
+msgid "Accepted invitations"
+msgstr "已接受的邀请"
+
+msgid "Invitations sent"
+msgstr "已发出的邀请"
+
+msgid "Conflicts flagged"
+msgstr "已标记利益冲突"
+
+msgid "Require editorial attention"
+msgstr "需要编辑关注"
+
+msgid "Only submitted reports with a current no-conflict declaration appear below. Declared conflicts and reports awaiting a declaration are excluded. Counts do not determine an editorial decision."
+msgstr "下方仅显示已提交且当前声明无利益冲突的报告。已声明冲突或尚未声明的报告不纳入比较。数量不能决定编辑决定。"
+
+msgid "Reports awaiting a declaration:"
+msgstr "等待利益冲突声明的报告："
+
+msgid "SIDE-BY-SIDE VIEW"
+msgstr "并排比较"
+
+msgid "Reviewer perspectives"
+msgstr "审稿人观点"
+
+msgid "Confidential comments and recommendations from this round."
+msgstr "本轮的保密审稿意见与建议。"
+
+msgid "REVIEWER ACCOUNT"
+msgstr "审稿人账号"
+
+msgid "SUBMITTED"
+msgstr "已提交"
+
+msgid "Not provided"
+msgstr "未提供"
+
+msgid "REVIEW COMMENTS"
+msgstr "审稿意见"
+
+msgid "No comments provided."
+msgstr "未提供审稿意见。"
+
+msgid "No eligible reports are available for this round yet."
+msgstr "本轮暂时没有可供比较的报告。"
+
+msgid "The editor remains responsible for evaluating the reports and making the decision."
+msgstr "编辑负责评估报告并作出决定。"
+
+msgid "Return to submission"
+msgstr "返回稿件"
+
+msgid "No review round is available for this submission."
+msgstr "此稿件尚无可用审稿轮次。"
+
+msgid "Accepted, no report"
+msgstr "已接受，尚无报告"
+
+msgid "Invited, no response"
+msgstr "已邀请，尚未回复"
+
+msgid "Invitations recorded"
+msgstr "已记录的邀请"
