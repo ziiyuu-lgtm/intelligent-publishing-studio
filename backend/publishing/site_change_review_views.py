@@ -13,6 +13,7 @@ from .site_design import InvalidDesign, appearance_for, legacy_to_blueprint
 from .site_images import hero_reference_valid
 from .module_images import IMAGE_FIELDS
 from .site_pages import validate_pages
+from .site_text_diff import compare_page_text
 from . import site_sections, portal_sections
 from .site_page_views import _managed
 
@@ -104,7 +105,14 @@ def _page_changes(before, after):
             if not fields:
                 continue
             status = _('Changed')
-        result.append({'status':status, 'fields':fields, 'before':summary(previous), 'after':summary(current)})
+        old_text = previous[1]['body'] if previous else ''
+        new_text = current[1]['body'] if current else ''
+        text_comparison = compare_page_text(old_text, new_text)
+        if text_comparison is not None:
+            text_comparison.update(before_present=previous is not None, after_present=current is not None,
+                                   before_empty=not old_text, after_empty=not new_text)
+        result.append({'status':status, 'fields':fields, 'before':summary(previous), 'after':summary(current),
+                       'text_comparison':text_comparison})
     return result
 
 

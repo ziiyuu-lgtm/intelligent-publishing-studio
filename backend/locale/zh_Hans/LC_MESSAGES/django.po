@@ -6841,3 +6841,18 @@ msgstr "位置"
 
 msgid "Not present"
 msgstr "不存在"
+
+msgid "Compare page text"
+msgstr "对比页面文字"
+
+msgid "This compares the page text field; content blocks are not included."
+msgstr "此处比较页面文字字段，不包含内容块。"
+
+msgid "Removed text is struck through and added text is underlined. Highlights are approximate; review both versions."
+msgstr "删除的文字带删除线，新增文字带下划线。高亮结果为近似比较，请检查两个版本。"
+
+msgid "Long text is shown in full without highlighting."
+msgstr "文字较长，完整显示但不高亮差异。"
+
+msgid "No page text"
+msgstr "没有页面文字"

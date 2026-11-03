@@ -132,12 +132,55 @@ class SiteChangeReviewTests(TestCase):
                 pages = changes['Independent pages']['page_changes']
                 self.assertEqual([str(p['status']) for p in pages],['Changed','Changed','Added','Removed'])
                 self.assertEqual([str(f) for f in pages[0]['fields']],['Title','Page text','Visibility','Position'])
+                self.assertEqual(''.join(p['text'] for p in pages[0]['text_comparison']['before']),'Old board')
+                self.assertEqual(''.join(p['text'] for p in pages[0]['text_comparison']['after']),'New board')
+                self.assertIsNone(pages[1]['text_comparison'])
                 self.assertEqual((pages[0]['before']['position'],pages[0]['after']['position']),(2,1))
                 self.assertEqual(pages[2]['after']['slug'],'new-page')
                 self.assertEqual(pages[3]['before']['slug'],'old-page')
                 self.assertContains(response,'&lt;b&gt;New board&lt;/b&gt;',html=False)
                 self.assertNotContains(response,'<b>New board</b>',html=False)
                 self.assertContains(response,'A renamed URL appears as a removed page and an added page')
+
+    def test_page_text_comparison_escapes_content_and_remains_private(self):
+        for kind in ('journal','portal'):
+            with self.subTest(kind=kind):
+                site = self.owner(kind)[2]
+                site.pages_config = [{'slug':'example','title':'Example','body':'Old <script>alert(1)</script> text','visible':False}]
+                site.save(update_fields=['pages_config'])
+                self.assertEqual(self.publish(kind).status_code,302)
+                site.refresh_from_db()
+                site.pages_config[0]['body'] = 'New <script>alert(1)</script> text'
+                site.save(update_fields=['pages_config'])
+                before = (site.revision,site.current_release_id,site.events.count())
+                response = self.client.get(self.review(kind))
+                self.assertContains(response,'Compare page text')
+                self.assertContains(response,'<del>Old</del>',html=False)
+                self.assertContains(response,'<ins>New</ins>',html=False)
+                self.assertContains(response,'&lt;script&gt;alert(1)&lt;/script&gt;',html=False)
+                self.assertNotContains(response,'<script>alert(1)</script>',html=False)
+                site.refresh_from_db()
+                self.assertEqual((site.revision,site.current_release_id,site.events.count()),before)
+                self.client.force_login(self.author)
+                self.assertEqual(self.client.get(self.review(kind)).status_code,404)
+
+    def test_added_and_removed_page_text_distinguishes_absent_from_empty(self):
+        site = self.jsite
+        site.pages_config = [{'slug':'old','title':'Old','body':'Old text','visible':True},
+                             {'slug':'empty','title':'Empty','body':'','visible':True}]
+        site.save(update_fields=['pages_config'])
+        self.assertEqual(self.publish('journal').status_code,302)
+        site.refresh_from_db()
+        site.pages_config = [{'slug':'empty','title':'Empty','body':'Now there is text','visible':True},
+                             {'slug':'new','title':'New','body':'New text','visible':True}]
+        site.save(update_fields=['pages_config'])
+        response = self.client.get(self.review('journal'))
+        pages = next(c for c in response.context['changes'] if str(c['label']) == 'Independent pages')['page_changes']
+        self.assertTrue(pages[0]['text_comparison']['before_present'])
+        self.assertTrue(pages[0]['text_comparison']['before_empty'])
+        self.assertFalse(pages[1]['text_comparison']['before_present'])
+        self.assertFalse(pages[2]['text_comparison']['after_present'])
+        self.assertContains(response,'No page text')
 
     def test_invalid_stored_page_and_module_details_are_not_rendered(self):
         for kind in ('journal','portal'):
