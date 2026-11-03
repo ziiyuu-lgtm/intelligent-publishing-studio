@@ -6580,3 +6580,36 @@ msgstr "绘制开放式学术图书馆的精致建筑插画，采用柔和光线
 
 msgid "AI image generation"
 msgstr "AI 图片生成"
+
+msgid "Find your website designs and image requests in one private workspace."
+msgstr "在一个私人工作台中查找您的网站设计和图片请求。"
+
+msgid "Your design and image history"
+msgstr "您的设计与图片历史"
+
+msgid "Images added"
+msgstr "已添加图片"
+
+msgid "Previously added to the library"
+msgstr "曾添加到素材库"
+
+msgid "Create an AI image"
+msgstr "创建 AI 图片"
+
+msgid "AI image"
+msgstr "AI 图片"
+
+msgid "Added to image library"
+msgstr "已加入图片素材库"
+
+msgid "Image removed from library"
+msgstr "图片已从素材库移除"
+
+msgid "Candidate discarded"
+msgstr "候选图已丢弃"
+
+msgid "Open image request"
+msgstr "打开图片请求"
+
+msgid "Back to AI design workspace"
+msgstr "返回 AI 设计工作台"

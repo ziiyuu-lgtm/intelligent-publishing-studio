@@ -9,4 +9,5 @@
 {% elif run.status == 'cancelled' %}<div class="notice">{% translate "The request was cancelled because access, policy or the site draft changed." %}</div>
 {% elif run.status == 'discarded' %}<div class="notice">{% translate "This unsaved candidate was discarded." %}</div>
 {% else %}<div class="notice">{% translate "The image could not be generated. Check the configuration and try again with a new request." %}</div>{% endif %}
+<p><a class="button secondary small" data-design-history href="{{ history_url }}">← {% translate "Back to AI design workspace" %}</a></p>
 {% endblock %}

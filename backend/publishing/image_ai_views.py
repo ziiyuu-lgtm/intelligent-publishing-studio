@@ -96,6 +96,7 @@ def _create_page(request, owner, site, kind, form=None, status=200):
         'available':_configured() and _active(policy, kind),
         'recent_runs':site.image_generation_runs.filter(requested_by=request.user).defer('image_data')[:10],
         'result_route':_route(kind, 'result'),
+        'history_url':reverse('journal_design_history' if kind == 'journal' else 'publisher_design_history', args=[owner.slug]),
         'manage_url':reverse('manage_journal_site' if kind == 'journal' else 'manage_publisher_portal', args=[owner.slug]) + '#site-image-library',
     }, status=status))
 
@@ -199,6 +200,7 @@ def result(request, slug, run_id, kind):
         'accept_url':reverse(_route(kind, 'accept'), args=[slug, run.pk]),
         'discard_url':reverse(_route(kind, 'discard'), args=[slug, run.pk]),
         'create_url':reverse(_route(kind, 'create'), args=[slug]),
+        'history_url':reverse('journal_design_history' if kind == 'journal' else 'publisher_design_history', args=[slug]),
         'manage_url':reverse('manage_journal_site' if kind == 'journal' else 'manage_publisher_portal', args=[slug]) + '#site-image-library',
     }))
 
