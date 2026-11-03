@@ -680,6 +680,47 @@ class ReviewAssignment(models.Model):
         ordering = ["-created_at"]
 
 
+class ReviewAIConsent(models.Model):
+    """Narrow permission for a future review-report AI task; never enables a task itself."""
+    class Subject(models.TextChoices):
+        AUTHOR = "author", _("Submitting author")
+        REVIEWER = "reviewer", _("Reviewer")
+
+    class EndReason(models.TextChoices):
+        WITHDRAWN = "withdrawn", _("Withdrawn")
+        SUPERSEDED = "superseded", _("Superseded")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="review_ai_consents")
+    review_round = models.ForeignKey(ReviewRound, on_delete=models.PROTECT, related_name="review_ai_consents")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="review_ai_consents")
+    assignment = models.ForeignKey(ReviewAssignment, on_delete=models.PROTECT, null=True, blank=True, related_name="review_ai_consents")
+    granted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_ai_consents")
+    subject = models.CharField(max_length=10, choices=Subject.choices)
+    provider = models.CharField(max_length=30)
+    purpose = models.CharField(max_length=60)
+    source_fingerprint = models.CharField(max_length=64)
+    granted_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    end_reason = models.CharField(max_length=12, choices=EndReason.choices, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=(models.Q(subject="author", assignment__isnull=True) |
+                                                models.Q(subject="reviewer", assignment__isnull=False)),
+                                   name="review_ai_subject_assignment"),
+            models.CheckConstraint(condition=(models.Q(ended_at__isnull=True, end_reason="") |
+                                                models.Q(ended_at__isnull=False, end_reason__in=["withdrawn", "superseded"])),
+                                   name="review_ai_consent_end_consistent"),
+            models.UniqueConstraint(fields=["review_round", "provider", "purpose"],
+                                    condition=models.Q(subject="author", ended_at__isnull=True),
+                                    name="review_ai_one_author_round"),
+            models.UniqueConstraint(fields=["assignment", "provider", "purpose"],
+                                    condition=models.Q(subject="reviewer", ended_at__isnull=True),
+                                    name="review_ai_one_reviewer_report"),
+        ]
+
+
 class ReviewDeadlineEvent(models.Model):
     """Append-only record of an editor changing a fictional review deadline."""
     assignment = models.ForeignKey(ReviewAssignment, on_delete=models.PROTECT, related_name="deadline_events")

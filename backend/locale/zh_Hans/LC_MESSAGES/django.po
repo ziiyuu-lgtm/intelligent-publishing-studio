@@ -7110,3 +7110,129 @@ msgstr "已邀请，尚未回复"
 
 msgid "Invitations recorded"
 msgstr "已记录的邀请"
+
+msgid "Review AI permission"
+msgstr "审稿 AI 授权"
+
+msgid "Decide whether your information may be used in a future AI-assisted review comparison."
+msgstr "决定是否允许未来在 AI 辅助审稿比较中使用您的信息。"
+
+msgid "PRIVATE CHOICE"
+msgstr "个人隐私选择"
+
+msgid "PRIVATE SUBMISSION"
+msgstr "保密稿件"
+
+msgid "Permission management"
+msgstr "授权管理"
+
+msgid "You can still withdraw an existing choice."
+msgstr "您仍可撤回已记录的授权。"
+
+msgid "APPLIES TO"
+msgstr "适用范围"
+
+msgid "Fictional test data only. This page records a choice; it does not send reports or call an AI service."
+msgstr "仅供虚构数据测试。本页面只记录选择，不发送报告，也不调用 AI 服务。"
+
+msgid "A specific, optional use"
+msgstr "特定用途，由您选择"
+
+msgid "As the submitting author, you may permit a future editor-only AI comparison of the current eligible review-report set for this round and version. Reviewer identities and confidential comments are not displayed here."
+msgstr "作为投稿作者，您可以授权未来对本轮、本版本当前符合条件的审稿报告进行仅限编辑查看的 AI 比较。本页面不显示审稿人身份或保密意见。"
+
+msgid "As the reviewer, you may permit a future editor-only AI comparison using excerpts from your submitted report for this round and version."
+msgstr "作为审稿人，您可以授权未来使用您为本轮、本版本提交的报告摘录，进行仅限编辑查看的 AI 比较。"
+
+msgid "Review report comparison"
+msgstr "审稿报告比较"
+
+msgid "Editor-reviewed draft"
+msgstr "由编辑审核的草稿"
+
+msgid "If this task is implemented and enabled, the editor would select excerpts and confirm each request separately. The excerpts may contain manuscript information or identifiers. The manuscript PDF is not part of this proposed scope."
+msgstr "如果此功能将来实现并启用，编辑将选择摘录并逐次确认请求。摘录可能包含稿件信息或身份信息；拟议范围不包括稿件 PDF。"
+
+msgid "Provider charges and retention may apply. Permission for this task is separate from other AI permissions and does not by itself satisfy all journal or coauthor requirements."
+msgstr "服务商可能收费或保留数据。此项授权独立于其他 AI 授权，本身不能代替期刊或其他作者的全部要求。"
+
+msgid "YOUR CONTROL"
+msgstr "您的控制权"
+
+msgid "Permission stays specific"
+msgstr "授权范围明确"
+
+msgid "You may withdraw your recorded permission for future requests."
+msgstr "您可以撤回已记录的授权，阻止未来请求。"
+
+msgid "A changed report or conflict declaration makes the affected permission inactive until renewed."
+msgstr "报告或利益冲突声明发生变化后，受影响的授权将失效，直到重新授权。"
+
+msgid "An external request already sent cannot be recalled."
+msgstr "已经发送给外部服务的请求无法撤回。"
+
+msgid "Permission recorded"
+msgstr "授权已记录"
+
+msgid "Applies to the current source only."
+msgstr "仅适用于当前来源。"
+
+msgid "Previous permission is inactive"
+msgstr "先前授权已失效"
+
+msgid "The source or conflict declaration changed."
+msgstr "来源内容或利益冲突声明已变化。"
+
+msgid "No permission is recorded for this use."
+msgstr "尚未记录此用途的授权。"
+
+msgid "I allow this specific future use of the current source by OpenAI."
+msgstr "我同意 OpenAI 未来在此特定用途下使用当前来源。"
+
+msgid "Record permission"
+msgstr "记录授权"
+
+msgid "A submitted report with a no-conflict declaration and current access are required to grant permission."
+msgstr "授予授权需要已有提交且声明无利益冲突的报告，并且您仍拥有当前访问权限。"
+
+msgid "AI processing is not available yet"
+msgstr "AI 处理功能尚未开放"
+
+msgid "Recording permission does not enable AI, send information or make an editorial decision."
+msgstr "记录授权不会启用 AI、发送信息或作出编辑决定。"
+
+msgid "AI REVIEW ASSISTANT"
+msgstr "AI 审稿助手"
+
+msgid "PERMISSIONS"
+msgstr "授权"
+
+msgid "Prepare for responsible AI support"
+msgstr "为负责任的 AI 辅助做好准备"
+
+msgid "Permissions are specific to this round and current reports. No report is sent from this page."
+msgstr "授权仅适用于本轮及当前报告。本页面不会发送报告。"
+
+msgid "Reviewer permissions"
+msgstr "审稿人授权"
+
+msgid "Not permitted or changed"
+msgstr "未授权或内容已变化"
+
+msgid "recorded"
+msgstr "已记录"
+
+msgid "AI report processing is not available yet. Permissions do not replace journal policy or the editor's judgement."
+msgstr "AI 报告处理功能尚未开放。授权不能取代期刊政策或编辑判断。"
+
+msgid "The permission or source changed; reload the page."
+msgstr "授权或来源已变化，请重新加载页面。"
+
+msgid "Your choice was recorded. No AI request was made."
+msgstr "您的选择已记录，未发出 AI 请求。"
+
+msgid "Output"
+msgstr "结果"
+
+msgid "Not permitted"
+msgstr "未授权"

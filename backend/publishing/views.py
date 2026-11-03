@@ -367,6 +367,7 @@ def submission_detail(request, pk):
     context = {"submission": submission, "author_view": author_view, "editor_view": editor_view,
                "versions": submission.versions.all(), "decisions": submission.decisions.select_related("round"),
                "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version)),
+               "review_ai_permissions_available": settings.DEBUG and submission.status != Submission.Status.DRAFT,
                "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED}
     try:
         context["contributors"] = validate_contributors(submission.contributors_config)
@@ -795,6 +796,7 @@ def review_detail(request, pk):
                             assignment.conflict == ReviewAssignment.Conflict.NONE and
                             assignment.round.status == ReviewRound.Status.OPEN) else None
     return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
+        "review_ai_permissions_available": settings.DEBUG,
         "review_copy_ready": _review_copy_ready(assignment.submission, assignment.round.version)})
 
 
@@ -827,13 +829,17 @@ def review_respond(request, pk):
         if action == "conflict":
             if assignment.status not in (ReviewAssignment.Status.INVITED, ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED) or assignment.conflict == ReviewAssignment.Conflict.YES:
                 return HttpResponse(_("This conflict has already been recorded."), status=409)
-            if assignment.status != ReviewAssignment.Status.SUBMITTED:
+            was_submitted = assignment.status == ReviewAssignment.Status.SUBMITTED
+            if not was_submitted:
                 assignment.status = ReviewAssignment.Status.CONFLICT
             if not assignment.responded_at:
                 assignment.responded_at = timezone.now()
             assignment.conflict, assignment.conflict_details, assignment.conflict_declared_at = ReviewAssignment.Conflict.YES, details, timezone.now()
             assignment.save(update_fields=["status", "responded_at", "conflict", "conflict_details", "conflict_declared_at"])
             ConflictDeclaration.objects.create(assignment=assignment, declared_by=request.user, choice=ConflictDeclaration.Choice.YES, details=details)
+            if was_submitted:
+                from .review_ai_consent import supersede_on_report_change
+                supersede_on_report_change(assignment, include_reviewer=True)
             _event(submission, request.user, "review_conflict_declared")
         elif action == "confirm_no_conflict":
             if assignment.status not in (ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED) or assignment.conflict != ReviewAssignment.Conflict.UNKNOWN:
@@ -841,6 +847,9 @@ def review_respond(request, pk):
             assignment.conflict, assignment.conflict_declared_at = ReviewAssignment.Conflict.NONE, timezone.now()
             assignment.save(update_fields=["conflict", "conflict_declared_at"])
             ConflictDeclaration.objects.create(assignment=assignment, declared_by=request.user, choice=ConflictDeclaration.Choice.NONE)
+            if assignment.status == ReviewAssignment.Status.SUBMITTED:
+                from .review_ai_consent import supersede_on_report_change
+                supersede_on_report_change(assignment, include_reviewer=True)
             _event(submission, request.user, "review_no_conflict_declared")
         else:
             if review_round.status != ReviewRound.Status.OPEN or submission.status not in ACTIVE_REVIEW_STATUSES:
@@ -888,6 +897,8 @@ def review_report(request, pk):
         assignment.status = ReviewAssignment.Status.SUBMITTED
         assignment.completed_at = timezone.now()
         assignment.save(update_fields=["recommendation", "comments", "status", "completed_at"])
+        from .review_ai_consent import supersede_on_report_change
+        supersede_on_report_change(assignment, include_reviewer=True)
         _event(assignment.submission, request.user, "review_submitted")
     messages.success(request, _("Report saved for the editor."))
     return redirect("review_detail", pk=pk)

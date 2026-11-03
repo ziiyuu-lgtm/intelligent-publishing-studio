@@ -1,11 +1,13 @@
 """Read-only comparison of completed reviews for a single assigned editor."""
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.http import Http404
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
-from .models import ReviewAssignment, ReviewRound
+from .models import ReviewAIConsent, ReviewAssignment, ReviewRound
+from .review_ai_consent import PROVIDER, PURPOSE, author_active, existing_author, reviewer_active
 from .views import _editor_can_view, _submission
 
 
@@ -33,7 +35,7 @@ def review_comparison(request, pk):
         selected = selected or (rounds[0] if rounds else None)
 
     assignments = list(ReviewAssignment.objects.filter(submission=submission, round=selected)
-                       .select_related("reviewer").order_by("created_at", "pk")) if selected else []
+                       .select_related("reviewer", "round__version").order_by("created_at", "pk")) if selected else []
     reports = [item for item in assignments if item.status == ReviewAssignment.Status.SUBMITTED
                and item.conflict == ReviewAssignment.Conflict.NONE]
     counts = {
@@ -43,7 +45,16 @@ def review_comparison(request, pk):
         "flagged": sum(item.conflict == ReviewAssignment.Conflict.YES for item in assignments),
         "undeclared": sum(item.status == ReviewAssignment.Status.SUBMITTED and item.conflict == ReviewAssignment.Conflict.UNKNOWN for item in assignments),
     }
+    ai_readiness = None
+    if settings.DEBUG and selected:
+        author_consent = existing_author(selected, submission.author)
+        consents = ReviewAIConsent.objects.filter(assignment__in=reports, subject=ReviewAIConsent.Subject.REVIEWER,
+            provider=PROVIDER, purpose=PURPOSE, ended_at__isnull=True)
+        by_assignment = {item.assignment_id: item for item in consents}
+        ai_readiness = {"author": author_active(author_consent, selected, reports),
+                        "reviewers": sum(reviewer_active(by_assignment.get(item.pk), item) for item in reports),
+                        "total": len(reports)}
     return render(request, "publishing/review_comparison.html", {
         "submission": submission, "rounds": rounds, "selected_round": selected,
-        "reports": reports, "counts": counts,
+        "reports": reports, "counts": counts, "ai_readiness": ai_readiness,
     })
