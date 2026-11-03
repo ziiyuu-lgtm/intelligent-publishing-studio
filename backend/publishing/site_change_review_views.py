@@ -11,8 +11,9 @@ from . import portal_views
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, appearance_for, legacy_to_blueprint
 from .site_images import hero_reference_valid
-from .site_sections import default_sections as journal_default_sections
-from .portal_sections import default_sections as portal_default_sections
+from .module_images import IMAGE_FIELDS
+from .site_pages import validate_pages
+from . import site_sections, portal_sections
 from .site_page_views import _managed
 
 TEXT_FIELDS = (('brand_name', _('Site name')), ('headline', _('Headline')),
@@ -42,11 +43,69 @@ def _count(value):
 def _section_count(version, kind):
     if version.sections_config == []:
         try:
-            defaults = journal_default_sections(version) if kind == 'journal' else portal_default_sections(version)
+            defaults = site_sections.default_sections(version) if kind == 'journal' else portal_sections.default_sections(version)
             return len(defaults)
         except (AttributeError, TypeError, ValueError):
             return None
     return _count(version.sections_config)
+
+
+def _section_inventory(version, kind):
+    """Show each version's order, without assuming modules have stable identities."""
+    module = site_sections if kind == 'journal' else portal_sections
+    try:
+        raw = version.sections_config if version.sections_config != [] else module.default_sections(version)
+        sections = module.validate_sections(raw)
+        labels = dict(module.SECTION_CHOICES)
+        return [{'position':index, 'title':item['heading'] or labels[item['kind']],
+                 'type':labels[item['kind']], 'visible':item['visible']}
+                for index, item in enumerate(sections, 1)]
+    except (ValueError, TypeError, AttributeError, KeyError):
+        return None
+
+
+def _page_changes(before, after):
+    """Match validated pages by URL name; renamed URLs appear as remove/add."""
+    try:
+        validate_pages(before)
+        validate_pages(after)
+    except (ValueError, TypeError, AttributeError, KeyError):
+        return None
+    old = {item['slug']:(index, item) for index, item in enumerate(before, 1)}
+    new = {item['slug']:(index, item) for index, item in enumerate(after, 1)}
+    ordered = [item['slug'] for item in after] + [item['slug'] for item in before if item['slug'] not in new]
+    result = []
+
+    def summary(entry):
+        if entry is None:
+            return None
+        position, item = entry
+        return {'position':position, 'title':item['title'], 'slug':item['slug'], 'visible':item['visible']}
+
+    for slug in ordered:
+        previous, current = old.get(slug), new.get(slug)
+        if previous is None:
+            status, fields = _('Added'), []
+        elif current is None:
+            status, fields = _('Removed'), []
+        else:
+            old_pos, old_page = previous
+            new_pos, new_page = current
+            fields = []
+            for key, label in (('title', _('Title')), ('body', _('Page text')),
+                               ('visible', _('Visibility')), ('blocks', _('Page blocks')),
+                               ('design', _('Page design')), ('block_layout', _('Block layout'))):
+                if old_page.get(key) != new_page.get(key):
+                    fields.append(label)
+            if any(old_page.get(key) != new_page.get(key) for key in IMAGE_FIELDS):
+                fields.append(_('Page image'))
+            if old_pos != new_pos:
+                fields.append(_('Position'))
+            if not fields:
+                continue
+            status = _('Changed')
+        result.append({'status':status, 'fields':fields, 'before':summary(previous), 'after':summary(current)})
+    return result
 
 
 def _appearance(version, kind):
@@ -79,11 +138,22 @@ def _changes(site, release, kind, owner):
     for field, label, unit in (('sections_config', _('Page modules'), _('modules')),
                                ('pages_config', _('Independent pages'), _('pages'))):
         before, after = getattr(release, field), getattr(site, field)
-        if before != after:
-            changes.append({'label':label, 'kind':'counts', 'unit':unit,
-                            'before':_section_count(release, kind) if field == 'sections_config' else _count(before),
-                            'after':_section_count(site, kind) if field == 'sections_config' else _count(after),
-                            'summary':_('Content, order or visibility may have changed.')})
+        before_items = _section_inventory(release, kind) if field == 'sections_config' else None
+        after_items = _section_inventory(site, kind) if field == 'sections_config' else None
+        # Empty legacy module lists derive their displayed order from the design.
+        legacy_order_changed = (field == 'sections_config' and before == [] and after == []
+                                and before_items != after_items)
+        if before != after or legacy_order_changed:
+            change = {'label':label, 'kind':'sections' if field == 'sections_config' else 'pages', 'unit':unit,
+                      'before':_section_count(release, kind) if field == 'sections_config' else _count(before),
+                      'after':_section_count(site, kind) if field == 'sections_config' else _count(after),
+                      'summary':_('Content, order or visibility may have changed.')}
+            if field == 'sections_config':
+                change['before_items'] = before_items
+                change['after_items'] = after_items
+            else:
+                change['page_changes'] = _page_changes(before, after)
+            changes.append(change)
     if kind != 'journal':
         # These are the currently resolvable lists shown by the two portal views.
         current_journals = portal_views._draft_journals(site)

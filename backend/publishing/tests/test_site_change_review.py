@@ -99,6 +99,78 @@ class SiteChangeReviewTests(TestCase):
         self.assertEqual(change['before'][0]['name'],'Fictional journal')
         self.assertEqual(change['after'][0]['name'],'Renamed fictional journal')
 
+    def test_page_details_and_module_order_for_both_site_types(self):
+        for kind in ('journal','portal'):
+            with self.subTest(kind=kind):
+                site = self.owner(kind)[2]
+                defaults = journal_sections(site) if kind == 'journal' else portal_sections(site)
+                site.sections_config = defaults + [{'kind':'custom','heading':'Fictional resources','body':'Old','visible':False}]
+                site.pages_config = [
+                    {'slug':'authors','title':'For authors','body':'Old instructions','visible':True},
+                    {'slug':'board','title':'Editorial board','body':'Old board','visible':True},
+                    {'slug':'old-page','title':'Old page','body':'Archive','visible':False},
+                ]
+                site.save(update_fields=['sections_config','pages_config'])
+                self.assertEqual(self.publish(kind).status_code,302)
+                site.refresh_from_db()
+                site.sections_config = [site.sections_config[2], *site.sections_config[:2]]
+                site.sections_config[0]['visible'] = True
+                site.pages_config = [
+                    {'slug':'board','title':'<b>New board</b>','body':'New board','visible':False},
+                    {'slug':'authors','title':'For authors','body':'Old instructions','visible':True},
+                    {'slug':'new-page','title':'New page','body':'Welcome','visible':True},
+                ]
+                site.save(update_fields=['sections_config','pages_config'])
+                response = self.client.get(self.review(kind))
+                self.assertEqual(response.status_code,200)
+                changes = {str(c['label']):c for c in response.context['changes']}
+                modules = changes['Page modules']
+                self.assertEqual(modules['before_items'][2]['title'],'Fictional resources')
+                self.assertFalse(modules['before_items'][2]['visible'])
+                self.assertEqual(modules['after_items'][0]['title'],'Fictional resources')
+                self.assertTrue(modules['after_items'][0]['visible'])
+                pages = changes['Independent pages']['page_changes']
+                self.assertEqual([str(p['status']) for p in pages],['Changed','Changed','Added','Removed'])
+                self.assertEqual([str(f) for f in pages[0]['fields']],['Title','Page text','Visibility','Position'])
+                self.assertEqual((pages[0]['before']['position'],pages[0]['after']['position']),(2,1))
+                self.assertEqual(pages[2]['after']['slug'],'new-page')
+                self.assertEqual(pages[3]['before']['slug'],'old-page')
+                self.assertContains(response,'&lt;b&gt;New board&lt;/b&gt;',html=False)
+                self.assertNotContains(response,'<b>New board</b>',html=False)
+                self.assertContains(response,'A renamed URL appears as a removed page and an added page')
+
+    def test_invalid_stored_page_and_module_details_are_not_rendered(self):
+        for kind in ('journal','portal'):
+            with self.subTest(kind=kind):
+                self.assertEqual(self.publish(kind).status_code,302)
+                site = self.owner(kind)[2]; site.refresh_from_db()
+                site.sections_config = [{'kind':'custom','heading':'UNTRUSTED-MODULE','body':'x','visible':'yes'}]
+                site.pages_config = [{'slug':'','title':'UNTRUSTED-PAGE','body':'x','visible':True}]
+                site.save(update_fields=['sections_config','pages_config'])
+                response = self.client.get(self.review(kind))
+                self.assertEqual(response.status_code,200)
+                self.assertContains(response,'Module details unavailable')
+                self.assertContains(response,'Page details unavailable because one version is invalid.')
+                self.assertNotContains(response,'UNTRUSTED-MODULE')
+                self.assertNotContains(response,'UNTRUSTED-PAGE')
+
+    def test_legacy_module_order_change_is_reported_when_lists_remain_empty(self):
+        for kind in ('journal','portal'):
+            with self.subTest(kind=kind):
+                self.assertEqual(self.publish(kind).status_code,302)
+                site = self.owner(kind)[2]; site.refresh_from_db()
+                self.assertEqual(site.sections_config,[])
+                if kind == 'journal':
+                    site.layout = 'magazine'
+                    site.save(update_fields=['layout'])
+                else:
+                    site.design_config = {**site.design_config,'section_order':'archive_first'}
+                    site.save(update_fields=['design_config'])
+                response = self.client.get(self.review(kind))
+                change = next(c for c in response.context['changes'] if str(c['label']) == 'Page modules')
+                self.assertEqual((change['before'],change['after']),(2,2))
+                self.assertNotEqual(change['before_items'][0]['type'],change['after_items'][0]['type'])
+
     def test_missing_or_corrupt_hero_is_reported_without_exposing_bytes(self):
         self.assertEqual(self.publish('journal').status_code,302)
         self.assertEqual(self.upload('journal').status_code,302)

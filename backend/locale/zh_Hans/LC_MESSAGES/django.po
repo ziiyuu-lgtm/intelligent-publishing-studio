@@ -6796,3 +6796,48 @@ msgstr "返回网站设计"
 
 msgid "Some visual settings are unavailable or invalid; the full preview may need correction."
 msgstr "部分视觉设置不可用或无效，完整预览可能需要修正。"
+
+msgid "Module order and visibility"
+msgstr "模块顺序与可见性"
+
+msgid "Modules have no persistent identifiers, so each version is listed separately. Open the full pages to inspect text and images."
+msgstr "模块没有永久标识，因此分别列出两个版本。请打开完整页面检查文字和图片。"
+
+msgid "Module details unavailable"
+msgstr "无法显示模块明细"
+
+msgid "No modules"
+msgstr "没有模块"
+
+msgid "Page-by-page detail"
+msgstr "逐页变更明细"
+
+msgid "Pages are matched by URL name. A renamed URL appears as a removed page and an added page; positions can change when other pages are added or removed."
+msgstr "页面按网址名称匹配。网址改名会显示为删除旧页面并新增页面；其他页面增删时，位置也可能变化。"
+
+msgid "Page details unavailable because one version is invalid."
+msgstr "某个版本的数据无效，无法显示页面明细。"
+
+msgid "No item-level differences found after validation."
+msgstr "验证后未发现具体条目的差异。"
+
+msgid "Added"
+msgstr "新增"
+
+msgid "Changed"
+msgstr "已更改"
+
+msgid "Visibility"
+msgstr "可见状态"
+
+msgid "Page design"
+msgstr "页面设计"
+
+msgid "Block layout"
+msgstr "内容块布局"
+
+msgid "Position"
+msgstr "位置"
+
+msgid "Not present"
+msgstr "不存在"
