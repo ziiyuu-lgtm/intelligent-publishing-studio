@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Choose a page" %}{% endblock %}
+{% block content %}<section class="card panel stack"><h1>{% translate "Create a page first" %}</h1><p>{% translate "Add an independent page to the draft before previewing this image on a page." %}</p><p><a class="button" href="{{ manage_pages_url }}">{% translate "Manage pages" %} →</a> <a class="button secondary" href="{{ back_url }}">← {% translate "Back to image review" %}</a></p></section>{% endblock %}

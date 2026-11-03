@@ -105,6 +105,124 @@ class ImageWorkflowChecks:
         self.assertEqual(self.client.post(self.route('accept',run),{'confirm':'yes'}).status_code,302)
         self.assertEqual(self.site.images.count(),0)
 
+    def page_examples(self):
+        self.site.pages_config = [
+            {'slug':'about', 'title':'About <research>', 'body':'A fictional introduction.', 'visible':True},
+            {'slug':'editorial-board', 'title':'Editorial board', 'body':'Private draft content.', 'visible':False},
+        ]
+        self.site.save(update_fields=['pages_config'])
+
+    def page_review(self, run, **options):
+        response = self.client.get(self.route('page_preview', run), options)
+        self.assertEqual(response.status_code, 200)
+        return response.context['image_candidate_page']['candidate_reviewed']
+
+    def test_candidate_page_preview_is_private_and_read_only(self):
+        self.page_examples(); run, _ = self.start()
+        before = self.site.pages_config
+        url = self.route('page_preview', run)
+        self.assertContains(self.client.get(self.route('result', run)), url)
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            result = self.client.get(url, {'page':'editorial-board','fit':'contain','position':'bottom'})
+        provider.assert_not_called()
+        self.assertContains(result, 'See this image on a page')
+        self.assertContains(result, 'Editorial board (hidden)')
+        self.assertContains(result, self.route('image', run))
+        self.assertContains(result, 'object-fit:contain;object-position:bottom')
+        self.assertIn('no-store', result['Cache-Control'])
+        self.assertEqual(result['X-Robots-Tag'], 'noindex, nofollow, noarchive')
+        self.assertEqual(self.client.get(url, {'fit':'invalid'}).status_code, 400)
+        self.assertEqual(self.client.get(url, {'page':'missing'}).status_code, 404)
+        self.assertEqual(self.client.post(url).status_code, 405)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual(self.site.pages_config, before)
+        self.assertIsNone(run.accepted_at); self.assertEqual(self.site.images.count(), 0)
+        self.client.force_login(self.second_user())
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_candidate_page_requires_a_page(self):
+        self.site.pages_config = []; self.site.save(update_fields=['pages_config'])
+        run, _ = self.start()
+        self.assertContains(self.client.get(self.route('page_preview', run)), 'Create a page first')
+        self.assertEqual(self.site.images.count(), 0)
+
+    def test_apply_page_uses_signed_target_and_preserves_other_content(self):
+        self.page_examples(); run, _ = self.start()
+        original_pages = self.site.pages_config
+        token = self.page_review(run, page='editorial-board', fit='contain', position='bottom')
+        before_revision, release = self.site.revision, self.site.current_release_id
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            result = self.client.post(self.route('apply_page_preview', run), {
+                'confirm':'yes', 'reviewed_image':token, 'page':'about', 'fit':'cover', 'position':'top'})
+        provider.assert_not_called(); self.assertEqual(result.status_code, 302)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual(self.site.pages_config[0], original_pages[0])
+        self.assertEqual(self.site.pages_config[1], {**original_pages[1], 'image_asset_id':str(run.accepted_asset_id),
+            'image_alt':'A fictional landscape with circles', 'image_fit':'contain', 'image_position':'bottom'})
+        self.assertEqual(self.site.revision, before_revision + 1)
+        self.assertEqual(self.site.current_release_id, release)
+        self.assertIsNone(self.site.hero_asset_id)
+        self.assertEqual(self.site.module_image_references.count(), 1)
+        self.assertEqual(self.client.post(self.route('apply_page_preview',run), {'confirm':'yes','reviewed_image':token}).status_code, 409)
+
+    def test_page_preview_tokens_expire_and_bind_candidate_and_draft(self):
+        self.page_examples(); run, _ = self.start(); url = self.route('apply_page_preview', run)
+        token = self.page_review(run, page='about')
+        self.assertEqual(self.client.post(url, {'reviewed_image':token}).status_code, 400)
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token + 'bad'}).status_code, 400)
+        with patch('django.core.signing.time.time', return_value=9999999999):
+            self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code, 400)
+        csrf = Client(enforce_csrf_checks=True); csrf.force_login(self.manager)
+        self.assertEqual(csrf.post(url, {'confirm':'yes','reviewed_image':token}).status_code, 403)
+        self.site.pages_config[0]['body'] = 'Changed after preview'
+        self.site.save(update_fields=['pages_config'])
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code, 409)
+        self.assertEqual(self.site.images.count(), 0)
+
+    def test_page_apply_handles_saved_candidate_and_revoked_permission(self):
+        self.page_examples(); run, _ = self.start()
+        self.assertEqual(self.client.post(self.route('accept', run), {'confirm':'yes'}).status_code, 302)
+        run.refresh_from_db(); self.site.headline = 'Newer draft'; self.site.revision += 1
+        self.site.save(update_fields=['headline','revision'])
+        token = self.page_review(run, page='about')
+        with patch('publishing.image_ai_views.MAX_SITE_IMAGES',0):
+            self.assertEqual(self.client.post(self.route('apply_page_preview', run), {'confirm':'yes','reviewed_image':token}).status_code, 302)
+        self.site.refresh_from_db(); self.assertEqual(self.site.images.count(), 1)
+        token = self.page_review(run, page='editorial-board')
+        if self.kind == 'journal':
+            Membership.objects.filter(journal=self.journal,user=self.manager,role=Membership.Role.SITE_MANAGER).update(active=False)
+        else:
+            OrganisationMembership.objects.filter(organisation=self.org,user=self.manager,role=OrganisationMembership.Role.PORTAL_MANAGER).update(active=False)
+        self.assertEqual(self.client.post(self.route('apply_page_preview', run), {'confirm':'yes','reviewed_image':token}).status_code, 404)
+
+    def test_page_apply_rolls_back_image_and_references_if_save_fails(self):
+        self.page_examples(); run, _ = self.start(); token = self.page_review(run, page='about')
+        with patch.object(type(self.site),'save',side_effect=RuntimeError('simulated failure')):
+            with self.assertRaises(RuntimeError):
+                self.client.post(self.route('apply_page_preview', run), {'confirm':'yes','reviewed_image':token})
+        run.refresh_from_db(); self.site.refresh_from_db()
+        self.assertIsNone(run.accepted_at); self.assertIsNotNone(run.image_data)
+        self.assertEqual(self.site.images.count(), 0); self.assertEqual(self.site.module_image_references.count(), 0)
+
+    def test_page_application_does_not_change_the_published_page(self):
+        self.page_examples()
+        manage = 'manage_journal_site' if self.kind == 'journal' else 'manage_publisher_portal'
+        publish = 'publish_journal_site' if self.kind == 'journal' else 'publish_publisher_portal'
+        data = self.client.get(reverse(manage, args=[self.slug()])).context
+        self.assertEqual(self.client.post(reverse(publish, args=[self.slug()]), {
+            'revision':str(data['site'].revision), 'fingerprint':data['fingerprint'],
+            'confirm':'yes', 'synthetic':'yes'}).status_code, 302)
+        self.site.refresh_from_db(); release_id = self.site.current_release_id
+        run, _ = self.start(); token = self.page_review(run, page='about')
+        self.assertEqual(self.client.post(self.route('apply_page_preview', run), {'confirm':'yes','reviewed_image':token}).status_code, 302)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual(self.site.current_release_id, release_id)
+        self.assertNotIn('image_asset_id', self.site.current_release.pages_config[0])
+        public_page = 'public_journal_page' if self.kind == 'journal' else 'public_publisher_page'
+        public_image = 'public_journal_image' if self.kind == 'journal' else 'public_portal_image'
+        self.assertNotContains(Client().get(reverse(public_page, args=[self.slug(), 'about'])), 'A fictional landscape with circles')
+        self.assertEqual(Client().get(reverse(public_image,args=[self.slug(),run.accepted_asset_id])).status_code,404)
+
     def test_discard_clears_private_candidate_without_saving(self):
         run,_=self.start()
         self.assertEqual(self.client.post(self.route('discard',run),{}).status_code,400)

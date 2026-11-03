@@ -133,7 +133,8 @@ def _save(request, slug, kind):
 
 def _page(request, slug, page_slug, kind, preview, page_override=None, expected=None, ai_apply_url="", ai_revision=None,
           block_suggestion=None, block_apply_url="", block_edit_url="", block_reviewed="",
-          layout_suggestion=None, layout_apply_url="", layout_edit_url="", layout_reviewed="", manual_layout_preview=False):
+          layout_suggestion=None, layout_apply_url="", layout_edit_url="", layout_reviewed="", manual_layout_preview=False,
+          image_candidate_page=None):
     _enabled()
     if preview:
         owner, site = _managed(request.user, slug, kind)
@@ -156,6 +157,14 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
     page = next((entry for entry in pages if entry["slug"] == page_slug and (preview or entry["visible"])), None)
     if page is None:
         raise Http404
+    if image_candidate_page is not None:
+        if not preview or page_override is not None or block_suggestion is not None or layout_suggestion is not None:
+            raise Http404
+        # Overlay only the image presentation for this private response. The
+        # validated saved page and its image references remain untouched.
+        page = {**page, "image_alt":image_candidate_page["candidate_alt"],
+                "image_fit":image_candidate_page["candidate_fit"],
+                "image_position":image_candidate_page["candidate_position"]}
     if page_override is not None:
         if not preview:
             raise Http404
@@ -190,6 +199,8 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
     image_url = ""
     if page.get("image_asset_id"):
         image_url = reverse(image_route, args=[slug, page["image_asset_id"]])
+    if image_candidate_page is not None:
+        image_url = image_candidate_page["candidate_image_url"]
     blocks = []
     for block in page.get("blocks", []):
         if block["visible"]:
@@ -210,6 +221,7 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
         "block_apply_url":block_apply_url, "block_edit_url":block_edit_url, "block_reviewed":block_reviewed,
         "layout_apply_url":layout_apply_url, "layout_edit_url":layout_edit_url, "layout_reviewed":layout_reviewed,
         "page_appearance":page_appearance(page["design"]) if page.get("design") else None,
+        "image_candidate_page":image_candidate_page,
         "appearance":appearance_for(design.design_config) if design.design_config else None,
         "home_url":reverse(home_route, args=[slug]), "image_url":image_url,
         "page_blocks":blocks,

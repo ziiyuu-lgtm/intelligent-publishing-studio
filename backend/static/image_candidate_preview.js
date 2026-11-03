@@ -8,16 +8,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const fit = controls.elements.namedItem('fit');
   const position = controls.elements.namedItem('position');
   if (!fit || !position) return;
-  let displayedFit = fit.value, displayedPosition = position.value;
+  const page = controls.elements.namedItem('page');
+  let displayedFit = fit.value, displayedPosition = position.value, displayedPage = page && page.value;
   const update = () => {
-    const changed = fit.value !== displayedFit || position.value !== displayedPosition;
+    const changed = fit.value !== displayedFit || position.value !== displayedPosition || !!(page && page.value !== displayedPage);
     button.disabled = changed;
     hint.hidden = !changed;
   };
   fit.addEventListener('change', update);
   position.addEventListener('change', update);
+  if (page) page.addEventListener('change', update);
   // Used by the separate static demonstration after its local-only preview update.
   controls.addEventListener('ips-preview-updated', () => {
-    displayedFit = fit.value; displayedPosition = position.value; update();
+    displayedFit = fit.value; displayedPosition = position.value; displayedPage = page && page.value; update();
   });
 });

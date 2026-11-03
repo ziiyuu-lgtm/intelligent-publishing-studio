@@ -20,15 +20,17 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from . import ai_views, image_ai_provider, portal_policy_views, portal_views, site_image_views, site_views
+from . import ai_views, image_ai_provider, portal_policy_views, portal_views, site_image_views, site_page_views, site_views
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since, portal_requests_since
 from .image_ai_forms import ImageGenerationForm
-from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES, SiteImageAsset, SiteImageGenerationRun
+from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES, JournalSiteEvent, SiteImageAsset, SiteImageGenerationRun
+from .module_images import sync_image_references
 from .production_views import _enabled, _no_index
 from .site_images import MAX_SITE_IMAGES, asset_is_intact, valid_display
 
 IMAGE_PREVIEW_SALT = 'ips.image-ai.site-preview.v1'
 IMAGE_PREVIEW_MAX_AGE = 3600
+IMAGE_PAGE_PREVIEW_SALT = 'ips.image-ai.page-preview.v1'
 
 
 def _site(user, slug, kind, locked=False):
@@ -238,6 +240,7 @@ def result(request, slug, run_id, kind):
         'owner':owner, 'site':site, 'run':run, 'current':current,
         'image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
         'site_preview_url':reverse(_route(kind, 'site_preview'), args=[slug, run.pk]) if _candidate(site, run) and (current or run.accepted_at) else None,
+        'page_preview_url':reverse(_route(kind, 'page_preview'), args=[slug, run.pk]) if _candidate(site, run) and (current or run.accepted_at) else None,
         'accept_url':reverse(_route(kind, 'accept'), args=[slug, run.pk]),
         'discard_url':reverse(_route(kind, 'discard'), args=[slug, run.pk]),
         'create_url':reverse(_route(kind, 'create'), args=[slug]),
@@ -287,6 +290,113 @@ def site_preview(request, slug, run_id, kind):
     if kind == 'journal':
         return site_views._render_site(request, owner, site, **context)
     return portal_views._render(request, owner, site, portal_views._draft_journals(site), **context)
+
+
+@login_required
+@never_cache
+@require_GET
+def page_preview(request, slug, run_id, kind):
+    """Show a candidate on one validated independent page without saving it."""
+    _enabled()
+    owner, site = _site(request.user, slug, kind)
+    run = _run(site, request.user, run_id, kind)
+    candidate = _candidate(site, run)
+    if candidate is None:
+        raise Http404
+    if not run.accepted_at and not _current(site, run, kind):
+        return HttpResponse(_('The site draft changed; request a new image.'), status=409)
+    fit, position = request.GET.get('fit', 'cover'), request.GET.get('position', 'center')
+    if not valid_display(fit, position):
+        return HttpResponse(_('Invalid image display settings.'), status=400)
+    pages = site_page_views._valid_design(site, site, kind, site)
+    if pages is None:
+        raise Http404
+    back_url = reverse(_route(kind, 'result'), args=[slug, run.pk])
+    if not pages:
+        return _no_index(render(request, 'publishing/image_ai_no_pages.html', {
+            'back_url':back_url, 'manage_pages_url':reverse(
+                'manage_journal_pages' if kind == 'journal' else 'manage_publisher_pages', args=[slug]),
+        }))
+    page_slug = request.GET.get('page', pages[0]['slug'])
+    if not any(page['slug'] == page_slug for page in pages):
+        raise Http404
+    reviewed = signing.dumps({'page':page_slug,
+        'image':_review_token(request.user, site, run, kind, candidate, fit, position)},
+        salt=IMAGE_PAGE_PREVIEW_SALT, compress=True)
+    context = {'candidate_image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
+        'candidate_back_url':back_url, 'candidate_alt':run.image_description,
+        'candidate_fit':fit, 'candidate_position':position,
+        'candidate_fit_label':dict(HERO_FIT_CHOICES)[fit],
+        'candidate_position_label':dict(HERO_POSITION_CHOICES)[position],
+        'candidate_reviewed':reviewed,
+        'candidate_apply_url':reverse(_route(kind, 'apply_page_preview'), args=[slug, run.pk]),
+        'candidate_pages':pages, 'candidate_page_slug':page_slug,
+        'hero_fit_choices':HERO_FIT_CHOICES, 'hero_position_choices':HERO_POSITION_CHOICES}
+    return site_page_views._page(request, slug, page_slug, kind, True,
+        expected=(site.revision, _fingerprint(site, kind)), image_candidate_page=context)
+
+
+@login_required
+@never_cache
+@require_POST
+def apply_page_preview(request, slug, run_id, kind):
+    """Apply only the reviewed image, crop, focus and target page to the draft."""
+    _enabled()
+    if request.POST.get('confirm') != 'yes':
+        return HttpResponse(_('Confirm applying the reviewed image to the draft.'), status=400)
+    try:
+        raw = request.POST.get('reviewed_image', '')
+        if not isinstance(raw, str) or len(raw) > 8192:
+            raise ValueError('invalid review')
+        review = signing.loads(raw, salt=IMAGE_PAGE_PREVIEW_SALT, max_age=IMAGE_PREVIEW_MAX_AGE)
+        if (not isinstance(review, dict) or set(review) != {'page', 'image'} or
+                not isinstance(review['page'], str) or len(review['page']) > 60):
+            raise ValueError('invalid review')
+        reviewed = _read_review(review['image'])
+    except (ValueError, TypeError, signing.BadSignature):
+        return HttpResponse(_('The image preview is invalid or expired.'), status=400)
+    with transaction.atomic():
+        owner, site = _site(request.user, slug, kind, locked=True)
+        run = _run(site, request.user, run_id, kind, locked=True)
+        if run.status != run.Status.COMPLETED:
+            return HttpResponse(_('The image is unavailable; open the request again.'), status=409)
+        candidate = (site.images.select_for_update().filter(pk=run.accepted_asset_id).first()
+                     if run.accepted_at else run)
+        if not _intact(candidate):
+            return HttpResponse(_('The image is unavailable; open the request again.'), status=409)
+        expected = (str(request.user.pk), str(site.pk), str(run.pk), kind, site.revision,
+                    _fingerprint(site, kind), candidate.sha256, run.image_description,
+                    str(run.accepted_asset_id or ''), bool(run.accepted_at))
+        received = tuple(reviewed[key] for key in ('user', 'site', 'run', 'kind', 'revision',
+                         'fingerprint', 'sha256', 'description', 'asset_id', 'accepted'))
+        if received != expected or (not run.accepted_at and not _current(site, run, kind)):
+            return HttpResponse(_('The image or site draft changed; preview it again.'), status=409)
+        pages = site_page_views._valid_design(site, site, kind, site)
+        if pages is None or not any(page['slug'] == review['page'] for page in pages):
+            return HttpResponse(_('The page or site draft changed; preview it again.'), status=409)
+        if not run.accepted_at:
+            if site.images.count() >= MAX_SITE_IMAGES:
+                return HttpResponse(_('This site has reached its local image-library limit.'), status=409)
+            scope = {'journal_site':site} if kind == 'journal' else {'portal_site':site}
+            candidate = SiteImageAsset.objects.create(**scope, uploaded_by=request.user, default_alt=run.image_description,
+                image_data=bytes(run.image_data), media_type=run.media_type, width=run.width, height=run.height, sha256=run.sha256)
+            run.accepted_asset, run.accepted_at, run.image_data = candidate, timezone.now(), None
+            run.save(update_fields=['accepted_asset', 'accepted_at', 'image_data'])
+            _event(site, request.user, kind, 'image_ai_saved_to_library')
+        new_pages = [{**page, 'image_asset_id':str(candidate.pk), 'image_alt':reviewed['description'],
+                      'image_fit':reviewed['fit'], 'image_position':reviewed['position']}
+                     if page['slug'] == review['page'] else page for page in pages]
+        if site.pages_config != new_pages:
+            sync_image_references(site, site, site.sections_config, pages=new_pages)
+            site.pages_config = new_pages
+            site.revision += 1
+            site.save(update_fields=['pages_config', 'revision'])
+            if kind == 'journal':
+                JournalSiteEvent.objects.create(site=site, actor=request.user, action='site_pages_updated', revision=site.revision)
+            else:
+                portal_views._event(site, request.user, 'portal_pages_updated')
+    messages.success(request, _('The reviewed image was applied to the draft page. Publish separately after review.'))
+    return redirect('manage_journal_pages' if kind == 'journal' else 'manage_publisher_pages', slug=slug)
 
 
 @login_required
