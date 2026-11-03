@@ -59,7 +59,10 @@ class WorkflowTests(TestCase):
 
     def submit(self, submission):
         self.client.force_login(self.author)
-        response = self.client.post(reverse("submission_submit", args=[submission.pk]))
+        review = self.client.get(reverse("submission_checklist", args=[submission.pk]))
+        self.assertEqual(review.status_code, 200)
+        response = self.client.post(reverse("submission_submit", args=[submission.pk]),
+            {"review_token":review.context["review_token"], "confirm":"yes"})
         self.assertEqual(response.status_code, 302)
         submission.refresh_from_db()
         EditorialAssignment.objects.create(submission=submission, editor=self.editor, assigned_by=self.coordinator)

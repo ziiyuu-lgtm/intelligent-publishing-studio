@@ -150,9 +150,12 @@ class AuthorNoticeTests(TestCase):
             abstract="Fictional", manuscript="fictional.pdf", status=Submission.Status.DRAFT)
         SubmissionVersion.objects.create(submission=draft, number=1, manuscript="fictional.pdf", uploaded_by=self.author)
         self.client.force_login(self.author)
-        with patch("publishing.views._file_exists", return_value=True), patch("publishing.views.AuthorNotice.objects.create", side_effect=RuntimeError("test")):
+        fake_file = {"path":"fictional.pdf", "size":12, "sha256":"a" * 64}
+        with patch("publishing.submission_checklist._fingerprint", return_value=fake_file), patch("publishing.views.AuthorNotice.objects.create", side_effect=RuntimeError("test")):
+            page = self.client.get(reverse("submission_checklist", args=[draft.pk]))
             with self.assertRaises(RuntimeError):
-                self.client.post(reverse("submission_submit", args=[draft.pk]))
+                self.client.post(reverse("submission_submit", args=[draft.pk]),
+                    {"review_token":page.context["review_token"], "confirm":"yes"})
         draft.refresh_from_db()
         self.assertEqual(draft.status, Submission.Status.DRAFT)
         self.assertFalse(draft.rounds.exists())

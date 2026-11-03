@@ -82,11 +82,15 @@ class ContributorTests(TestCase):
         self.assertEqual(self.client.post(reverse("submission_submit", args=[submission.pk])).status_code, 409)
         person["corresponding"] = True
         self.assertEqual(self.client.post(url, self.form_data([person], initial=1, revision=2)).status_code, 302)
-        self.assertEqual(self.client.post(reverse("submission_submit", args=[submission.pk])).status_code, 302)
+        review = self.client.get(reverse("submission_checklist", args=[submission.pk]))
+        self.assertEqual(self.client.post(reverse("submission_submit", args=[submission.pk]),
+            {"review_token":review.context["review_token"], "confirm":"yes"}).status_code, 302)
 
     def test_existing_empty_author_lists_can_still_be_submitted(self):
         submission = self.create_draft()
-        self.assertEqual(self.client.post(reverse("submission_submit", args=[submission.pk])).status_code, 302)
+        review = self.client.get(reverse("submission_checklist", args=[submission.pk]))
+        self.assertEqual(self.client.post(reverse("submission_submit", args=[submission.pk]),
+            {"review_token":review.context["review_token"], "confirm":"yes"}).status_code, 302)
         submission.refresh_from_db()
         self.assertEqual(submission.contributors_config, [])
 

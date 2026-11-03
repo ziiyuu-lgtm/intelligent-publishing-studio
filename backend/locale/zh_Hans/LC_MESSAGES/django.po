@@ -7935,3 +7935,144 @@ msgstr "补充文件缺失或已更改。"
 
 msgid "The supporting-file limit or draft changed; reload the page."
 msgstr "已达到附件上限，或草稿状态已变化；请刷新页面。"
+
+msgid "Review your submission"
+msgstr "提交前核对"
+
+msgid "Back to draft"
+msgstr "返回草稿"
+
+msgid "SUBMISSION REVIEW"
+msgstr "提交前核对"
+
+msgid "Take one last look before sending your manuscript to the editorial team."
+msgstr "向编辑部提交稿件前，请再次检查以下内容。"
+
+msgid "Please review the current draft again"
+msgstr "请重新核对当前草稿"
+
+msgid "The draft may have changed, the review may have expired, or confirmation was missing. Check the current details and confirm again."
+msgstr "草稿可能已更改、核对已过期或尚未确认。请检查当前内容并再次确认。"
+
+msgid "Some details need attention"
+msgstr "部分内容需要处理"
+
+msgid "Resolve the items marked below before submitting this draft."
+msgstr "提交草稿前，请先处理以下标记的问题。"
+
+msgid "MANUSCRIPT DETAILS"
+msgstr "稿件信息"
+
+msgid "Your manuscript"
+msgstr "您的稿件"
+
+msgid "Ready to review"
+msgstr "可以核对"
+
+msgid "Journal"
+msgstr "期刊"
+
+msgid "The title and abstract are required. Create a new draft if they are missing."
+msgstr "题目和摘要为必填项；如缺失，请创建新草稿。"
+
+msgid "The saved draft and version details no longer match. Create a new draft."
+msgstr "已保存的草稿与版本信息不一致，请创建新草稿。"
+
+msgid "Reviewers can see the title and abstract before accepting an invitation."
+msgstr "审稿人接受邀请前即可看到题目和摘要。"
+
+msgid "AUTHOR INFORMATION"
+msgstr "作者信息"
+
+msgid "Authors"
+msgstr "作者"
+
+msgid "Edit authors"
+msgstr "编辑作者"
+
+msgid "The author list is invalid; contact the local administrator."
+msgstr "作者列表无效，请联系本地管理员。"
+
+msgid "Add a corresponding author and an email for each corresponding author."
+msgstr "请指定通讯作者，并为每位通讯作者填写邮箱。"
+
+msgid "No authors are listed. Existing test drafts may be submitted without a list; add one if needed."
+msgstr "尚未列出作者。现有测试草稿允许不填写作者列表；如有需要请添加。"
+
+msgid "The author list does not grant account access or verify consent."
+msgstr "作者列表不会授予账户访问权限，也不代表已核实作者同意。"
+
+msgid "FILES & VISIBILITY"
+msgstr "文件与可见范围"
+
+msgid "Files for this version"
+msgstr "本版本的文件"
+
+msgid "File available · PDF header checked"
+msgstr "文件可用 · 已检查 PDF 文件头"
+
+msgid "File unavailable or invalid"
+msgstr "文件不可用或无效"
+
+msgid "Author confirmation recorded · editor check still required"
+msgstr "已记录作者确认 · 编辑仍需检查"
+
+msgid "Confirmed reviewer PDF unavailable"
+msgstr "已确认的审稿 PDF 不可用"
+
+msgid "This journal uses the manuscript PDF for review; it may contain identifying information."
+msgstr "本刊使用稿件 PDF 进行审稿；其中可能包含身份信息。"
+
+msgid "A required file or review policy is unavailable. Create a new draft or contact the local administrator."
+msgstr "必需文件或审稿政策不可用。请创建新草稿或联系本地管理员。"
+
+msgid "SUPPORTING FILES"
+msgstr "补充文件"
+
+msgid "For reviewers · editor check required"
+msgstr "提供给审稿人 · 须经编辑检查"
+
+msgid "No supporting files added."
+msgstr "尚未添加补充文件。"
+
+msgid "A supporting file is missing, changed, or exceeds the local limits. Manage the draft files before submitting."
+msgstr "补充文件缺失、已更改或超出本地限制。请在提交前管理草稿文件。"
+
+msgid "File checks cover availability and the PDF header only; they do not scan for malware or remove identifying information."
+msgstr "文件检查仅涵盖可用性和 PDF 文件头，不会扫描恶意软件或移除身份信息。"
+
+msgid "FINAL STEP"
+msgstr "最后一步"
+
+msgid "Ready when you are"
+msgstr "确认无误后即可提交"
+
+msgid "When submitted, the draft moves to editorial screening. Your submission details are checked again at confirmation."
+msgstr "提交后，草稿进入编辑初审；确认时系统会再次检查投稿信息。"
+
+msgid "Review stage"
+msgstr "审稿阶段"
+
+msgid "Editorial screening"
+msgstr "编辑初审"
+
+msgid "I reviewed these details and want to submit this draft."
+msgstr "我已核对上述信息，并希望提交此草稿。"
+
+msgid "Submit manuscript"
+msgstr "提交稿件"
+
+msgid "Resolve the highlighted items to enable submission."
+msgstr "请先处理标记的问题，然后提交。"
+
+msgid "Fictional test data only · no email is sent"
+msgstr "仅限虚构测试数据 · 不发送邮件"
+
+msgid "Privacy reminder"
+msgstr "隐私提示"
+
+msgid "Manually check reviewer files, filenames and metadata. The platform does not anonymise content."
+msgstr "请人工检查审稿文件、文件名和元数据。平台不会自动匿名化内容。"
+
+msgid "Review and submit"
+msgstr "核对并提交"

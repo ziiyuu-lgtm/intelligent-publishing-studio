@@ -197,6 +197,7 @@ urlpatterns = [
     path("submissions/<uuid:pk>/author-changes/<uuid:change_id>/accounts/<uuid:response_id>/cancel/", author_response_views.revoke_author_response, name="revoke_author_response"),
     path("author-responses/<uuid:response_id>/", author_response_views.respond_author_change, name="respond_author_change"),
     path("submissions/<uuid:pk>/submit/", views.submission_submit, name="submission_submit"),
+    path("submissions/<uuid:pk>/review-before-submission/", views.submission_checklist, name="submission_checklist"),
     path("submissions/<uuid:pk>/file/", views.submission_file, name="submission_file"),
     path("submissions/<uuid:pk>/versions/<int:number>/file/", views.submission_version_file, name="submission_version_file"),
     path("submissions/<uuid:pk>/versions/<int:number>/review-copy/", views.submission_review_copy_file, name="submission_review_copy_file"),

@@ -621,31 +621,41 @@ def withdraw_contributor_change(request, pk, change_id):
 
 @login_required
 @never_cache
+@require_GET
+def submission_checklist(request, pk):
+    from .submission_checklist import review_draft, signed_review
+    submission = _submission(pk)
+    if not _author_can_view(request.user, submission):
+        raise Http404
+    if submission.status != Submission.Status.DRAFT:
+        return HttpResponse(_("This draft has already been submitted."), status=409)
+    review = review_draft(submission)
+    return render(request, "publishing/submission_checklist.html", {"submission": submission, **review,
+        "review_token": signed_review(submission, review) if review["ready"] else ""})
+
+
+@login_required
+@never_cache
 @require_POST
 def submission_submit(request, pk):
+    from .submission_checklist import review_draft, review_matches, signed_review
+    candidate = _submission(pk)
+    if not _author_can_view(request.user, candidate):
+        raise Http404
     with transaction.atomic():
+        actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=request.user.pk)
+        get_object_or_404(Journal.objects.select_for_update(), pk=candidate.journal_id)
         submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
-        if not _author_can_view(request.user, submission):
+        if not _author_can_view(actor, submission):
             raise Http404
         if submission.status != Submission.Status.DRAFT:
             return HttpResponse(_("This draft has already been submitted."), status=409)
-        try:
-            contributors = validate_contributors(submission.contributors_config)
-        except ValueError:
-            return HttpResponse(_("The saved author list is invalid; contact the local administrator."), status=409)
-        if not ready_to_submit(contributors):
-            return HttpResponse(_("Add a corresponding author and email for each corresponding author before submitting."), status=409)
-        version = submission.versions.filter(number=1).first()
-        if not version or submission.rounds.exists():
-            return HttpResponse(_("The manuscript version is unavailable."), status=409)
-        if not _file_exists(version.manuscript):
-            return HttpResponse(_("The manuscript version is unavailable."), status=409)
-        if submission.review_mode not in Journal.ReviewMode.values:
-            return HttpResponse(_("The review file policy is unavailable."), status=409)
-        if submission.review_mode == Journal.ReviewMode.SEPARATE and not (version.review_copy_confirmed and _file_exists(version.review_copy)):
-            return HttpResponse(_("A confirmed reviewer copy is required."), status=409)
-        if version.metadata_recorded and (version.title_snapshot != submission.title or version.abstract_snapshot != submission.abstract):
-            return HttpResponse(_("Draft metadata changed after the version was captured; create a new draft."), status=409)
+        review = review_draft(submission)
+        if (not review["ready"] or request.POST.get("confirm") != "yes" or
+                not review_matches(request.POST.get("review_token", ""), submission, review)):
+            return render(request, "publishing/submission_checklist.html", {"submission": submission, **review,
+                "review_token": signed_review(submission, review) if review["ready"] else "", "review_changed": True}, status=409)
+        version = review["version"]
         if not version.metadata_recorded:
             # An unsubmitted legacy draft has no prior submitted metadata to reconstruct.
             version.title_snapshot, version.abstract_snapshot = submission.title, submission.abstract
