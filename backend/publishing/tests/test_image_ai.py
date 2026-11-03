@@ -231,6 +231,130 @@ class ImageWorkflowChecks:
         run.status = 'discarded'; run.image_data = None; run.save(update_fields=['status','image_data'])
         self.assertEqual(self.client.get(self.route('site_preview', run)).status_code, 404)
 
+    def reviewed(self, run, fit='contain', position='bottom'):
+        page = self.client.get(self.route('site_preview', run), {'fit':fit, 'position':position})
+        self.assertEqual(page.status_code, 200)
+        return page.context['candidate_reviewed']
+
+    def test_apply_preview_saves_candidate_and_exact_reviewed_settings(self):
+        run, _ = self.start()
+        token = self.reviewed(run)
+        before_revision = self.site.revision
+        before_release = self.site.current_release_id
+        before_content = (self.site.headline, self.site.sections_config, self.site.pages_config, self.site.design_config)
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            result = self.client.post(self.route('apply_preview', run), {'confirm':'yes', 'reviewed_image':token,
+                                      'fit':'cover', 'position':'top'})
+        provider.assert_not_called()
+        self.assertEqual(result.status_code, 302)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual(self.site.revision, before_revision + 1)
+        self.assertEqual(self.site.current_release_id, before_release)
+        self.assertEqual((self.site.headline, self.site.sections_config, self.site.pages_config, self.site.design_config), before_content)
+        self.assertEqual(self.site.hero_asset_id, run.accepted_asset_id)
+        self.assertEqual((self.site.hero_alt,self.site.hero_fit,self.site.hero_position), ('A fictional landscape with circles','contain','bottom'))
+        self.assertEqual(self.site.images.count(), 1)
+        self.assertIsNotNone(run.accepted_at); self.assertIsNone(run.image_data)
+        self.assertContains(self.client.get(self.route('result', run)), 'selected in the current draft')
+        history = reverse('journal_design_history' if self.kind == 'journal' else 'publisher_design_history', args=[self.slug()])
+        self.assertContains(self.client.get(history), 'Selected in draft')
+        self.assertEqual(self.client.post(self.route('apply_preview', run), {'confirm':'yes','reviewed_image':token}).status_code, 409)
+        self.assertEqual(self.site.images.count(), 1)
+
+    def test_apply_existing_image_reuses_asset_and_allows_noop_replay(self):
+        run, _ = self.start()
+        self.assertEqual(self.client.post(self.route('accept',run), {'confirm':'yes'}).status_code, 302)
+        run.refresh_from_db(); token = self.reviewed(run, 'cover', 'top')
+        with patch('publishing.image_ai_views.MAX_SITE_IMAGES', 0):
+            self.assertEqual(self.client.post(self.route('apply_preview',run), {'confirm':'yes','reviewed_image':token}).status_code, 302)
+        self.site.refresh_from_db(); self.assertEqual(self.site.images.count(), 1)
+        self.assertEqual(self.site.hero_asset_id, run.accepted_asset_id)
+        revision = self.site.revision; token2 = self.reviewed(run, 'cover', 'top')
+        self.assertEqual(self.client.post(self.route('apply_preview',run), {'confirm':'yes','reviewed_image':token2}).status_code, 302)
+        self.site.refresh_from_db(); self.assertEqual(self.site.revision, revision)
+
+    def test_applying_to_draft_does_not_change_published_release(self):
+        manage_name = 'manage_journal_site' if self.kind == 'journal' else 'manage_publisher_portal'
+        publish_name = 'publish_journal_site' if self.kind == 'journal' else 'publish_publisher_portal'
+        page = self.client.get(reverse(manage_name, args=[self.slug()]))
+        self.assertEqual(self.client.post(reverse(publish_name, args=[self.slug()]), {
+            'revision':str(page.context['site'].revision), 'fingerprint':page.context['fingerprint'],
+            'confirm':'yes', 'synthetic':'yes'}).status_code,302)
+        self.site.refresh_from_db(); release_id = self.site.current_release_id
+        self.assertIsNotNone(release_id); self.assertIsNone(self.site.current_release.hero_asset_id)
+        run, _ = self.start(); token = self.reviewed(run)
+        self.assertEqual(self.client.post(self.route('apply_preview',run), {'confirm':'yes','reviewed_image':token}).status_code,302)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual(self.site.current_release_id,release_id)
+        self.assertIsNone(self.site.current_release.hero_asset_id)
+        public_name = 'public_journal_image' if self.kind == 'journal' else 'public_portal_image'
+        self.assertEqual(Client().get(reverse(public_name,args=[self.slug(),run.accepted_asset_id])).status_code,404)
+
+    def test_apply_requires_confirmation_valid_token_csrf_and_ownership(self):
+        run, _ = self.start(); token = self.reviewed(run)
+        url = self.route('apply_preview',run)
+        self.assertEqual(self.client.get(url).status_code,405)
+        self.assertEqual(self.client.post(url, {'reviewed_image':token}).status_code,400)
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token+'x'}).status_code,400)
+        csrf = Client(enforce_csrf_checks=True); csrf.force_login(self.manager)
+        self.assertEqual(csrf.post(url, {'confirm':'yes','reviewed_image':token}).status_code,403)
+        self.client.force_login(self.second_user())
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,404)
+        self.client.force_login(self.manager)
+        with patch('publishing.image_ai_views.IMAGE_PREVIEW_MAX_AGE', -1):
+            self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,400)
+        self.site.refresh_from_db(); self.assertIsNone(self.site.hero_asset_id); self.assertEqual(self.site.images.count(),0)
+
+    def test_changed_draft_or_candidate_invalidates_review(self):
+        run, _ = self.start(); token = self.reviewed(run); url = self.route('apply_preview',run)
+        self.site.headline = 'Changed without revision'; self.site.save(update_fields=['headline'])
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,409)
+        self.site.headline = 'SECRET SITE HEADLINE' if self.kind == 'journal' else 'SECRET PORTAL HEADLINE'
+        self.site.save(update_fields=['headline'])
+        data = normalise_image(SimpleUploadedFile('other.png', image_helpers.image_bytes(size=(20,20)), content_type='image/png'))
+        for key, value in data.items(): setattr(run,key,value)
+        run.save(update_fields=list(data))
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,409)
+        self.site.refresh_from_db(); self.assertIsNone(self.site.hero_asset_id); self.assertEqual(self.site.images.count(),0)
+
+    def test_accepting_after_preview_invalidates_it(self):
+        run, _ = self.start(); token = self.reviewed(run); url = self.route('apply_preview',run)
+        self.assertEqual(self.client.post(self.route('accept',run), {'confirm':'yes'}).status_code,302)
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,409)
+        self.site.refresh_from_db(); self.assertIsNone(self.site.hero_asset_id); self.assertEqual(self.site.images.count(),1)
+
+    def test_discarding_after_preview_invalidates_it(self):
+        run, _ = self.start(); token = self.reviewed(run); url = self.route('apply_preview',run)
+        self.assertEqual(self.client.post(self.route('discard',run), {'confirm':'yes'}).status_code,302)
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,409)
+        self.site.refresh_from_db(); self.assertIsNone(self.site.hero_asset_id); self.assertEqual(self.site.images.count(),0)
+
+    def test_review_token_cannot_be_reused_for_another_candidate(self):
+        first, _ = self.start(); token = self.reviewed(first)
+        second, _ = self.start()
+        self.assertEqual(self.client.post(self.route('apply_preview',second), {'confirm':'yes','reviewed_image':token}).status_code,409)
+        self.site.refresh_from_db(); self.assertIsNone(self.site.hero_asset_id); self.assertEqual(self.site.images.count(),0)
+
+    def test_full_library_and_revoked_role_block_apply(self):
+        run, _ = self.start(); token = self.reviewed(run); url = self.route('apply_preview',run)
+        with patch('publishing.image_ai_views.MAX_SITE_IMAGES',0):
+            self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,409)
+        if self.kind == 'journal':
+            Membership.objects.filter(journal=self.journal,user=self.manager,role=Membership.Role.SITE_MANAGER).update(active=False)
+        else:
+            OrganisationMembership.objects.filter(organisation=self.org,user=self.manager,role=OrganisationMembership.Role.PORTAL_MANAGER).update(active=False)
+        self.assertEqual(self.client.post(url, {'confirm':'yes','reviewed_image':token}).status_code,404)
+        self.site.refresh_from_db(); self.assertIsNone(self.site.hero_asset_id); self.assertEqual(self.site.images.count(),0)
+
+    def test_apply_rolls_back_library_and_candidate_when_draft_save_fails(self):
+        run, _ = self.start(); token = self.reviewed(run)
+        with patch.object(type(self.site),'save',side_effect=RuntimeError('simulated failure')):
+            with self.assertRaises(RuntimeError):
+                self.client.post(self.route('apply_preview',run), {'confirm':'yes','reviewed_image':token})
+        run.refresh_from_db(); self.site.refresh_from_db()
+        self.assertIsNone(run.accepted_at); self.assertIsNotNone(run.image_data)
+        self.assertEqual(self.site.images.count(),0); self.assertIsNone(self.site.hero_asset_id)
+
     def test_idempotency_and_shared_daily_limit(self):
         data=self.payload();run,send=self.start(data)
         with patch('publishing.image_ai_provider._send_request',return_value=response()) as send:

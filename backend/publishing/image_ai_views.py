@@ -7,8 +7,10 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core import signing
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,6 +26,9 @@ from .image_ai_forms import ImageGenerationForm
 from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES, SiteImageAsset, SiteImageGenerationRun
 from .production_views import _enabled, _no_index
 from .site_images import MAX_SITE_IMAGES, asset_is_intact, valid_display
+
+IMAGE_PREVIEW_SALT = 'ips.image-ai.site-preview.v1'
+IMAGE_PREVIEW_MAX_AGE = 3600
 
 
 def _site(user, slug, kind, locked=False):
@@ -90,6 +95,31 @@ def _candidate(site, run):
     if run.accepted_at and not site.images.filter(pk=candidate.pk).exists():
         return None
     return candidate
+
+
+def _review_token(user, site, run, kind, candidate, fit, position):
+    return signing.dumps({'user':str(user.pk), 'site':str(site.pk), 'run':str(run.pk), 'kind':kind,
+        'revision':site.revision, 'fingerprint':_fingerprint(site, kind), 'sha256':candidate.sha256,
+        'description':run.image_description, 'asset_id':str(run.accepted_asset_id or ''),
+        'accepted':bool(run.accepted_at), 'fit':fit, 'position':position},
+        salt=IMAGE_PREVIEW_SALT, compress=True)
+
+
+def _read_review(raw):
+    keys = {'user','site','run','kind','revision','fingerprint','sha256','description',
+            'asset_id','accepted','fit','position'}
+    if not isinstance(raw, str) or len(raw) > 4096:
+        raise ValueError('invalid review')
+    try:
+        value = signing.loads(raw, salt=IMAGE_PREVIEW_SALT, max_age=IMAGE_PREVIEW_MAX_AGE)
+    except signing.BadSignature as exc:
+        raise ValueError('invalid review') from exc
+    if (not isinstance(value, dict) or set(value) != keys or type(value['accepted']) is not bool or
+            not valid_display(value['fit'], value['position']) or
+            not isinstance(value['description'], str) or not value['description'].strip() or
+            len(value['description']) > 200):
+        raise ValueError('invalid review')
+    return value
 
 
 def _event(site, actor, kind, action):
@@ -237,7 +267,8 @@ def site_preview(request, slug, run_id, kind):
     _enabled()
     owner, site = _site(request.user, slug, kind)
     run = _run(site, request.user, run_id, kind)
-    if _candidate(site, run) is None:
+    candidate = _candidate(site, run)
+    if candidate is None:
         raise Http404
     if not run.accepted_at and not _current(site, run, kind):
         return HttpResponse(_('The site draft changed; request a new image.'), status=409)
@@ -248,10 +279,64 @@ def site_preview(request, slug, run_id, kind):
                'candidate_image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
                'candidate_back_url':reverse(_route(kind, 'result'), args=[slug, run.pk]),
                'candidate_alt':run.image_description, 'candidate_fit':fit, 'candidate_position':position,
+               'candidate_fit_label':dict(HERO_FIT_CHOICES)[fit],
+               'candidate_position_label':dict(HERO_POSITION_CHOICES)[position],
+               'candidate_reviewed':_review_token(request.user, site, run, kind, candidate, fit, position),
+               'candidate_apply_url':reverse(_route(kind, 'apply_preview'), args=[slug, run.pk]),
                'hero_fit_choices':HERO_FIT_CHOICES, 'hero_position_choices':HERO_POSITION_CHOICES}
     if kind == 'journal':
         return site_views._render_site(request, owner, site, **context)
     return portal_views._render(request, owner, site, portal_views._draft_journals(site), **context)
+
+
+@login_required
+@never_cache
+@require_POST
+def apply_preview(request, slug, run_id, kind):
+    """Apply exactly the reviewed image and display settings to the local draft."""
+    _enabled()
+    if request.POST.get('confirm') != 'yes':
+        return HttpResponse(_('Confirm applying the reviewed image to the draft.'), status=400)
+    try:
+        reviewed = _read_review(request.POST.get('reviewed_image', ''))
+    except (ValueError, TypeError):
+        return HttpResponse(_('The image preview is invalid or expired.'), status=400)
+    with transaction.atomic():
+        owner, site = _site(request.user, slug, kind, locked=True)
+        run = _run(site, request.user, run_id, kind, locked=True)
+        if run.status != run.Status.COMPLETED:
+            return HttpResponse(_('The image is unavailable; open the request again.'), status=409)
+        if run.accepted_at:
+            candidate = site.images.select_for_update().filter(pk=run.accepted_asset_id).first()
+        else:
+            candidate = run
+        if not _intact(candidate):
+            return HttpResponse(_('The image is unavailable; open the request again.'), status=409)
+        expected = (str(request.user.pk), str(site.pk), str(run.pk), kind, site.revision,
+                    _fingerprint(site, kind), candidate.sha256, run.image_description,
+                    str(run.accepted_asset_id or ''), bool(run.accepted_at))
+        received = tuple(reviewed[key] for key in ('user','site','run','kind','revision',
+                         'fingerprint','sha256','description','asset_id','accepted'))
+        if received != expected or (not run.accepted_at and not _current(site, run, kind)):
+            return HttpResponse(_('The image or site draft changed; preview it again.'), status=409)
+        if not run.accepted_at:
+            if site.images.count() >= MAX_SITE_IMAGES:
+                return HttpResponse(_('This site has reached its local image-library limit.'), status=409)
+            scope = {'journal_site':site} if kind == 'journal' else {'portal_site':site}
+            candidate = SiteImageAsset.objects.create(**scope, uploaded_by=request.user, default_alt=run.image_description,
+                image_data=bytes(run.image_data), media_type=run.media_type, width=run.width, height=run.height, sha256=run.sha256)
+            run.accepted_asset, run.accepted_at, run.image_data = candidate, timezone.now(), None
+            run.save(update_fields=['accepted_asset','accepted_at','image_data'])
+            _event(site, request.user, kind, 'image_ai_saved_to_library')
+        if (site.hero_asset_id != candidate.pk or site.hero_alt != reviewed['description'] or
+                site.hero_fit != reviewed['fit'] or site.hero_position != reviewed['position']):
+            site.hero_asset, site.hero_alt = candidate, reviewed['description']
+            site.hero_fit, site.hero_position = reviewed['fit'], reviewed['position']
+            site.revision += 1
+            site.save(update_fields=['hero_asset','hero_alt','hero_fit','hero_position','revision'])
+            _event(site, request.user, kind, 'image_ai_hero_applied')
+    messages.success(request, _('The reviewed image and display settings were applied to the draft. Publish separately after review.'))
+    return redirect('manage_journal_site' if kind == 'journal' else 'manage_publisher_portal', slug=slug)
 
 
 @login_required
