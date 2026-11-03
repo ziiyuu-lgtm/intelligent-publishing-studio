@@ -5971,3 +5971,102 @@ msgstr "已在此本地测试账户中将回复标记为已读。"
 
 msgid "EDITOR WORKSPACE"
 msgstr "编辑工作区"
+
+msgid "AI design workspace"
+msgstr "AI 设计工作台"
+
+msgid "DESIGN STUDIO"
+msgstr "设计工作室"
+
+msgid "Find your website design requests and continue reviewing their suggestions."
+msgstr "查找您的网站设计请求，继续审核相应建议。"
+
+msgid "PRIVATE DESIGN WORKSPACE"
+msgstr "私人设计工作区"
+
+msgid "Fictional test data only. This workspace shows your own requests for this site; viewing it does not call AI or publish changes."
+msgstr "仅使用虚构测试数据。此工作台显示您为该网站提交的请求；查看不会调用 AI 或发布更改。"
+
+msgid "Design request totals"
+msgstr "设计请求统计"
+
+msgid "All requests"
+msgstr "全部请求"
+
+msgid "Your design history"
+msgstr "您的设计记录"
+
+msgid "Responses received"
+msgstr "已收到的回复"
+
+msgid "Applied"
+msgstr "已应用"
+
+msgid "Previously applied to a draft"
+msgstr "曾应用到草稿"
+
+msgid "YOUR DESIGN REQUESTS"
+msgstr "您的设计请求"
+
+msgid "Explore your ideas"
+msgstr "浏览您的创意"
+
+msgid "Filter by design task or response status."
+msgstr "按设计任务或回复状态筛选。"
+
+msgid "Continue designing"
+msgstr "继续设计"
+
+msgid "Design task"
+msgstr "设计任务"
+
+msgid "All tasks"
+msgstr "全部任务"
+
+msgid "Independent page"
+msgstr "独立页面"
+
+msgid "Page blocks"
+msgstr "页面内容区块"
+
+msgid "Other design request"
+msgstr "其他设计请求"
+
+msgid "Response status"
+msgstr "回复状态"
+
+msgid "Show requests"
+msgstr "显示请求"
+
+msgid "A matching draft alone does not guarantee that a suggestion can be used. Open the request to review its current conditions."
+msgstr "草稿匹配本身并不能保证建议可用。请打开请求，查看当前条件。"
+
+msgid "AI DESIGN REQUEST"
+msgstr "AI 设计请求"
+
+msgid "Draft revision"
+msgstr "草稿版本"
+
+msgid "Applied to draft revision"
+msgstr "已应用到草稿版本"
+
+msgid "Same draft snapshot"
+msgstr "草稿快照未变"
+
+msgid "Draft has changed since this request"
+msgstr "请求之后草稿已更改"
+
+msgid "This request type has no review page."
+msgstr "此类请求暂无审核页面。"
+
+msgid "No design requests match these filters."
+msgstr "没有符合筛选条件的设计请求。"
+
+msgid "Design request pages"
+msgstr "设计请求分页"
+
+msgid "Open AI design workspace"
+msgstr "打开 AI 设计工作台"
+
+msgid "Open design request"
+msgstr "打开设计请求"
