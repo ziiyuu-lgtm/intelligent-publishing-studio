@@ -3,11 +3,18 @@ from unittest.mock import patch
 
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.core import signing
 
-from publishing.models import Membership, OrganisationMembership
+from publishing.models import (Membership, OrganisationMembership, JournalSiteDraft,
+                               OrganisationPortalDraft, SiteImageAsset)
 from publishing.site_ai_provider import LEGACY_PROMPT_VERSION
+from publishing.site_design import sample_by_id
+from publishing.site_images import normalise_image
+from publishing.visual_ai_review_views import SALT, _decode, _option_fingerprint
+from publishing import site_views, portal_views, site_ai_views, portal_ai_views
 from . import test_site_ai as site_helpers
 from . import test_publisher_portal_ai as portal_helpers
+from . import test_site_images as image_helpers
 
 
 class ReviewChecks:
@@ -22,6 +29,122 @@ class ReviewChecks:
                       composition='split', alignment='center', revision=str(run.site_revision))
         option['show_feature'] = 'on'
         return option
+
+    def image_asset(self, site, alt='Fictional cover'):
+        owner = {'journal_site':site} if isinstance(site, JournalSiteDraft) else {'portal_site':site}
+        return SiteImageAsset.objects.create(**owner, **normalise_image(image_helpers.uploaded()),
+                                             default_alt=alt, uploaded_by=self.manager)
+
+    def foreign_image(self):
+        if self.kind == 'journal':
+            other = OrganisationPortalDraft.objects.create(organisation=self.journal.organisation,
+                created_by=self.manager, brand_name='Other', headline='Other', introduction='Other',
+                design_config=sample_by_id('heritage')['config'])
+        else:
+            other = JournalSiteDraft.objects.create(journal=self.journal, created_by=self.manager,
+                brand_name='Other', headline='Other', introduction='Other')
+        return self.image_asset(other, alt='FOREIGN IMAGE')
+
+    def test_hero_choice_is_previewed_and_applied_with_the_reviewed_design(self):
+        asset = self.image_asset(self.site)
+        run = self.completed(); self.transport.reset_mock()
+        editor = self.client.get(self.url('customise', run))
+        self.assertContains(editor, 'Choose a hero image')
+        self.assertContains(editor, str(asset.pk))
+        data = {**self.form_data(run), 'hero_asset_id':str(asset.pk), 'hero_alt':'Fictional research illustration',
+                'hero_fit':'contain', 'hero_position':'top'}
+        preview = self.client.post(self.url('preview', run), data)
+        self.assertEqual(preview.status_code, 200)
+        self.assertContains(preview, 'Fictional research illustration')
+        self.assertContains(preview, 'object-fit:contain;object-position:top')
+        self.site.refresh_from_db(); self.assertIsNone(self.site.hero_asset_id)
+        token = preview.context['visual_reviewed']
+        returned = self.client.post(self.url('edit',run), {'revision':str(run.site_revision),'reviewed_design':token})
+        self.assertEqual(returned.context['hero_form'].initial['hero_asset_id'], str(asset.pk))
+        self.assertEqual(returned.context['hero_form'].initial['hero_position'], 'top')
+        self.assertEqual(self.client.post(self.url('apply',run), {'revision':str(run.site_revision),
+            'reviewed_design':token,'confirm':'yes'}).status_code, 302)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual(self.site.hero_asset_id, asset.pk)
+        self.assertEqual((self.site.hero_alt,self.site.hero_fit,self.site.hero_position),
+                         ('Fictional research illustration','contain','top'))
+        self.assertEqual(run.applied_hero_content['sha256'], asset.sha256)
+        self.assertEqual(run.applied_hero_content['asset_id'], str(asset.pk))
+        self.assertEqual(self.site.revision, run.site_revision + 1)
+        self.assertIsNone(self.site.current_release_id)
+        self.transport.assert_not_called()
+
+    def test_foreign_invalid_and_deleted_images_cannot_be_applied(self):
+        asset = self.image_asset(self.site)
+        foreign = self.foreign_image()
+        run = self.completed(); self.transport.reset_mock()
+        editor = self.client.get(self.url('customise',run))
+        self.assertNotContains(editor, 'FOREIGN IMAGE')
+        good = {**self.form_data(run), 'hero_asset_id':str(asset.pk), 'hero_alt':'Fictional cover',
+                'hero_fit':'cover', 'hero_position':'center'}
+        for changed in ({'hero_asset_id':str(foreign.pk)}, {'hero_alt':''}, {'hero_fit':'bad;css'}):
+            self.assertEqual(self.client.post(self.url('preview',run), {**good,**changed}).status_code, 400)
+        preview = self.client.post(self.url('preview',run), good)
+        token = preview.context['visual_reviewed']
+        replacement = normalise_image(image_helpers.uploaded(image_helpers.image_bytes(size=(20,20))))
+        for key, value in replacement.items(): setattr(asset, key, value)
+        asset.save(update_fields=list(replacement))
+        self.assertEqual(self.client.post(self.url('apply',run), {'revision':str(run.site_revision),
+            'reviewed_design':token,'confirm':'yes'}).status_code, 400)
+        asset.delete()
+        self.assertEqual(self.client.post(self.url('apply',run), {'revision':str(run.site_revision),
+            'reviewed_design':token,'confirm':'yes'}).status_code, 400)
+        self.site.refresh_from_db();run.refresh_from_db()
+        self.assertIsNone(self.site.hero_asset_id)
+        self.assertIsNone(run.applied_revision)
+        self.transport.assert_not_called()
+
+    def test_existing_hero_can_be_removed_without_touching_the_published_version(self):
+        asset = self.image_asset(self.site)
+        self.site.hero_asset = asset; self.site.hero_alt = 'Original image'
+        self.site.save(update_fields=['hero_asset','hero_alt'])
+        run = self.completed()
+        data = {**self.form_data(run),'hero_asset_id':'','hero_alt':'ignored',
+                'hero_fit':'cover','hero_position':'center'}
+        preview = self.client.post(self.url('preview',run), data)
+        self.assertEqual(preview.status_code,200)
+        self.assertFalse(preview.context['hero_image_url'])
+        self.site.refresh_from_db();self.assertEqual(self.site.hero_asset_id,asset.pk)
+        token = preview.context['visual_reviewed']
+        self.assertEqual(self.client.post(self.url('apply',run), {'revision':str(run.site_revision),
+            'reviewed_design':token,'confirm':'yes'}).status_code,302)
+        self.site.refresh_from_db();self.assertIsNone(self.site.hero_asset_id)
+
+    def test_old_preview_submission_keeps_the_existing_hero(self):
+        asset = self.image_asset(self.site)
+        self.site.hero_asset = asset; self.site.hero_alt = 'Existing image'
+        self.site.save(update_fields=['hero_asset','hero_alt'])
+        run = self.completed()
+        preview = self.client.post(self.url('preview',run), self.form_data(run))
+        self.assertContains(preview, 'Existing image')
+        token = preview.context['visual_reviewed']
+        self.assertEqual(self.client.post(self.url('apply',run), {'revision':str(run.site_revision),
+            'reviewed_design':token,'confirm':'yes'}).status_code,302)
+        self.site.refresh_from_db();self.assertEqual(self.site.hero_asset_id,asset.pk)
+
+    def test_pre_upgrade_signed_preview_keeps_the_existing_hero(self):
+        asset = self.image_asset(self.site)
+        self.site.hero_asset = asset; self.site.hero_alt = 'Existing image'
+        self.site.save(update_fields=['hero_asset','hero_alt'])
+        run = self.completed()
+        self.site.refresh_from_db()
+        fingerprint = (site_views._fingerprint(self.site) if self.kind == 'journal'
+                       else portal_views._fingerprint(self.site))
+        option = (site_ai_views._options(run) if self.kind == 'journal' else portal_ai_views._options(run))[0]
+        token_kind = 'journal' if self.kind == 'journal' else 'portal'
+        old_token = signing.dumps({'user':str(self.manager.pk),'site':str(self.site.pk),
+            'run':str(run.pk),'index':0,'kind':token_kind,'revision':self.site.revision,
+            'fingerprint':fingerprint,'source':_option_fingerprint(option),'design':option},
+            salt=SALT,compress=True)
+        _decode(old_token,self.manager,self.site,run,0,token_kind,fingerprint,option)
+        self.assertEqual(self.client.post(self.url('apply',run), {'revision':str(run.site_revision),
+            'reviewed_design':old_token,'confirm':'yes'}).status_code,302)
+        self.site.refresh_from_db();self.assertEqual(self.site.hero_asset_id,asset.pk)
 
     def test_customise_preview_return_and_apply_are_separate(self):
         run = self.completed()

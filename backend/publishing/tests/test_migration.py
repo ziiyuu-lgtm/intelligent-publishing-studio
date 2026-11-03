@@ -7,6 +7,54 @@ from django.test import SimpleTestCase
 
 
 class ExistingWorkflowMigrationTests(SimpleTestCase):
+    def test_visual_hero_review_migration_does_not_infer_history(self):
+        script = r'''
+import os, uuid
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+from django.conf import settings
+settings.DATABASES['default']['NAME'] = os.environ['IPS_MIGRATION_TEST_DB']
+import django
+django.setup()
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.exceptions import IrreversibleError
+old = ('publishing', '0036_editoraipermissionreplynotice')
+new = ('publishing', '0037_journalsiteaidesignrun_applied_hero_content_and_more')
+executor = MigrationExecutor(connection); executor.migrate([old])
+apps = executor.loader.project_state([old]).apps
+User=apps.get_model('auth','User'); Org=apps.get_model('publishing','Organisation')
+Journal=apps.get_model('publishing','Journal'); Site=apps.get_model('publishing','JournalSiteDraft')
+Portal=apps.get_model('publishing','OrganisationPortalDraft')
+JournalRun=apps.get_model('publishing','JournalSiteAIDesignRun')
+PortalRun=apps.get_model('publishing','OrganisationPortalAIDesignRun')
+user=User.objects.create(username='hero-migration',password='!')
+org=Org.objects.create(name='Fictional',slug='hero-migration')
+journal=Journal.objects.create(organisation=org,name='Fictional',slug='hero-migration')
+site=Site.objects.create(journal=journal,created_by=user,brand_name='Journal',headline='Headline',introduction='Intro')
+portal=Portal.objects.create(organisation=org,created_by=user,brand_name='Publisher',headline='Headline',introduction='Intro')
+common=dict(requested_by=user,model_name='fictional',prompt_version='legacy',policy_revision=1,site_revision=1,
+    site_fingerprint='a'*64,brief_fingerprint='b'*64,status='completed',options=[{'old':'option'}],
+    applied_option_content={'old':'reviewed'})
+jr=JournalRun.objects.create(id=uuid.uuid4(),site=site,**common)
+pr=PortalRun.objects.create(id=uuid.uuid4(),site=portal,**common)
+executor=MigrationExecutor(connection); executor.migrate([new]); apps=executor.loader.project_state([new]).apps
+for name, key in [('JournalSiteAIDesignRun',jr.pk),('OrganisationPortalAIDesignRun',pr.pk)]:
+    run=apps.get_model('publishing',name).objects.get(pk=key)
+    assert run.applied_hero_content == {} and run.applied_option_content == {'old':'reviewed'}
+    assert run.options == [{'old':'option'}]
+try: MigrationExecutor(connection).migrate([old])
+except IrreversibleError: pass
+else: raise AssertionError('Applied hero records must not be silently discarded')
+print('hero review migration preserved')
+'''
+        with tempfile.TemporaryDirectory(prefix='ips-hero-migration-') as temp_dir:
+            env = os.environ.copy()
+            env['IPS_MIGRATION_TEST_DB'] = str(Path(temp_dir) / 'legacy.sqlite3')
+            result = subprocess.run([sys.executable, '-c', script], cwd=Path(__file__).resolve().parents[2],
+                                    env=env, text=True, capture_output=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('hero review migration preserved', result.stdout)
+
     def test_existing_manuscript_and_review_assignment_are_preserved(self):
         # A separate database starts at 0001, so this does not reverse the
         # intentionally irreversible version-history migration in the test DB.

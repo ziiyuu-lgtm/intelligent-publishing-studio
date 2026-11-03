@@ -6319,3 +6319,36 @@ msgstr "在预览内滚动可查看完整页面；较宽的视图可能需要横
 
 msgid "Read-only website preview"
 msgstr "只读网站预览"
+
+msgid "YOUR SITE IMAGERY"
+msgstr "网站图片"
+
+msgid "Choose a hero image"
+msgstr "选择主视觉图片"
+
+msgid "Hero image"
+msgstr "主视觉图片"
+
+msgid "Select an image from this site's private library, then adjust its description and display."
+msgstr "从本站私人素材库选择图片，然后调整图片描述和显示方式。"
+
+msgid "Manage image library"
+msgstr "管理图片素材库"
+
+msgid "Use the design's feature panel"
+msgstr "使用设计的特色展示面板"
+
+msgid "No images uploaded yet. Add a fictional image to the library first."
+msgstr "尚未上传图片，请先在素材库中添加虚构测试图片。"
+
+msgid "Images stay in your site's library; reviewing this design does not send images to an AI provider."
+msgstr "图片保留在本站素材库中；审核此设计不会向 AI 服务商发送图片。"
+
+msgid "Provide a description for the selected hero image."
+msgstr "请为所选主视觉图片填写描述。"
+
+msgid "The sketch shows the selected hero image, but not the site's full text or other images."
+msgstr "草图显示所选主视觉图片，但不显示网站完整文字或其他图片。"
+
+msgid "To add images, use Upload to library only before editing. Opening the library leaves this page without saving your current adjustments."
+msgstr "如需添加图片，请在编辑前使用“仅上传到素材库”。打开素材库会离开本页，当前调整不会保存。"

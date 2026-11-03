@@ -184,6 +184,7 @@ class OrganisationPortalAIDesignRun(models.Model):
     applied_option = models.PositiveSmallIntegerField(null=True, blank=True)
     applied_revision = models.PositiveIntegerField(null=True, blank=True)
     applied_option_content = models.JSONField(default=dict, blank=True)
+    applied_hero_content = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-pk"]
@@ -363,6 +364,7 @@ class JournalSiteAIDesignRun(models.Model):
     applied_option = models.PositiveSmallIntegerField(null=True, blank=True)
     applied_revision = models.PositiveIntegerField(null=True, blank=True)
     applied_option_content = models.JSONField(default=dict, blank=True)
+    applied_hero_content = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-pk"]
