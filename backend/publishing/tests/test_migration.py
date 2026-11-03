@@ -7,6 +7,42 @@ from django.test import SimpleTestCase
 
 
 class ExistingWorkflowMigrationTests(SimpleTestCase):
+    def test_image_generation_upgrade_defaults_to_disabled(self):
+        script = r'''
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+from django.conf import settings
+settings.DATABASES['default']['NAME'] = os.environ['IPS_MIGRATION_TEST_DB']
+import django
+django.setup()
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.exceptions import IrreversibleError
+old=('publishing','0037_journalsiteaidesignrun_applied_hero_content_and_more')
+new=('publishing','0038_journalaipolicy_site_image_enabled_and_more')
+executor=MigrationExecutor(connection);executor.migrate([old]);apps=executor.loader.project_state([old]).apps
+Org=apps.get_model('publishing','Organisation');Journal=apps.get_model('publishing','Journal')
+JP=apps.get_model('publishing','JournalAIPolicy');OP=apps.get_model('publishing','OrganisationAIPolicy')
+org=Org.objects.create(name='Fictional',slug='ai-image-upgrade')
+j=Journal.objects.create(organisation=org,name='Fictional',slug='ai-image-upgrade')
+jp=JP.objects.create(journal=j,site_design_enabled=True)
+op=OP.objects.create(organisation=org,portal_design_enabled=True)
+executor=MigrationExecutor(connection);executor.migrate([new]);apps=executor.loader.project_state([new]).apps
+assert apps.get_model('publishing','JournalAIPolicy').objects.get(pk=jp.pk).site_image_enabled is False
+assert apps.get_model('publishing','OrganisationAIPolicy').objects.get(pk=op.pk).portal_image_enabled is False
+assert not apps.get_model('publishing','SiteImageGenerationRun').objects.exists()
+try: MigrationExecutor(connection).migrate([old])
+except IrreversibleError: pass
+else: raise AssertionError('Image generation records must not be silently discarded')
+print('image generation upgrade preserved')
+'''
+        with tempfile.TemporaryDirectory(prefix='ips-image-gen-migration-') as temp_dir:
+            env=os.environ.copy();env['IPS_MIGRATION_TEST_DB']=str(Path(temp_dir)/'legacy.sqlite3')
+            result=subprocess.run([sys.executable,'-c',script],cwd=Path(__file__).resolve().parents[2],
+                                  env=env,text=True,capture_output=True,timeout=60)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('image generation upgrade preserved',result.stdout)
+
     def test_visual_hero_review_migration_does_not_infer_history(self):
         script = r'''
 import os, uuid

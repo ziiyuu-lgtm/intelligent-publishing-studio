@@ -113,6 +113,7 @@ def _editor(request, owner, site, run, index, kind, option, form=None, hero=None
         'hero_images':[{'id':str(asset.pk), 'alt':asset.default_alt, 'width':asset.width, 'height':asset.height,
                         'url':reverse(image_route, args=[owner.slug, asset.pk])} for asset in assets],
         'image_library_url':reverse('manage_journal_site' if kind == 'journal' else 'manage_publisher_portal', args=[owner.slug]) + '#site-image-library',
+        'image_generate_url':reverse('journal_image_ai_create' if kind == 'journal' else 'portal_image_ai_create', args=[owner.slug]),
         'appearance':appearance_for(option), 'routes':_routes(kind),
         'result_url':reverse('site_ai_result' if kind == 'journal' else 'publisher_ai_result', args=[owner.slug, run.pk]),
     }, status=status))

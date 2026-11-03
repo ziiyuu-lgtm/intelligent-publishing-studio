@@ -113,7 +113,7 @@ def _context(journal, site, form=None, user=None, appearance_form=None, section_
             "ai_policy_revision": policy.revision if policy else 0, "ai_model_name": settings.IPS_OPENAI_MODEL,
             "ai_request_id": uuid.uuid4(), "ai_module_request_id": uuid.uuid4(),
             "image_assets":site.images.defer("image_data"),
-            "image_slug":journal.slug, "image_upload_route":"upload_journal_image",
+            "image_slug":journal.slug, "image_upload_route":"upload_journal_image", "image_ai_route":"journal_image_ai_create",
             "image_select_route":"select_journal_image", "image_clear_route":"clear_journal_image",
             "image_delete_route":"delete_journal_image", "image_private_route":"private_journal_image",
             "hero_fit_choices":HERO_FIT_CHOICES, "hero_position_choices":HERO_POSITION_CHOICES,

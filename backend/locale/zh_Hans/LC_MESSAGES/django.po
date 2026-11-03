@@ -6352,3 +6352,231 @@ msgstr "草图显示所选主视觉图片，但不显示网站完整文字或其
 
 msgid "To add images, use Upload to library only before editing. Opening the library leaves this page without saving your current adjustments."
 msgstr "如需添加图片，请在编辑前使用“仅上传到素材库”。打开素材库会离开本页，当前调整不会保存。"
+
+msgid "Enable AI image generation"
+msgstr "启用 AI 图片生成"
+
+msgid "Create an image with AI"
+msgstr "使用 AI 创建图片"
+
+msgid "AI image studio"
+msgstr "AI 图片工作室"
+
+msgid "Back to image library"
+msgstr "返回图片素材库"
+
+msgid "CREATIVE STUDIO"
+msgstr "创意工作室"
+
+msgid "Describe a visual for your journal or publisher website, then review one candidate before saving it."
+msgstr "描述期刊或出版商网站所需的视觉图片，保存前先审核一个候选结果。"
+
+msgid "Only the description you enter, the selected size and a pseudonymous safety identifier are sent to OpenAI. Existing site text and images are not sent."
+msgstr "仅向 OpenAI 发送您输入的图片描述、所选尺寸及匿名安全标识；不会发送现有网站文字或图片。"
+
+msgid "Image generation is currently off. A site AI manager and server administrator must enable it before requests can be sent."
+msgstr "图片生成功能当前关闭。发送请求前，网站 AI 管理员和服务器管理员须分别启用。"
+
+msgid "YOUR CREATIVE BRIEF"
+msgstr "您的创意描述"
+
+msgid "Write your own description or use an idea as a starting point."
+msgstr "填写您自己的描述，或选择一个灵感作为起点。"
+
+msgid "Optional ideas"
+msgstr "可选灵感"
+
+msgid "Connected research"
+msgstr "互联研究"
+
+msgid "Sustainable futures"
+msgstr "可持续未来"
+
+msgid "Open knowledge"
+msgstr "开放知识"
+
+msgid "Describe the image you want"
+msgstr "描述您希望创建的图片"
+
+msgid "Describe the subject, visual style, mood and colours."
+msgstr "描述主题、视觉风格、氛围和颜色。"
+
+msgid "Maximum 600 characters. Use fictional test information only."
+msgstr "最多 600 字符。仅使用虚构测试信息。"
+
+msgid "Describe the image for people using screen readers. This description is not sent to the image provider."
+msgstr "为使用屏幕阅读器的人描述图片。此说明不会发送给图片服务商。"
+
+msgid "Image shape"
+msgstr "图片比例"
+
+msgid "Landscape"
+msgstr "横向"
+
+msgid "Portrait"
+msgstr "纵向"
+
+msgid "FROM IDEA TO IMAGE"
+msgstr "从创意到图片"
+
+msgid "Your review comes first"
+msgstr "由您审核决定"
+
+msgid "Describe"
+msgstr "描述"
+
+msgid "Set the subject, mood and visual direction."
+msgstr "设定主题、氛围和视觉方向。"
+
+msgid "Generate"
+msgstr "生成"
+
+msgid "Create one private candidate with the configured provider."
+msgstr "使用已配置的服务商创建一个私有候选图。"
+
+msgid "Review and save"
+msgstr "审核并保存"
+
+msgid "Inspect the result and choose whether to add it to your site's library."
+msgstr "查看结果并选择是否加入本站素材库。"
+
+msgid "No image is added to a page or published automatically."
+msgstr "图片不会自动添加到页面或发布。"
+
+msgid "BEFORE YOU GENERATE"
+msgstr "生成之前"
+
+msgid "Confirm this request"
+msgstr "确认本次请求"
+
+msgid "A generation request may incur provider charges and can take up to a few minutes. The creative brief is not stored separately; its fingerprint and the image description are saved with the request."
+msgstr "生成请求可能产生服务商费用，耗时可能达到数分钟。创意说明不会单独保存；系统会随请求保存其摘要和图片无障碍描述。"
+
+msgid "I agree to send my creative brief to the configured provider and understand that charges may apply."
+msgstr "我同意将图片生成描述发送给已配置的服务商，并了解可能产生费用。"
+
+msgid "I confirm this is fictional test information."
+msgstr "我确认这是虚构测试信息。"
+
+msgid "Generate one candidate"
+msgstr "生成一张候选图"
+
+msgid "Review AI image"
+msgstr "审核 AI 图片"
+
+msgid "Back to AI image studio"
+msgstr "返回 AI 图片工作室"
+
+msgid "Review your image"
+msgstr "审核您的图片"
+
+msgid "Inspect the candidate before deciding whether to add it to the image library."
+msgstr "查看候选图片后，再决定是否加入素材库。"
+
+msgid "PRIVATE CANDIDATE"
+msgstr "私人候选图"
+
+msgid "This candidate has not been added to the website or published."
+msgstr "该候选图尚未加入网站或发布。"
+
+msgid "AI image candidate"
+msgstr "AI 图片候选结果"
+
+msgid "Make it yours"
+msgstr "确认您的设计"
+
+msgid "Check the image and its description before saving. It can then be selected in the visual design editor."
+msgstr "保存前请检查图片及其描述。保存后可在视觉设计编辑器中选择使用。"
+
+msgid "Saved to this site's image library."
+msgstr "已保存到本站图片素材库。"
+
+msgid "Open image library"
+msgstr "打开图片素材库"
+
+msgid "Add this reviewed candidate to the image library."
+msgstr "将已审核的候选图片加入素材库。"
+
+msgid "Save to image library"
+msgstr "保存到图片素材库"
+
+msgid "The site draft changed after this request. Start a new request to continue."
+msgstr "请求后网站草稿已发生变化。请创建新请求后继续。"
+
+msgid "Start a new image"
+msgstr "创建新图片"
+
+msgid "The image request is still pending."
+msgstr "图片请求仍在处理中。"
+
+msgid "The request was cancelled because access, policy or the site draft changed."
+msgstr "由于权限、策略或网站草稿发生变化，请求已取消。"
+
+msgid "The image could not be generated. Check the configuration and try again with a new request."
+msgstr "图片生成失败，请检查配置并创建新请求重试。"
+
+msgid "AI image generation has a separate switch and requires confirmation for each request."
+msgstr "AI 图片生成具有独立开关，每次请求均需确认。"
+
+msgid "AI image generation is not enabled for this site and test environment."
+msgstr "本站或测试环境尚未启用 AI 图片生成。"
+
+msgid "Confirm adding this image to the library."
+msgstr "请确认将此图片加入素材库。"
+
+msgid "The site draft changed; request a new image."
+msgstr "网站草稿已变化，请创建新的图片请求。"
+
+msgid "The creative brief, model, image settings and a pseudonymous safety identifier are sent to OpenAI. Existing site text, images and the accessibility description are not sent."
+msgstr "向 OpenAI 发送创意描述、模型、图片设置及匿名安全标识；不会发送现有网站文字、图片或无障碍描述。"
+
+msgid "To add images, use Upload to library only before editing. Opening the library or AI image studio leaves this page without saving your current adjustments."
+msgstr "如需添加图片，请在编辑前使用“仅上传到素材库”。打开素材库或 AI 图片工作室会离开本页，当前调整不会保存。"
+
+msgid "Your recent image requests"
+msgstr "您的近期图片请求"
+
+msgid "Only your own requests for this site appear here."
+msgstr "此处仅显示您对当前网站提交的请求。"
+
+msgid "No image requests yet."
+msgstr "暂无图片请求。"
+
+msgid "This image was removed from the library."
+msgstr "此图片已从素材库移除。"
+
+msgid "Discard this unsaved candidate."
+msgstr "丢弃尚未保存的候选图片。"
+
+msgid "Discard candidate"
+msgstr "丢弃候选图"
+
+msgid "This unsaved candidate was discarded."
+msgstr "尚未保存的候选图片已丢弃。"
+
+msgid "Confirm discarding this candidate."
+msgstr "请确认丢弃此候选图片。"
+
+msgid "This candidate can no longer be discarded."
+msgstr "此候选图片已不能丢弃。"
+
+msgid "Discarded"
+msgstr "已丢弃"
+
+msgid "Idea added. You can edit the description."
+msgstr "灵感已加入，您可以继续编辑描述。"
+
+msgid "The idea would exceed 600 characters and was not added."
+msgstr "加入后会超过 600 字符，因此未添加该灵感。"
+
+msgid "An editorial illustration of connected research, using deep blue and soft gold, with generous negative space."
+msgstr "以深蓝和柔和金色绘制互联研究主题的编辑插画，保留充足的留白。"
+
+msgid "A calm abstract landscape representing sustainability and scientific discovery, in sage green and warm cream."
+msgstr "使用鼠尾草绿和暖奶油色，绘制代表可持续发展与科学发现的宁静抽象风景。"
+
+msgid "A refined architectural illustration of an open academic library, with soft light and a modern scholarly mood."
+msgstr "绘制开放式学术图书馆的精致建筑插画，采用柔和光线和现代学术氛围。"
+
+msgid "AI image generation"
+msgstr "AI 图片生成"

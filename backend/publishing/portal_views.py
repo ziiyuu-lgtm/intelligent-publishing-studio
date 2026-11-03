@@ -199,7 +199,7 @@ def _context(organisation, site, content_form=None, appearance_form=None, sectio
         "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
         "ai_request_id":uuid.uuid4(), "ai_module_request_id":uuid.uuid4(),
         "image_assets":site.images.defer("image_data"),
-        "image_slug":organisation.slug, "image_upload_route":"upload_portal_image",
+        "image_slug":organisation.slug, "image_upload_route":"upload_portal_image", "image_ai_route":"portal_image_ai_create",
         "image_select_route":"select_portal_image", "image_clear_route":"clear_portal_image",
         "image_delete_route":"delete_portal_image", "image_private_route":"private_portal_image",
         "hero_fit_choices":HERO_FIT_CHOICES, "hero_position_choices":HERO_POSITION_CHOICES,

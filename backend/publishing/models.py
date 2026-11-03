@@ -137,6 +137,7 @@ class OrganisationAIPolicy(models.Model):
     portal_pages_enabled = models.BooleanField(_("Enable AI independent-page suggestions"), default=False)
     portal_page_blocks_enabled = models.BooleanField(_("Enable AI page-block suggestions"), default=False)
     portal_page_layout_enabled = models.BooleanField(_("Enable AI page-layout suggestions"), default=False)
+    portal_image_enabled = models.BooleanField(_("Enable AI image generation"), default=False)
     portal_daily_limit = models.PositiveSmallIntegerField(_("Publisher portal AI request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)
@@ -277,6 +278,45 @@ class SiteImageAsset(models.Model):
             models.Q(journal_site__isnull=True, portal_site__isnull=False)), name="site_image_exactly_one_owner")]
 
 
+class SiteImageGenerationRun(models.Model):
+    """Private, requester-scoped candidate for a fictional site image."""
+    class Status(models.TextChoices):
+        PENDING = 'pending', _('Pending')
+        COMPLETED = 'completed', _('Completed')
+        FAILED = 'failed', _('Unavailable')
+        CANCELLED = 'cancelled', _('Cancelled')
+        DISCARDED = 'discarded', _('Discarded')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    journal_site = models.ForeignKey(JournalSiteDraft, on_delete=models.PROTECT, null=True, blank=True, related_name='image_generation_runs')
+    portal_site = models.ForeignKey(OrganisationPortalDraft, on_delete=models.PROTECT, null=True, blank=True, related_name='image_generation_runs')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    model_name = models.CharField(max_length=100)
+    prompt_fingerprint = models.CharField(max_length=64)
+    image_description = models.CharField(max_length=200)
+    size = models.CharField(max_length=16)
+    policy_revision = models.PositiveIntegerField()
+    site_revision = models.PositiveIntegerField()
+    site_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    error_code = models.CharField(max_length=40, blank=True)
+    image_data = models.BinaryField(null=True, blank=True)
+    media_type = models.CharField(max_length=16, blank=True)
+    width = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    sha256 = models.CharField(max_length=64, blank=True)
+    accepted_asset = models.ForeignKey(SiteImageAsset, on_delete=models.SET_NULL, null=True, blank=True, related_name='generation_runs')
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at', '-pk']
+        constraints = [models.CheckConstraint(condition=(
+            models.Q(journal_site__isnull=False, portal_site__isnull=True) |
+            models.Q(journal_site__isnull=True, portal_site__isnull=False)), name='image_gen_exactly_one_site')]
+
+
 class SiteModuleImageReference(models.Model):
     """Protect images referenced by a draft or an immutable release."""
     asset = models.ForeignKey(SiteImageAsset, on_delete=models.PROTECT, related_name="module_references")
@@ -310,6 +350,7 @@ class JournalAIPolicy(models.Model):
     site_pages_enabled = models.BooleanField(_("Enable AI independent-page suggestions"), default=False)
     site_page_blocks_enabled = models.BooleanField(_("Enable AI page-block suggestions"), default=False)
     site_page_layout_enabled = models.BooleanField(_("Enable AI page-layout suggestions"), default=False)
+    site_image_enabled = models.BooleanField(_("Enable AI image generation"), default=False)
     revision_plan_enabled = models.BooleanField(_("Enable author AI revision planning"), default=False)
     editor_revision_comparison_enabled = models.BooleanField(_("Enable editor AI revision comparison"), default=False)
     journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
