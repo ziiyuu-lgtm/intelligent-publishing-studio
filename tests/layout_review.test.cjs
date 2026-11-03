@@ -23,8 +23,9 @@ function fixture(options = {}) {
       '[data-layout-move="up"]':block.up, '[data-layout-move="down"]':block.down})[selector];
     block.querySelectorAll = () => block.widths;
   }
-  const sketch = {cards:[], handlers:{}, replaceChildren(...cards){this.cards=cards;},
+  const sketch = {cards:[], style:{gap:'20px',alignItems:'stretch'}, handlers:{}, replaceChildren(...cards){this.cards=cards;},
     addEventListener(name, fn){this.handlers[name]=fn;}, contains(card){return this.cards.includes(card);}};
+  const comparison = {cards:[],style:{},replaceChildren(...cards){this.cards=cards;}};
   const list = {append(block){const i=blocks.indexOf(block); if(i>=0) blocks.splice(i,1); blocks.push(block);}};
   const status = {textContent:''}, handlers = {}, controls = [{hidden:true}];
   const editor = {dataset:{emptyLabel:'No visible blocks',movedText:'Order updated',layoutContentMode:options.content?'yes':'no'},
@@ -32,10 +33,12 @@ function fixture(options = {}) {
       '[data-layout-block-list]':list})[selector];},
     querySelectorAll(selector){return selector === '[data-layout-controls]' ? controls : blocks;},
     addEventListener(name, fn){handlers[name]=fn;}, contains(button){return !!button.block;}};
-  const document = {querySelectorAll(){return [editor];}, createElement(){return {style:{},dataset:{},className:'',textContent:'',children:[],
+  if (options.comparison) editor.dataset.layoutComparisonTarget = 'compare-0';
+  const document = {querySelectorAll(){return [editor];}, getElementById(id){return id==='compare-0'?comparison:null;},
+    createElement(){return {style:{},dataset:{},className:'',textContent:'',children:[],
     classList:{add(){}},append(child){this.children.push(child);},closest(){return this;}};}};
   vm.runInNewContext(source, {document});
-  return {blocks,sketch,status,handlers,controls};
+  return {blocks,sketch,comparison,status,handlers,controls};
 }
 
 test('layout sketch tracks order and valid widths while excluding hidden blocks', () => {
@@ -96,4 +99,23 @@ test('redrawing content preserves existing preview elements', () => {
   const f=fixture({content:true}), before=f.sketch.cards[0];
   f.handlers.input();
   assert.equal(f.sketch.cards[0],before);
+});
+
+test('comparison follows the matching option and excludes hidden content', () => {
+  const f=fixture({content:true,comparison:true});
+  assert.deepEqual(f.comparison.cards.map(c=>c.children[0].textContent),
+    ['Safe saved content: Last','Safe saved content: First']);
+  assert.deepEqual(f.comparison.cards.map(c=>c.style.gridColumn),['span 4','span 8']);
+  assert.equal(f.comparison.style.gap,'6px');
+  const first=f.blocks.find(b=>b.dataset.layoutId==='b0'), old=f.comparison.cards[1];
+  f.handlers.click({target:first.widths.find(button=>button.dataset.layoutWidth==='6')});
+  assert.equal(f.comparison.cards[1],old);
+  assert.equal(f.comparison.cards[1].style.gridColumn,'span 6');
+  f.handlers.click({target:first.up});
+  assert.deepEqual(f.comparison.cards.map(c=>c.children[0].textContent),
+    ['Safe saved content: First','Safe saved content: Last']);
+  f.sketch.style.gap='36px';f.sketch.style.alignItems='start';
+  f.handlers['layout-presentation-changed']();
+  assert.equal(f.comparison.style.gap,'10px');
+  assert.equal(f.comparison.style.alignItems,'start');
 });

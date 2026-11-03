@@ -11,6 +11,7 @@
       const value = Number(gap.value);
       sketch.style.gap = Number.isInteger(value) && value >= 0 && value <= 64 ? `${value}px` : '';
       sketch.style.alignItems = ['start', 'stretch'].includes(alignment.value) ? alignment.value : '';
+      if (editor.dataset.layoutComparisonTarget) editor.dispatchEvent(new Event('layout-presentation-changed'));
     };
     gap.addEventListener('input', update);
     alignment.addEventListener('change', update);

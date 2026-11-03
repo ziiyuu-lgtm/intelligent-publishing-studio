@@ -4,8 +4,11 @@
     const sketch = editor.querySelector('[data-layout-sketch]');
     const status = editor.querySelector('[data-layout-status]');
     const list = editor.querySelector('[data-layout-block-list]');
+    const comparison = editor.dataset.layoutComparisonTarget ?
+      document.getElementById(editor.dataset.layoutComparisonTarget) : null;
     let draggedId = null;
     const cardCache = new Map();
+    const comparisonCache = new Map();
     editor.querySelectorAll('[data-layout-controls]').forEach(control => { control.hidden = false; });
 
     const getRows = () => [...editor.querySelectorAll('[data-layout-block]')].map((block, index) => {
@@ -16,6 +19,35 @@
         order:Number.isInteger(order) && order >= 1 && order <= 20 ? order : index + 1,
         span:Number.isInteger(span) && span >= 1 && span <= 12 ? span : 12};
     }).sort((a, b) => a.order - b.order || a.index - b.index);
+
+    const syncComparison = () => {
+      if (!comparison) return;
+      const cards = getRows().filter(({block}) => block.dataset.layoutHidden !== 'yes').map(({block, span}) => {
+        const key = block.dataset.layoutId;
+        let card = comparisonCache.get(key);
+        if (!card) {
+          card = document.createElement('div');
+          card.className = 'layout-sketch__block layout-sketch__block--content';
+          const content = block.querySelector('[data-layout-content]');
+          if (content && content.content) card.append(content.content.cloneNode(true));
+          else card.textContent = block.dataset.layoutLabel;
+          comparisonCache.set(key, card);
+        }
+        card.style.gridColumn = `span ${span}`;
+        return card;
+      });
+      if (!cards.length) {
+        const empty = document.createElement('div');
+        empty.className = 'layout-sketch__block';
+        empty.style.gridColumn = 'span 12';
+        empty.textContent = editor.dataset.emptyLabel;
+        cards.push(empty);
+      }
+      comparison.replaceChildren(...cards);
+      const gap = Number.parseFloat(sketch.style.gap);
+      comparison.style.gap = Number.isFinite(gap) ? `${Math.round(gap * 0.28)}px` : '';
+      comparison.style.alignItems = sketch.style.alignItems;
+    };
 
     const redraw = () => {
       const rows = getRows();
@@ -57,6 +89,7 @@
         cards.push(empty);
       }
       sketch.replaceChildren(...cards);
+      syncComparison();
     };
 
     const move = (sourceId, targetId, focusButton = null) => {
@@ -78,6 +111,7 @@
     };
 
     editor.addEventListener('input', redraw);
+    editor.addEventListener('layout-presentation-changed', syncComparison);
     editor.addEventListener('layout-restore', () => {
       getRows().forEach(entry => list.append(entry.block));
       redraw();

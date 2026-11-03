@@ -6166,3 +6166,12 @@ msgstr "画布在响应式 12 列网格中显示简略文字和已保存的样�
 
 msgid "This private review shows saved page content on the site. The AI request used your brief and block structure; reviewing makes no additional AI request."
 msgstr "此私人审核在站点内显示已保存的页面内容。AI 请求使用了您填写的简介和区块结构；审核不会再次发出 AI 请求。"
+
+msgid "Compare your suggestions"
+msgstr "比较设计建议"
+
+msgid "These miniature previews update as you adjust each option. Select a suggestion to review it."
+msgstr "调整各方案时，缩略预览会同步更新。选择一个方案即可查看和调整。"
+
+msgid "Review design"
+msgstr "查看设计"
