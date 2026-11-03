@@ -12,11 +12,14 @@ function fixture() {
   const sketch = {style:{}, classes:{}, classList:{toggle(name,val){sketch.classes[name]=val;}}};
   const buttons = ['desktop','mobile'].map(view => ({dataset:{manualViewport:view},attrs:{},
     addEventListener(name,fn){this[name]=fn;},setAttribute(name,val){this.attrs[name]=val;}}));
-  const editor = {querySelector(selector){return ({'[data-layout-sketch]':sketch,
+  const displays = ['content','outline'].map(view => ({dataset:{manualDisplay:view},attrs:{},
+    addEventListener(name,fn){this[name]=fn;},setAttribute(name,val){this.attrs[name]=val;}}));
+  const editor = {dataset:{layoutContentMode:'yes'},events:[],dispatchEvent(event){this.events.push(event.type);},querySelector(selector){return ({'[data-layout-sketch]':sketch,
     '[name="settings-gap"]':gap,'[name="settings-alignment"]':alignment})[selector]},
-    querySelectorAll(){return buttons}};
-  vm.runInNewContext(source,{document:{querySelectorAll(){return [editor]}}});
-  return {sketch,gap,alignment,buttons,handlers};
+    querySelectorAll(selector){return selector === '[data-manual-viewport]' ? buttons : displays}};
+  class Event { constructor(type) { this.type=type; } }
+  vm.runInNewContext(source,{document:{querySelectorAll(){return [editor]}},Event});
+  return {sketch,gap,alignment,buttons,displays,handlers,editor};
 }
 
 test('viewport switch only changes canvas presentation and keeps form values', () => {
@@ -38,4 +41,15 @@ test('canvas previews valid gap and alignment, and clears invalid values', () =>
   f.gap.value='65';f.handlers['gap-input']();assert.equal(f.sketch.style.gap,'');
   f.alignment.value='start';f.handlers['alignment-change']();assert.equal(f.sketch.style.alignItems,'start');
   f.alignment.value='invalid';f.handlers['alignment-change']();assert.equal(f.sketch.style.alignItems,'');
+});
+
+test('content and outline switch only the preview mode', () => {
+  const f=fixture();
+  f.displays[1].click();
+  assert.equal(f.editor.dataset.layoutContentMode,'no');
+  assert.equal(f.displays[1].attrs['aria-pressed'],'true');
+  assert.deepEqual(f.editor.events,['layout-restore']);
+  assert.equal(f.gap.value,'18');
+  f.displays[0].click();
+  assert.equal(f.editor.dataset.layoutContentMode,'yes');
 });

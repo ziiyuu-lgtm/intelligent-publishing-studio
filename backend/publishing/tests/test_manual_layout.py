@@ -134,6 +134,33 @@ class ManualLayoutTests(TestCase):
                 else: OrganisationMembership.objects.filter(organisation=self.org,user=self.portal_manager,role=OrganisationMembership.Role.PORTAL_MANAGER).update(active=False)
                 self.assertEqual(self.client.post(self.url(kind,'apply'),{'revision':data['revision'],'reviewed_layout':token,'confirm':'yes'}).status_code,404)
 
+    def test_canvas_previews_escaped_saved_content_and_private_images(self):
+        for kind in ('journal','portal'):
+            with self.subTest(kind=kind):
+                asset=self.add_image(kind,'Private image description')
+                self.assertEqual(self.save_pages(kind,[self.page()]).status_code,302)
+                visible=self.block('Visible title',asset,True,url='https://example.org/somewhere')
+                visible['body']='Text with <script>alert(1)</script> stays text.'
+                visible['design']={'layout':'image_left','width':100,'background':'#e2f1e7','accent':'#234f40',
+                                   'alignment':'left','padding':20,'radius':12,'gap':16}
+                hidden=self.block('Hidden block',asset,False)
+                hidden['body']='HIDDEN_BODY_NOT_IN_CANVAS'
+                self.assertEqual(self.save_blocks(kind,[visible,hidden]).status_code,302)
+                self.login(kind)
+                response=self.client.get(self.url(kind))
+                self.assertContains(response,'data-layout-content-mode="yes"')
+                self.assertContains(response,'data-layout-content')
+                self.assertContains(response,'Text with &lt;script&gt;alert(1)&lt;/script&gt; stays text.')
+                self.assertNotContains(response,'<script>alert(1)</script>')
+                self.assertContains(response,'--block-bg:#e2f1e7')
+                self.assertContains(response,'block-layout-image_left')
+                self.assertContains(response,self.route(kind,'private',asset.pk))
+                self.assertNotContains(response,'HIDDEN_BODY_NOT_IN_CANVAS')
+                self.assertNotContains(response,'https://example.org/somewhere')
+                self.assertEqual(self.client.get(self.route(kind,'private',asset.pk)).status_code,200)
+                self.assertNotEqual(Client().get(self.route(kind,'private',asset.pk)).status_code,200)
+                self.assertIn('no-store',response['Cache-Control'])
+
     def test_expired_and_cross_page_tokens_do_not_apply(self):
         self.seed('journal')
         self.assertEqual(self.save_pages('journal',[self.page(),self.page(slug='editorial-board')]).status_code,302)

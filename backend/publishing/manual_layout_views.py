@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
 from .ai_provider import ProviderError
+from .block_design import block_appearance
 from .models import JournalSiteEvent
 from .module_images import images_valid
 from .page_layout_ai_forms import LayoutBlockFormSet, LayoutSettingsForm
@@ -44,8 +45,15 @@ def _render(request, owner, site, page, kind, settings_form=None, formset=None, 
             settings_form = LayoutSettingsForm(prefix='settings', initial=layout)
         if formset is None:
             formset = LayoutBlockFormSet(prefix='blocks', initial=_initial(descriptors, reviewed), descriptors=descriptors)
-        rows = [{'form':form, 'label':blocks[i]['heading'] or blocks[i]['kind'], 'visible':blocks[i]['visible']}
-                for i, form in enumerate(formset)]
+        image_route = 'private_journal_image' if kind == 'journal' else 'private_portal_image'
+        rows = []
+        for i, form in enumerate(formset):
+            block = blocks[i]
+            image_url = (reverse(image_route, args=[owner.slug, block['image_asset_id']])
+                         if block['visible'] and block.get('image_asset_id') else '')
+            rows.append({'form':form, 'label':block['heading'] or block['kind'], 'visible':block['visible'],
+                         'block':block, 'image_url':image_url,
+                         'appearance':block_appearance(block['design']) if block.get('design') else None})
     else:
         rows = []
     return _no_index(render(request, 'publishing/manual_layout_editor.html', {

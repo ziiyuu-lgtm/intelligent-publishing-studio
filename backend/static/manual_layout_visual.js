@@ -5,6 +5,7 @@
     const gap = editor.querySelector('[name="settings-gap"]');
     const alignment = editor.querySelector('[name="settings-alignment"]');
     const buttons = [...editor.querySelectorAll('[data-manual-viewport]')];
+    const displayButtons = [...editor.querySelectorAll('[data-manual-display]')];
     if (!sketch || !gap || !alignment) return;
     const update = () => {
       const value = Number(gap.value);
@@ -17,6 +18,11 @@
       const mobile = button.dataset.manualViewport === 'mobile';
       sketch.classList.toggle('manual-layout-sketch--mobile', mobile);
       buttons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    }));
+    displayButtons.forEach(button => button.addEventListener('click', () => {
+      editor.dataset.layoutContentMode = button.dataset.manualDisplay === 'content' ? 'yes' : 'no';
+      displayButtons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      editor.dispatchEvent(new Event('layout-restore', {bubbles:true}));
     }));
     update();
   });

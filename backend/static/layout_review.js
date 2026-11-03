@@ -5,6 +5,7 @@
     const status = editor.querySelector('[data-layout-status]');
     const list = editor.querySelector('[data-layout-block-list]');
     let draggedId = null;
+    const cardCache = new Map();
     editor.querySelectorAll('[data-layout-controls]').forEach(control => { control.hidden = false; });
 
     const getRows = () => [...editor.querySelectorAll('[data-layout-block]')].map((block, index) => {
@@ -28,12 +29,24 @@
         });
       });
       const cards = rows.filter(({block}) => block.dataset.layoutHidden !== 'yes').map(({block, span}) => {
-        const card = document.createElement('div');
-        card.className = 'layout-sketch__block';
+        const content = block.querySelector('[data-layout-content]');
+        const useContent = editor.dataset.layoutContentMode === 'yes' && content && content.content;
+        const key = `${block.dataset.layoutId}:${useContent ? 'content' : 'outline'}`;
+        let card = cardCache.get(key);
+        if (!card) {
+          card = document.createElement('div');
+          card.className = 'layout-sketch__block';
+          if (useContent) {
+            card.classList.add('layout-sketch__block--content');
+            card.append(content.content.cloneNode(true));
+          } else {
+            card.textContent = block.dataset.layoutLabel;
+          }
+          card.draggable = true;
+          card.dataset.layoutSketchItem = block.dataset.layoutId;
+          cardCache.set(key, card);
+        }
         card.style.gridColumn = `span ${span}`;
-        card.textContent = block.dataset.layoutLabel;
-        card.draggable = true;
-        card.dataset.layoutSketchItem = block.dataset.layoutId;
         return card;
       });
       if (!cards.length) {

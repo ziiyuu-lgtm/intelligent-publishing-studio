@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../backend/static/layout_review.js'), 'utf8');
 
-function fixture() {
+function fixture(options = {}) {
   const buttons = (block, key, value) => ({dataset:{[key]:value}, block, disabled:false,
     attributes:{}, setAttribute(name, val){this.attributes[name]=val;}, focus(){this.focused=true;},
     closest(selector){return selector === '[data-layout-block]' ? this.block : this;}});
@@ -18,7 +18,8 @@ function fixture() {
   for (const block of blocks) {
     block.up=buttons(block,'layoutMove','up'); block.down=buttons(block,'layoutMove','down');
     block.widths=['3','4','6','8','12'].map(width=>buttons(block,'layoutWidth',width));
-    block.querySelector = selector => ({'[data-layout-order]':block.order, '[data-layout-span]':block.span,
+    block.preview = {content:{cloneNode(){return {textContent:'Safe saved content: '+block.dataset.layoutLabel};}}};
+    block.querySelector = selector => ({'[data-layout-content]':block.preview, '[data-layout-order]':block.order, '[data-layout-span]':block.span,
       '[data-layout-move="up"]':block.up, '[data-layout-move="down"]':block.down})[selector];
     block.querySelectorAll = () => block.widths;
   }
@@ -26,13 +27,13 @@ function fixture() {
     addEventListener(name, fn){this.handlers[name]=fn;}, contains(card){return this.cards.includes(card);}};
   const list = {append(block){const i=blocks.indexOf(block); if(i>=0) blocks.splice(i,1); blocks.push(block);}};
   const status = {textContent:''}, handlers = {}, controls = [{hidden:true}];
-  const editor = {dataset:{emptyLabel:'No visible blocks',movedText:'Order updated'},
+  const editor = {dataset:{emptyLabel:'No visible blocks',movedText:'Order updated',layoutContentMode:options.content?'yes':'no'},
     querySelector(selector){return ({'[data-layout-sketch]':sketch,'[data-layout-status]':status,
       '[data-layout-block-list]':list})[selector];},
     querySelectorAll(selector){return selector === '[data-layout-controls]' ? controls : blocks;},
     addEventListener(name, fn){handlers[name]=fn;}, contains(button){return !!button.block;}};
-  const document = {querySelectorAll(){return [editor];}, createElement(){return {style:{},dataset:{},className:'',textContent:'',
-    closest(){return this;}};}};
+  const document = {querySelectorAll(){return [editor];}, createElement(){return {style:{},dataset:{},className:'',textContent:'',children:[],
+    classList:{add(){}},append(child){this.children.push(child);},closest(){return this;}};}};
   vm.runInNewContext(source, {document});
   return {blocks,sketch,status,handlers,controls};
 }
@@ -81,4 +82,18 @@ test('dragging visible sketch cards reorders fields and keeps hidden blocks once
   assert.deepEqual(f.blocks.map(b=>b.order.value), ['1','2','3']);
   assert.deepEqual(f.sketch.cards.map(c=>c.textContent), ['First','Last']);
   assert.equal(f.blocks[2].dataset.layoutHidden,'yes');
+});
+
+test('content mode clones the inert content template for visible blocks only', () => {
+  const f=fixture({content:true});
+  assert.equal(f.sketch.cards.length,2);
+  assert.equal(f.sketch.cards[0].children[0].textContent,'Safe saved content: Last');
+  assert.equal(f.sketch.cards[1].children[0].textContent,'Safe saved content: First');
+  assert.deepEqual(f.sketch.cards.map(c=>c.dataset.layoutSketchItem),['b2','b0']);
+});
+
+test('redrawing content preserves existing preview elements', () => {
+  const f=fixture({content:true}), before=f.sketch.cards[0];
+  f.handlers.input();
+  assert.equal(f.sketch.cards[0],before);
 });
