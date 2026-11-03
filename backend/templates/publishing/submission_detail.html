@@ -2,6 +2,7 @@
 {% block content %}
 <a class="back" href="{% url 'workspace' %}">← {% translate "Back to workspace" %}</a>
 {% if author_view %}<p><a class="back" href="{% url 'author_submission_progress' submission.pk %}">{% translate "View submission progress" %} →</a></p>{% endif %}
+{% if supporting_enabled and author_view and submission.status == 'draft' %}<p><a class="back" href="{% url 'edit_draft' submission.pk %}">{% translate "Edit draft details and files" %} →</a></p>{% endif %}
 {% if supporting_enabled and author_view and submission.status == 'draft' %}<p><a class="back" href="{% url 'manage_supporting_files' submission.pk %}">{% translate "Manage supporting files" %} →</a></p>{% endif %}
 {% if author_view and review_ai_permissions_available %}<p><a class="back" href="{% url 'author_review_ai_permission' submission.pk %}">{% translate "Review AI permission" %} →</a></p>{% endif %}
 <div class="detail-header"><div><span class="eyebrow">{{ submission.journal.name }}</span><h1>{{ submission.title }}</h1><p class="muted">{% translate "Status" %}: <span class="status">{{ submission.get_status_display }}</span></p></div><a class="button secondary" href="{% url 'submission_file' submission.pk %}">{% translate "Download latest PDF" %}</a></div>

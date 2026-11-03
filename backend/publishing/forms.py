@@ -46,6 +46,42 @@ class SubmissionForm(forms.ModelForm):
         return validate_pdf(self.cleaned_data["review_copy"])
 
 
+class DraftEditForm(forms.Form):
+    title = forms.CharField(label=_("Manuscript title"), max_length=250)
+    abstract = forms.CharField(label=_("Manuscript abstract"), max_length=10000,
+        widget=forms.Textarea(attrs={"rows": 7}))
+    manuscript = forms.FileField(required=False, label=_("Replace manuscript PDF"),
+        widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
+    review_copy = forms.FileField(required=False, label=_("Replace reviewer PDF"),
+        widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
+    review_copy_confirmed = forms.BooleanField(required=False,
+        label=_("I checked the reviewer PDF, title and abstract for identifying information."))
+
+    def __init__(self, *args, review_mode, existing_review_copy_available=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.review_mode = review_mode
+        self.existing_review_copy_available = existing_review_copy_available
+        if review_mode != Journal.ReviewMode.SEPARATE:
+            self.fields.pop("review_copy")
+            self.fields.pop("review_copy_confirmed")
+
+    def clean_manuscript(self):
+        document = self.cleaned_data.get("manuscript")
+        return validate_pdf(document) if document else None
+
+    def clean_review_copy(self):
+        document = self.cleaned_data.get("review_copy")
+        return validate_pdf(document) if document else None
+
+    def clean(self):
+        cleaned = super().clean()
+        if (self.review_mode == Journal.ReviewMode.SEPARATE and
+                (cleaned.get("review_copy") or self.existing_review_copy_available) and
+                not cleaned.get("review_copy_confirmed")):
+            self.add_error("review_copy_confirmed", _("Confirm your manual check before saving."))
+        return cleaned
+
+
 class MultiplePDFInput(forms.ClearableFileInput):
     allow_multiple_selected = True
 

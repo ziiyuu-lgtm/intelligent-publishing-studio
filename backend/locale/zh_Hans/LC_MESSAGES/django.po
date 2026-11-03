@@ -8076,3 +8076,147 @@ msgstr "请人工检查审稿文件、文件名和元数据。平台不会自动
 
 msgid "Review and submit"
 msgstr "核对并提交"
+
+msgid "Edit draft details and files"
+msgstr "编辑草稿信息与文件"
+
+msgid "Edit your draft"
+msgstr "编辑草稿"
+
+msgid "Back to submission review"
+msgstr "返回投稿核对"
+
+msgid "DRAFT EDITOR"
+msgstr "草稿编辑"
+
+msgid "Update your manuscript details and replace files before submission."
+msgstr "提交前可更新稿件信息并替换文件。"
+
+msgid "Your submission is still private"
+msgstr "您的稿件仍为私密草稿"
+
+msgid "Changes remain in this draft. After saving, review the updated details before submitting."
+msgstr "修改保存在当前草稿中。保存后，请核对更新的信息再提交。"
+
+msgid "Tell us about your research"
+msgstr "填写研究信息"
+
+msgid "These details will be shown to editors and reviewers."
+msgstr "这些信息将展示给编辑和审稿人。"
+
+msgid "DRAFT FILES"
+msgstr "草稿文件"
+
+msgid "Replace your PDFs"
+msgstr "替换 PDF 文件"
+
+msgid "Replacement is optional. Leave a file field empty to keep the current file."
+msgstr "替换文件为可选操作；不选择新文件时将保留当前文件。"
+
+msgid "Current file is available"
+msgstr "当前文件可用"
+
+msgid "Current file is unavailable; upload a replacement"
+msgstr "当前文件不可用，请上传替换文件"
+
+msgid "Download current"
+msgstr "下载当前文件"
+
+msgid "Replace manuscript PDF"
+msgstr "替换稿件 PDF"
+
+msgid "Replace reviewer PDF"
+msgstr "替换审稿 PDF"
+
+msgid "PDF only · up to 10 MB"
+msgstr "仅支持 PDF · 不超过 10 MB"
+
+msgid "If a reviewer PDF is available, confirm your manual check before saving. The platform does not anonymise files or metadata."
+msgstr "如审稿 PDF 可用，保存前请确认已人工检查。平台不会自动匿名化文件或元数据。"
+
+msgid "Save and review"
+msgstr "保存并核对"
+
+msgid "BEFORE YOU SAVE"
+msgstr "保存之前"
+
+msgid "A careful final pass"
+msgstr "最后仔细检查"
+
+msgid "Update the details"
+msgstr "更新稿件信息"
+
+msgid "Use the title and abstract you want associated with this version."
+msgstr "填写希望与此版本关联的题目和摘要。"
+
+msgid "Replace only what you need"
+msgstr "按需替换文件"
+
+msgid "You can keep your current files or upload new PDFs."
+msgstr "您可以保留当前文件，也可以上传新的 PDF。"
+
+msgid "Review again"
+msgstr "再次核对"
+
+msgid "The submission checklist refreshes after you save."
+msgstr "保存后，投稿核对清单将更新。"
+
+msgid "File retention in this test"
+msgstr "测试文件保留"
+
+msgid "Replaced test files are retained privately and are not available from this page. There is a limit of 20 retained replacements per draft."
+msgstr "被替换的测试文件会私密保留，不能从此页面下载。每份草稿最多保留 20 次文件替换记录。"
+
+msgid "Remaining replacements"
+msgstr "剩余可替换文件数"
+
+msgid "Manage supplementary files separately from the manuscript and reviewer PDF."
+msgstr "补充文件与稿件和审稿 PDF 分开管理。"
+
+msgid "Draft changed"
+msgstr "草稿已更改"
+
+msgid "The draft changed"
+msgstr "草稿已更改"
+
+msgid "Your changes were not saved. Reload the latest draft and review it before editing again."
+msgstr "您的更改尚未保存。请重新加载最新草稿并核对后再编辑。"
+
+msgid "Your typed text is shown below"
+msgstr "您输入的文字显示在下方"
+
+msgid "Copy any text you need before reloading. Selected files were not saved and must be selected again."
+msgstr "重新加载前请复制所需文字。所选文件尚未保存，需重新选择。"
+
+msgid "Text from your unsaved form"
+msgstr "未保存表单中的文字"
+
+msgid "Reload the current draft"
+msgstr "重新加载当前草稿"
+
+msgid "Confirm your manual check before saving."
+msgstr "保存前请确认已完成人工检查。"
+
+msgid "This draft cannot be edited in its current state."
+msgstr "当前状态下无法编辑此草稿。"
+
+msgid "This draft has reached the retained-file replacement limit."
+msgstr "此草稿已达到保留文件的替换上限。"
+
+msgid "Draft updated. Review it before submitting."
+msgstr "草稿已更新。提交前请核对。"
+
+msgid "No draft changes were made."
+msgstr "草稿没有更改。"
+
+msgid "The title and abstract are required. Edit the draft or contact the local administrator."
+msgstr "题目和摘要为必填项，请编辑草稿或联系本地管理员。"
+
+msgid "The saved draft and version details no longer match. Edit the draft or contact the local administrator."
+msgstr "草稿与版本信息不一致，请编辑草稿或联系本地管理员。"
+
+msgid "A required file or review policy is unavailable. Edit the draft or contact the local administrator."
+msgstr "必需文件或审稿政策不可用，请编辑草稿或联系本地管理员。"
+
+msgid "Records of replaced files are kept privately; an already missing file cannot be recovered. Older files cannot be downloaded here. Limit: 20 records per draft."
+msgstr "替换记录会私密保留；已经缺失的文件无法恢复。不能从此页面下载旧文件。每份草稿最多保留 20 条记录。"

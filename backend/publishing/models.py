@@ -666,6 +666,26 @@ class SupportingFile(models.Model):
         ]
 
 
+class ReplacedDraftFile(models.Model):
+    """A retained private file replaced while the submission was still a draft."""
+    class Kind(models.TextChoices):
+        MANUSCRIPT = "manuscript", _("Manuscript")
+        REVIEW_COPY = "review_copy", _("Reviewer copy")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="replaced_draft_files")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="replaced_draft_files")
+    replaced_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="replaced_draft_files")
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    file = models.FileField(max_length=255)
+    replaced_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["replaced_at", "pk"]
+        constraints = [models.CheckConstraint(condition=models.Q(kind__in=["manuscript", "review_copy"]),
+                                              name="replaced_draft_file_kind_valid")]
+
+
 class ReviewRound(models.Model):
     class Status(models.TextChoices):
         OPEN = "open", _("Open")
