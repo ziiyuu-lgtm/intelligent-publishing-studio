@@ -113,6 +113,22 @@ class PublisherPortalAITests(TestCase):
         OrganisationMembership.objects.filter(user=self.ai_manager, organisation=self.org).update(active=False)
         self.assertEqual(self.client.get(url).status_code, 404)
 
+    def test_visual_brief_starters_follow_publisher_policy(self):
+        url = self.url("manage_publisher_portal")
+        page = self.client.get(url)
+        self.assertContains(page, 'href="#ai-visual-design"')
+        self.assertContains(page, 'id="ai-visual-design"')
+        self.assertContains(page, 'data-visual-brief-editor')
+        self.assertContains(page, 'data-brief-starter', count=4)
+        self.assertContains(page, 'id="portal-ai-brief"')
+        self.assertContains(page, 'name="confirm" value="yes" required')
+        self.assertContains(page, 'name="synthetic" value="yes" required')
+        self.assertContains(self.client.get(url, HTTP_ACCEPT_LANGUAGE="zh-hans"), "描述您的设计构想")
+        self.transport.assert_not_called()
+        self.policy.portal_design_enabled = False
+        self.policy.save(update_fields=["portal_design_enabled"])
+        self.assertNotContains(self.client.get(url), 'data-visual-brief-editor')
+
     def test_default_off_and_each_gate_prevents_network(self):
         data = self.data()
         url = self.url("request_publisher_ai_design")

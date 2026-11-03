@@ -137,6 +137,22 @@ class SiteAITests(TestCase):
         self.transport.assert_not_called()
         self.assertFalse(JournalSiteAIDesignRun.objects.exists())
 
+    def test_visual_brief_starters_are_available_only_when_enabled(self):
+        url = reverse("manage_journal_site", args=[self.journal.slug])
+        page = self.client.get(url)
+        self.assertContains(page, 'href="#ai-visual-design"')
+        self.assertContains(page, 'id="ai-visual-design"')
+        self.assertContains(page, 'data-visual-brief-editor')
+        self.assertContains(page, 'data-brief-starter', count=4)
+        self.assertContains(page, 'id="site-ai-brief"')
+        self.assertContains(page, 'name="confirm" value="yes" required')
+        self.assertContains(page, 'name="synthetic" value="yes" required')
+        self.assertContains(self.client.get(url, HTTP_ACCEPT_LANGUAGE="zh-hans"), "描述您的设计构想")
+        self.transport.assert_not_called()
+        self.policy.site_design_enabled = False
+        self.policy.save(update_fields=["site_design_enabled"])
+        self.assertNotContains(self.client.get(url), 'data-visual-brief-editor')
+
     def test_provider_receives_brief_and_visual_settings_request_is_idempotent(self):
         self.transport.side_effect = None
         self.transport.return_value = provider_response()

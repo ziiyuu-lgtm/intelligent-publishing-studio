@@ -6175,3 +6175,66 @@ msgstr "调整各方案时，缩略预览会同步更新。选择一个方案即
 
 msgid "Review design"
 msgstr "查看设计"
+
+msgid "characters remaining"
+msgstr "个字符可用"
+
+msgid "Idea added. You can edit the brief before sending."
+msgstr "灵感已添加。发送前您可以继续编辑设计说明。"
+
+msgid "Idea not added: the brief would exceed 600 characters. Edit the text first."
+msgstr "未添加：设计说明将超过 600 个字符。请先编辑已有文字。"
+
+msgid "CREATIVE STARTING POINTS"
+msgstr "创意起点"
+
+msgid "Describe your vision"
+msgstr "描述您的设计构想"
+
+msgid "Add an idea or write your own. Suggestions use the available visual controls."
+msgstr "添加一个灵感，或直接写下您的构想。建议使用当前可用的视觉设置。"
+
+msgid "Create a timeless scholarly design with deep green, warm ivory, a structured masthead, and readable serif typography."
+msgstr "设计经典的学术风格，使用深绿色、暖象牙白、结构清晰的刊头和易读的衬线字体。"
+
+msgid "Scholarly heritage"
+msgstr "经典学术"
+
+msgid "Classic and authoritative"
+msgstr "经典、严谨"
+
+msgid "Add idea"
+msgstr "添加灵感"
+
+msgid "Create a warm editorial design with terracotta and cream, bold headings, a magazine-like composition, and generous spacing."
+msgstr "设计温暖的编辑风格，使用陶土色和奶油色、醒目的标题、杂志式构图和宽松间距。"
+
+msgid "Editorial warmth"
+msgstr "温暖编辑风"
+
+msgid "Expressive and welcoming"
+msgstr "鲜明、亲切"
+
+msgid "Create a contemporary research website with deep indigo, crisp typography, a confident hero, and a clear technical feel."
+msgstr "设计现代研究网站，使用深靛蓝、清晰字体、鲜明的首屏和科技感。"
+
+msgid "Digital frontier"
+msgstr "数字前沿"
+
+msgid "Modern and confident"
+msgstr "现代、鲜明"
+
+msgid "Create a calm open-research design with a light background, subtle olive accents, clear navigation, and generous white space."
+msgstr "设计平和的开放研究网站，使用浅色背景、柔和的橄榄色点缀、清晰导航和充足留白。"
+
+msgid "Open minimal"
+msgstr "开放极简"
+
+msgid "Calm and accessible"
+msgstr "平和、易读"
+
+msgid "Describe your audience, preferred colours, typography and overall feel using fictional details."
+msgstr "请使用虚构信息描述目标读者、偏好的配色、字体和整体风格。"
+
+msgid "AI visual design"
+msgstr "AI 视觉设计"
