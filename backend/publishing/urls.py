@@ -1,11 +1,13 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, editor_revision_views, issue_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
     path("workspace/", views.workspace, name="workspace"),
     path("workspace/author-changes/", author_dashboard_views.author_change_dashboard, name="author_change_dashboard"),
     path("workspace/review-progress/", review_deadline_views.review_progress, name="review_progress"),
+    path("workspace/returned-revisions/", editor_revision_views.returned_revisions, name="returned_revisions"),
+    path("workspace/returned-revisions/<uuid:pk>/", editor_revision_views.returned_revision, name="returned_revision"),
     path("workspace/author-notices/", author_notice_views.author_notice_inbox, name="author_notice_inbox"),
     path("workspace/submissions/", author_submission_views.author_submissions, name="author_submissions"),
     path("author-notices/<uuid:pk>/read/", author_notice_views.read_author_notice, name="read_author_notice"),

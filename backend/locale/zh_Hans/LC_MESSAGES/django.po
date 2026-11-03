@@ -5275,3 +5275,144 @@ msgstr "查看投稿状态"
 
 msgid "Open current revision form"
 msgstr "打开当前修回表单"
+
+msgid "Review returned revisions"
+msgstr "查看已返回的修订稿"
+
+msgid "Returned revisions"
+msgstr "已返回的修订稿"
+
+msgid "EDITORIAL WORKSPACE"
+msgstr "编辑工作区"
+
+msgid "Review revised manuscripts and author responses assigned to you."
+msgstr "查看分配给您的修订稿和作者回复。"
+
+msgid "Test environment only. This view shows open revision rounds assigned to you; no messages are sent."
+msgstr "仅用于测试。此处显示分配给您的进行中修回轮次；不会发送任何消息。"
+
+msgid "Filter returned revisions"
+msgstr "筛选已返回的修订稿"
+
+msgid "Current revisions"
+msgstr "当前修回"
+
+msgid "Open revision rounds"
+msgstr "进行中的修回轮次"
+
+msgid "Current submission status"
+msgstr "当前稿件状态"
+
+msgid "Revisions to explore"
+msgstr "待查看的修订稿"
+
+msgid "Newest version first"
+msgstr "最新版本优先"
+
+msgid "Counts reflect current manuscript status and include only the latest open revision round."
+msgstr "数量反映当前稿件状态，仅包括最新的进行中修回轮次。"
+
+msgid "Search by title or journal"
+msgstr "按标题或期刊搜索"
+
+msgid "Search returned revisions"
+msgstr "搜索已返回的修订稿"
+
+msgid "Search"
+msgstr "搜索"
+
+msgid "Revised version"
+msgstr "修订版本"
+
+msgid "Received"
+msgstr "收到时间"
+
+msgid "Author response and previous decision available in the revision package."
+msgstr "修回资料中包含作者回复和上一轮决定。"
+
+msgid "View revision package"
+msgstr "查看修回资料"
+
+msgid "No returned revisions match this view."
+msgstr "没有符合当前条件的修订稿。"
+
+msgid "Revision pages"
+msgstr "修回列表分页"
+
+msgid "Revision package"
+msgstr "修回资料"
+
+msgid "Back to returned revisions"
+msgstr "返回修回列表"
+
+msgid "REVISION PACKAGE"
+msgstr "修回资料"
+
+msgid "A private view of the latest revision and the preceding decision."
+msgstr "私密查看最新修订稿和上一轮决定。"
+
+msgid "Current round"
+msgstr "当前轮次"
+
+msgid "What the author changed"
+msgstr "作者修改说明"
+
+msgid "Response submitted with this version"
+msgstr "随此版本提交的回复"
+
+msgid "No author response was recorded."
+msgstr "未记录作者回复。"
+
+msgid "PREVIOUS DECISION"
+msgstr "上一轮决定"
+
+msgid "Decision sent to the author"
+msgstr "发送给作者的决定"
+
+msgid "MANUSCRIPT FILES"
+msgstr "稿件文件"
+
+msgid "Compare versions"
+msgstr "比较版本"
+
+msgid "Open each PDF separately to compare the manuscript."
+msgstr "分别打开 PDF 文件以比较稿件。"
+
+msgid "Revised manuscript"
+msgstr "修订稿"
+
+msgid "Current"
+msgstr "当前"
+
+msgid "Open PDF"
+msgstr "打开 PDF"
+
+msgid "Previous manuscript"
+msgstr "上一版本稿件"
+
+msgid "NEXT STEP"
+msgstr "下一步"
+
+msgid "Continue editorial work"
+msgstr "继续编辑工作"
+
+msgid "The author manuscript is used for review under this submission's policy."
+msgstr "根据本稿件的审稿规则，作者稿件用于审稿。"
+
+msgid "The separate reviewer copy has a recorded manual check."
+msgstr "独立审稿文件已记录人工检查。"
+
+msgid "The manuscript file is currently unavailable."
+msgstr "稿件文件当前不可用。"
+
+msgid "A checked reviewer copy is needed before inviting reviewers."
+msgstr "邀请审稿人之前需要检查审稿文件。"
+
+msgid "Open reviewer copy"
+msgstr "打开审稿文件"
+
+msgid "Open manuscript workspace"
+msgstr "打开稿件工作区"
+
+msgid "Reviewer invitations and editorial decisions remain in the manuscript workspace."
+msgstr "审稿人邀请和编辑决定仍在稿件工作区处理。"
