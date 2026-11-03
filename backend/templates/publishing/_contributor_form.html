@@ -1,0 +1,10 @@
+{% load i18n %}
+<article class="module-card contributor-card" data-author-card>
+  <div class="module-card__header"><strong><span class="module-handle" data-author-drag data-author-js hidden draggable="true" aria-hidden="true">⋮⋮</span>{% translate "Author details" %}</strong>
+    <div class="module-actions" data-author-js hidden><button type="button" class="button secondary small" data-author-move="up">↑ {% translate "Move up" %}</button><button type="button" class="button secondary small" data-author-move="down">↓ {% translate "Move down" %}</button></div></div>
+  {{ author_form.non_field_errors }}
+  <div class="module-fields"><div class="field">{{ author_form.name.label_tag }}{{ author_form.name }}{{ author_form.name.errors }}</div><div class="field">{{ author_form.email.label_tag }}{{ author_form.email }}{{ author_form.email.errors }}</div></div>
+  <div class="field">{{ author_form.affiliation.label_tag }}{{ author_form.affiliation }}{{ author_form.affiliation.errors }}</div>
+  <div class="field">{{ author_form.orcid.label_tag }}{{ author_form.orcid }}<small>{{ author_form.orcid.help_text }}</small>{{ author_form.orcid.errors }}</div>
+  <div class="module-controls"><label class="check">{{ author_form.corresponding }} {{ author_form.corresponding.label }}</label><div class="field module-order">{{ author_form.ORDER.label_tag }}{{ author_form.ORDER }}{{ author_form.ORDER.errors }}</div><label class="check">{{ author_form.DELETE }} {% translate "Remove this author" %}</label></div>
+</article>

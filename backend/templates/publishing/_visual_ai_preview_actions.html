@@ -1,0 +1,15 @@
+{% load i18n static %}
+<div class="notice">{% translate "Private customised design preview. This design has not been applied or published." %}</div>
+<div class="card panel visual-preview-actions"><form method="post" action="{{ visual_apply_url }}" class="stack">{% csrf_token %}<input type="hidden" name="revision" value="{{ visual_revision }}"><input type="hidden" name="reviewed_design" value="{{ visual_reviewed }}"><label class="policy-check"><input type="checkbox" name="confirm" value="yes" required> {% translate "Apply this reviewed design to the draft." %}</label><button class="button" type="submit">{% translate "Apply design to draft" %}</button></form>
+<form method="post" action="{{ visual_edit_url }}">{% csrf_token %}<input type="hidden" name="revision" value="{{ visual_revision }}"><input type="hidden" name="reviewed_design" value="{{ visual_reviewed }}"><button class="button secondary" type="submit">{% translate "Return to customise" %}</button></form></div>
+<section class="visual-device-review card" data-visual-device-review hidden aria-labelledby="visual-device-heading">
+  <div class="visual-device-header"><div><span class="eyebrow">{% translate "DESIGN REVIEW" %}</span><h2 id="visual-device-heading">{% translate "Responsive website preview" %}</h2><p class="muted">{% translate "Review the same design at different screen widths. Links are disabled in this preview." %}</p></div>
+  <div class="visual-device-switch" role="group" aria-label="{% translate 'Preview screen width' %}">
+    <button type="button" data-visual-device="desktop" aria-pressed="true">{% translate "Desktop" %}<small>1080 px</small></button>
+    <button type="button" data-visual-device="tablet" aria-pressed="false">{% translate "Tablet" %}<small>768 px</small></button>
+    <button type="button" data-visual-device="mobile" aria-pressed="false">{% translate "Mobile" %}<small>390 px</small></button>
+  </div></div>
+  <p class="visual-device-help muted">{% translate "Scroll inside the preview to see the full page; wider views may require horizontal scrolling." %}</p>
+  <div class="visual-device-stage"><iframe title="{% translate 'Read-only website preview' %}" data-visual-device-frame sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe></div>
+</section>
+<script src="{% static 'visual_ai_devices.js' %}" defer></script>

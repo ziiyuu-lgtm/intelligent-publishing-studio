@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Revision form needs refreshing" %} | Intelligent Publishing Studio{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'submission_detail' submission.pk %}">← {% translate "Back to submission" %}</a>
+<section class="narrow card form-card"><span class="eyebrow">{% translate "AUTHOR REVISION" %}</span><h1>{% translate "Revision form needs refreshing" %}</h1><p>{{ submission.title }}</p><div class="notice">{% translate "The decision, version, account or form session changed. This attempt was not submitted." %}</div>
+{% if response_text %}<p>{% translate "Your response text is shown below so you can copy it. You will need to select files again in a current form." %}</p><div class="field"><label for="preserved-response">{% translate "Your response text" %}</label><textarea id="preserved-response" rows="10" readonly>{{ response_text }}</textarea></div>{% endif %}
+{% if revised_title %}<div class="field"><label for="preserved-title">{% translate "Your revised title" %}</label><textarea id="preserved-title" rows="2" readonly>{{ revised_title }}</textarea></div>{% endif %}
+{% if revised_abstract %}<div class="field"><label for="preserved-abstract">{% translate "Your revised abstract" %}</label><textarea id="preserved-abstract" rows="6" readonly>{{ revised_abstract }}</textarea></div>{% endif %}
+{% if revised_keywords %}<div class="field"><label for="preserved-keywords">{% translate "Your revised keywords" %}</label><textarea id="preserved-keywords" rows="4" readonly>{{ revised_keywords }}</textarea></div>{% endif %}
+<div class="actions"><a class="button secondary" href="{% url 'submission_detail' submission.pk %}">{% translate "Check submission status" %}</a>{% if submission.status == 'revision_requested' %}<a class="button" href="{% url 'submission_revision' submission.pk %}">{% translate "Open current revision form" %} →</a>{% endif %}</div></section>
+{% endblock %}

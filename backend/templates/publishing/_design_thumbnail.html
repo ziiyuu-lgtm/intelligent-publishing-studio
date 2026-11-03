@@ -1,0 +1,5 @@
+<div class="design-thumb composition-{{ appearance.composition }} align-{{ appearance.alignment }} order-{{ appearance.section_order }}{% if not appearance.show_feature %} no-feature{% endif %}" aria-hidden="true" style="--thumb-primary:{{ appearance.primary }};--thumb-surface:{{ appearance.surface }};--thumb-page:{{ appearance.background }};--thumb-hero:{{ appearance.hero_bg }};--thumb-ink:{{ appearance.hero_text }};--thumb-page-ink:{{ appearance.page_text }};--thumb-surface-ink:{{ appearance.surface_text }}">
+  <div class="design-thumb__nav"><span class="design-thumb__brand"></span><span class="design-thumb__links"></span></div>
+  <div class="design-thumb__hero"><div class="design-thumb__copy"><i></i><b></b><b></b><small></small><em></em></div>{% if appearance.show_feature %}<div class="design-thumb__feature"><i></i><b></b><small></small></div>{% endif %}</div>
+  <div class="design-thumb__body"><div><i></i><b></b><small></small><small></small></div><aside><i></i><b></b><small></small></aside></div>
+</div>

@@ -1,0 +1,16 @@
+.publisher-portal .journal-site__body{grid-template-columns:minmax(0,.8fr) minmax(300px,1.2fr);gap:7%}
+.publisher-portal .journal-site__explore{padding:clamp(22px,3vw,36px)}
+.publisher-portal__journals{display:grid;gap:0;margin-top:20px}
+.publisher-portal__journal{border-top:1px solid currentColor;padding:20px 0;overflow-wrap:anywhere}
+.publisher-portal__number{font-size:.7rem;letter-spacing:.1em;opacity:.75}
+.publisher-portal__journal h3{font-size:1.1rem;line-height:1.35;margin:8px 0}
+.publisher-portal__journal p{font-size:.86rem;margin:8px 0 0}
+.publisher-portal__journal a{font-size:.86rem}
+.publisher-portal.order-archive_first .journal-site__body{grid-template-columns:minmax(300px,1.2fr) minmax(0,.8fr)}
+.portal-selection [id^=id_journals] label{display:flex;align-items:flex-start;gap:8px;margin:8px 0;font-weight:500}
+.portal-selection input[type=checkbox]{width:auto;flex:none;margin-top:.35em}
+@media(max-width:720px){.publisher-portal .journal-site__body,.publisher-portal.order-archive_first .journal-site__body{grid-template-columns:1fr}}
+.publisher-portal.has-modules .journal-site__modules{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.publisher-portal.has-modules .publisher-module-journals{background:var(--site-tint);color:var(--site-surface-text)}
+.publisher-portal.has-modules .publisher-module-journals a{color:inherit}
+@media(max-width:720px){.publisher-portal.has-modules .journal-site__modules{grid-template-columns:1fr;gap:16px}}

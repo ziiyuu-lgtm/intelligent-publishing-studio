@@ -1,0 +1,42 @@
+{% load i18n %}
+<form method="post" action="{{ visual_request_url }}" class="visual-brief-form" data-visual-brief-editor
+  data-remaining="{% translate 'characters remaining' %}"
+  data-added="{% translate 'Idea added. You can edit the brief before sending.' %}"
+  data-too-long="{% translate 'Idea not added: the brief would exceed 600 characters. Edit the text first.' %}">
+  {% csrf_token %}
+  <input type="hidden" name="revision" value="{{ site.revision }}">
+  <input type="hidden" name="fingerprint" value="{{ fingerprint }}">
+  <input type="hidden" name="policy_revision" value="{{ ai_policy_revision }}">
+  <input type="hidden" name="model" value="{{ ai_model_name }}">
+  <input type="hidden" name="request_id" value="{{ ai_request_id }}">
+  <div class="visual-brief-intro">
+    <div><span class="eyebrow">{% translate "CREATIVE STARTING POINTS" %}</span><h3>{% translate "Describe your vision" %}</h3></div>
+    <p class="muted">{% translate "Add an idea or write your own. Suggestions use the available visual controls." %}</p>
+  </div>
+  <div class="visual-brief-examples" data-brief-examples hidden>
+    <button type="button" class="visual-brief-example" data-brief-starter data-brief-text="{% translate 'Create a timeless scholarly design with deep green, warm ivory, a structured masthead, and readable serif typography.' %}">
+      <span class="visual-brief-art visual-brief-art--heritage" aria-hidden="true"><i></i><b></b><em></em></span>
+      <strong>{% translate "Scholarly heritage" %}</strong><small>{% translate "Classic and authoritative" %}</small><span class="visual-brief-add">+ {% translate "Add idea" %}</span>
+    </button>
+    <button type="button" class="visual-brief-example" data-brief-starter data-brief-text="{% translate 'Create a warm editorial design with terracotta and cream, bold headings, a magazine-like composition, and generous spacing.' %}">
+      <span class="visual-brief-art visual-brief-art--editorial" aria-hidden="true"><i></i><b></b><em></em></span>
+      <strong>{% translate "Editorial warmth" %}</strong><small>{% translate "Expressive and welcoming" %}</small><span class="visual-brief-add">+ {% translate "Add idea" %}</span>
+    </button>
+    <button type="button" class="visual-brief-example" data-brief-starter data-brief-text="{% translate 'Create a contemporary research website with deep indigo, crisp typography, a confident hero, and a clear technical feel.' %}">
+      <span class="visual-brief-art visual-brief-art--frontier" aria-hidden="true"><i></i><b></b><em></em></span>
+      <strong>{% translate "Digital frontier" %}</strong><small>{% translate "Modern and confident" %}</small><span class="visual-brief-add">+ {% translate "Add idea" %}</span>
+    </button>
+    <button type="button" class="visual-brief-example" data-brief-starter data-brief-text="{% translate 'Create a calm open-research design with a light background, subtle olive accents, clear navigation, and generous white space.' %}">
+      <span class="visual-brief-art visual-brief-art--minimal" aria-hidden="true"><i></i><b></b><em></em></span>
+      <strong>{% translate "Open minimal" %}</strong><small>{% translate "Calm and accessible" %}</small><span class="visual-brief-add">+ {% translate "Add idea" %}</span>
+    </button>
+  </div>
+  <div class="field visual-brief-field"><label for="{{ visual_brief_id }}">{% translate "Fictional design brief" %}</label>
+    <textarea id="{{ visual_brief_id }}" name="brief" rows="5" maxlength="600" required data-brief-input placeholder="{% translate 'Describe your audience, preferred colours, typography and overall feel using fictional details.' %}"></textarea>
+    <small data-brief-count></small><p class="muted visual-brief-status" role="status" aria-live="polite" data-brief-status></p>
+  </div>
+  <div class="visual-brief-consent"><label class="policy-check"><input type="checkbox" name="confirm" value="yes" required> {% translate "Send this design brief and the current visual settings to OpenAI for one request." %}</label>
+    <label class="policy-check"><input type="checkbox" name="synthetic" value="yes" required> {% translate "I confirm that this brief contains only fictional test information." %}</label>
+    <button class="button" type="submit">{% translate "Request design suggestions" %} →</button>
+  </div>
+</form>

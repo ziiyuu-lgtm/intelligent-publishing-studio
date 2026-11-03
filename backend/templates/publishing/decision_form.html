@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}<a class="back" href="{% url 'submission_detail' submission.pk %}">← {% translate "Back to submission" %}</a>
+<section class="narrow card form-card"><span class="eyebrow">{% translate "EDITORIAL DECISION" %}</span><h1>{% translate "Record a decision" %}</h1><p class="muted">{{ submission.title }}</p>
+<div class="notice">{% translate "Only the message entered here is shared with the author. Review reports and reviewer identities remain confidential. Recording a decision closes this round; unfinished invitations and reviews can no longer be completed." %}</div>
+{% if pending_contributor_change %}<div class="notice">{% translate "Resolve the pending author change request before recording an editorial decision." %} <a class="back" href="{% url 'contributor_change_detail' submission.pk pending_contributor_change.pk %}">{% translate "View request" %} →</a></div>{% endif %}
+<p class="muted">{% translate "Acceptance and revision requests require a submitted review with no conflict declared. Rejection can be recorded without a review." %}</p>
+<form class="stack" method="post">{% csrf_token %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<button class="button" type="submit">{% translate "Confirm decision" %}</button></form></section>{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<a class="back" href="{% url 'home' %}">← {% translate "Back to journal directory" %}</a>
+<div class="page-intro"><span class="eyebrow">{% translate "FICTIONAL TEST JOURNAL" %}</span><h1>{{ journal.name }}</h1><p>{% translate "Local test articles" %}</p></div>
+<div class="notice">{% translate "These articles are fictional demonstrations, not real publications." %}</div>
+<section class="card panel"><h2>{% translate "Released test issues" %}</h2><div class="list">{% for issue in issues %}<a class="list-row" href="{% url 'test_issue' journal.slug issue.pk %}"><span><strong>{% translate "Volume" %} {{ issue.volume }}, {% translate "Issue" %} {{ issue.number }} · {{ issue.year }}</strong>{% if issue.title %}<small>{{ issue.title }}</small>{% endif %}</span></a>{% empty %}<p class="muted">{% translate "No test issues have been released." %}</p>{% endfor %}</div></section>
+<section class="card panel"><div class="list">{% for article in articles %}<a class="list-row" href="{% url 'test_article' journal.slug article.pk %}"><span><strong>{{ article.title }}</strong><small>{{ article.authors }}</small></span><span class="status">{{ article.published_at|date:"Y-m-d" }}</span></a>{% empty %}<p class="muted">{% translate "No test articles have been published." %}</p>{% endfor %}</div></section>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Add evidence" %} | {{ submission.title }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'contributor_change_detail' submission.pk change.pk %}">← {% translate "Back to author change" %}</a>
+<div class="page-intro"><span class="eyebrow">{{ submission.journal.name }} / {% translate "PRIVATE EVIDENCE" %}</span><h1>{% translate "Add evidence" %}</h1><p>{{ submission.title }}</p></div>
+<section class="card panel stack"><div class="notice">{% translate "Upload fictional test information only. Files are private to their uploader and assigned editors. A PDF header check and file digest do not verify authenticity, identity, consent or safety." %}</div>
+<p class="muted">{% translate "PDF only, maximum 5 MB per file and 50 files per request. Files are retained with the request; the system does not notify authors." %}</p>
+<form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}{{ form.non_field_errors }}<div class="field">{{ form.label.label_tag }}{{ form.label }}{{ form.label.errors }}</div><div class="field">{{ form.file.label_tag }}{{ form.file }}{{ form.file.errors }}</div><label class="check">{{ form.synthetic }} {{ form.synthetic.label }}</label>{{ form.synthetic.errors }}<button class="button" type="submit">{% translate "Save private evidence" %}</button></form></section>
+{% endblock %}

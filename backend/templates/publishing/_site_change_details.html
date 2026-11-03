@@ -1,0 +1,35 @@
+{% load i18n %}
+{% if change.kind == 'sections' %}
+<details class="site-review-details" open>
+  <summary>{% translate "Module order and visibility" %}</summary>
+  <p class="site-review-detail-note">{% translate "Modules have no persistent identifiers, so each version is listed separately. Open the full pages to inspect text and images." %}</p>
+  <div class="site-review-inventories">
+    <section><h4>{% translate "Published" %}</h4>
+      {% if change.before_items is None %}<p class="site-review-unavailable">{% translate "Module details unavailable" %}</p>{% else %}
+      <ol class="site-review-inventory">{% for item in change.before_items %}<li><span class="site-review-position">{{ item.position }}</span><div><strong>{{ item.title }}</strong><small>{{ item.type }} · {% if item.visible %}{% translate "Visible" %}{% else %}{% translate "Hidden" %}{% endif %}</small></div></li>{% empty %}<li>{% translate "No modules" %}</li>{% endfor %}</ol>{% endif %}
+    </section>
+    <section><h4>{% translate "Draft" %}</h4>
+      {% if change.after_items is None %}<p class="site-review-unavailable">{% translate "Module details unavailable" %}</p>{% else %}
+      <ol class="site-review-inventory">{% for item in change.after_items %}<li><span class="site-review-position">{{ item.position }}</span><div><strong>{{ item.title }}</strong><small>{{ item.type }} · {% if item.visible %}{% translate "Visible" %}{% else %}{% translate "Hidden" %}{% endif %}</small></div></li>{% empty %}<li>{% translate "No modules" %}</li>{% endfor %}</ol>{% endif %}
+    </section>
+  </div>
+</details>
+{% elif change.kind == 'pages' %}
+<details class="site-review-details" open>
+  <summary>{% translate "Page-by-page detail" %}</summary>
+  <p class="site-review-detail-note">{% translate "Pages are matched by URL name. A renamed URL appears as a removed page and an added page; positions can change when other pages are added or removed." %}</p>
+  {% if change.page_changes is None %}<p class="site-review-unavailable">{% translate "Page details unavailable because one version is invalid." %}</p>
+  {% elif not change.page_changes %}<p class="site-review-unavailable">{% translate "No item-level differences found after validation." %}</p>
+  {% else %}<div class="site-review-page-list">{% for item in change.page_changes %}
+    <article class="site-review-page"><div class="site-review-page-head"><span class="site-review-status">{{ item.status }}</span>{% if item.after %}<strong>{{ item.after.title }}</strong>{% else %}<strong>{{ item.before.title }}</strong>{% endif %}</div>
+      {% if item.fields %}<p class="site-review-fields">{% translate "Changed" %}: {% for field in item.fields %}{{ field }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+      <div class="site-review-page-values"><div><small>{% translate "Published" %}</small>{% if item.before %}<strong>{{ item.before.title }}</strong><span>/{{ item.before.slug }} · {% translate "Position" %} {{ item.before.position }} · {% if item.before.visible %}{% translate "Visible" %}{% else %}{% translate "Hidden" %}{% endif %}</span>{% else %}<span>{% translate "Not present" %}</span>{% endif %}</div><div><small>{% translate "Draft" %}</small>{% if item.after %}<strong>{{ item.after.title }}</strong><span>/{{ item.after.slug }} · {% translate "Position" %} {{ item.after.position }} · {% if item.after.visible %}{% translate "Visible" %}{% else %}{% translate "Hidden" %}{% endif %}</span>{% else %}<span>{% translate "Not present" %}</span>{% endif %}</div></div>
+      {% if item.text_comparison %}<details class="site-review-text-diff"><summary>{% translate "Compare page text" %}</summary>
+        <p class="site-review-detail-note">{% translate "This compares the page text field; content blocks are not included." %} {% if item.text_comparison.highlighted %}{% translate "Removed text is struck through and added text is underlined. Highlights are approximate; review both versions." %}{% else %}{% translate "Long text is shown in full without highlighting." %}{% endif %}</p>
+        <div class="site-review-text-grid"><section><h5>{% translate "Published" %}</h5>{% if not item.text_comparison.before_present %}<p class="site-review-no-text">{% translate "Not present" %}</p>{% elif item.text_comparison.before_empty %}<p class="site-review-no-text">{% translate "No page text" %}</p>{% else %}<p class="site-review-body-text">{% for part in item.text_comparison.before %}{% if part.changed %}<del>{{ part.text }}</del>{% else %}{{ part.text }}{% endif %}{% endfor %}</p>{% endif %}</section>
+        <section><h5>{% translate "Draft" %}</h5>{% if not item.text_comparison.after_present %}<p class="site-review-no-text">{% translate "Not present" %}</p>{% elif item.text_comparison.after_empty %}<p class="site-review-no-text">{% translate "No page text" %}</p>{% else %}<p class="site-review-body-text">{% for part in item.text_comparison.after %}{% if part.changed %}<ins>{{ part.text }}</ins>{% else %}{{ part.text }}{% endif %}{% endfor %}</p>{% endif %}</section></div>
+      </details>{% endif %}
+      {% if item.blocks_url %}<div class="site-review-block-link"><a class="button secondary small" href="{{ item.blocks_url }}">{% translate "Compare page blocks" %} →</a></div>{% endif %}
+    </article>{% endfor %}</div>{% endif %}
+</details>
+{% endif %}

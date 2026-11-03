@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}<a class="back" href="{% url 'checks_page' submission.pk %}">← {% translate "Back to checks" %}</a>
+<section class="card panel"><span class="eyebrow">OpenAI / {{ run.model_name }} / {{ run.prompt_version }}</span><h1>{% translate "Writing suggestions" %}</h1><p>{% translate "Version" %} {{ run.version.number }} · {{ run.created_at }} · <span class="status">{{ run.get_status_display }}</span></p>
+<div class="notice">{% translate "AI suggestions are unverified and must be reviewed by a person. They are not an editorial decision." %}</div>
+{% if run.status == 'completed' %}{% for item in run.result %}<article class="review-item"><p><b>{% translate "Text excerpt" %}:</b> {{ item.evidence }}</p><p><b>{% translate "Observation" %}:</b> {{ item.observation }}</p><p><b>{% translate "Suggestion" %}:</b> {{ item.suggestion }}</p></article>{% empty %}<p class="muted">{% translate "The model returned no suggestions." %}</p>{% endfor %}
+{% elif run.status == 'pending' %}<p class="muted">{% translate "The request is still being processed. It will not be sent again if this page is refreshed." %}</p>
+{% elif run.status == 'cancelled' %}<p class="muted">{% translate "The request was cancelled because authorisation or configuration changed before sending." %}</p>
+{% else %}<p class="muted">{% translate "The service was unavailable or returned an unusable response. No automatic retry was made." %}</p>{% endif %}</section>{% endblock %}

@@ -1,0 +1,2 @@
+{% load i18n %}
+<ol class="change-people">{% for person in people %}<li><strong>{{ person.name }}</strong>{% if person.corresponding %}<span class="change-tag">{% translate "Corresponding author" %}</span>{% endif %}{% if person.affiliation %}<div>{{ person.affiliation|linebreaksbr }}</div>{% endif %}{% if person.email %}<div>{{ person.email }}</div>{% endif %}{% if person.orcid %}<div>ORCID: {{ person.orcid }}</div>{% endif %}</li>{% empty %}<li>{% translate "No author details recorded." %}</li>{% endfor %}</ol>
