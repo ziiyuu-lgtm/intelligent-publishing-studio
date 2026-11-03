@@ -6298,3 +6298,24 @@ msgstr "已审核的设计无效或已过期。"
 
 msgid "The site draft changed or this suggestion was already applied."
 msgstr "网站草稿已变化，或该建议已被应用。"
+
+msgid "DESIGN REVIEW"
+msgstr "设计审核"
+
+msgid "Responsive website preview"
+msgstr "响应式网站预览"
+
+msgid "Review the same design at different screen widths. Links are disabled in this preview."
+msgstr "在不同屏幕宽度下查看同一设计。此预览中的链接已禁用。"
+
+msgid "Preview screen width"
+msgstr "预览屏幕宽度"
+
+msgid "Tablet"
+msgstr "平板电脑"
+
+msgid "Scroll inside the preview to see the full page; wider views may require horizontal scrolling."
+msgstr "在预览内滚动可查看完整页面；较宽的视图可能需要横向滚动。"
+
+msgid "Read-only website preview"
+msgstr "只读网站预览"
