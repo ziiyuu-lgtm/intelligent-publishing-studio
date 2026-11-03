@@ -206,6 +206,7 @@ def workspace(request):
         "unread_author_notice_count": visible_author_notices(request.user).filter(read_at__isnull=True).count(),
         "unread_editor_ai_reply_count": visible_editor_ai_reply_notices(request.user).filter(read_at__isnull=True).count() if settings.DEBUG else 0,
         "editor_ai_reply_enabled": settings.DEBUG,
+        "review_ai_requests_enabled": settings.DEBUG,
         "site_manager_journals": site_manager_journals,
         "ai_manager_journals": ai_manager_journals,
         "portal_organisations": portal_organisations,

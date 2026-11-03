@@ -3,7 +3,7 @@ import json
 from django.conf import settings
 from django.utils.crypto import salted_hmac
 from django.utils import timezone
-from .models import ReviewAIConsent, ReviewAssignment
+from .models import ReviewAIConsent, ReviewAIPermissionRequest, ReviewAssignment
 
 PROVIDER = 'openai'
 PURPOSE = 'review-report-synthesis-v1'
@@ -74,9 +74,16 @@ def supersede_on_report_change(assignment, *, include_reviewer=False):
     now = timezone.now()
     base.filter(subject=ReviewAIConsent.Subject.AUTHOR).update(
         ended_at=now, end_reason=ReviewAIConsent.EndReason.SUPERSEDED)
+    requests = ReviewAIPermissionRequest.objects.filter(submission_id=assignment.submission_id,
+        review_round_id=assignment.round_id, provider=PROVIDER, purpose=PURPOSE,
+        status=ReviewAIPermissionRequest.Status.PENDING)
+    requests.filter(subject=ReviewAIConsent.Subject.AUTHOR).update(
+        status=ReviewAIPermissionRequest.Status.OUTDATED, responded_at=now)
     if include_reviewer:
         base.filter(subject=ReviewAIConsent.Subject.REVIEWER, assignment=assignment).update(
             ended_at=now, end_reason=ReviewAIConsent.EndReason.SUPERSEDED)
+        requests.filter(subject=ReviewAIConsent.Subject.REVIEWER, assignment=assignment).update(
+            status=ReviewAIPermissionRequest.Status.OUTDATED, responded_at=now)
 
 
 def author_active(consent, round_, reports=None):

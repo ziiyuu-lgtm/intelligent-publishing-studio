@@ -7413,3 +7413,138 @@ msgstr "本次请求已变化，请重新开始。"
 
 msgid "Permissions changed; the request was cancelled."
 msgstr "授权已变化，本次请求已取消。"
+
+msgid "An editor stays in control"
+msgstr "编辑负责最终决定"
+
+msgid "Bound to the source"
+msgstr "与具体材料绑定"
+
+msgid "CURRENT SOURCE"
+msgstr "当前材料"
+
+msgid "Changes to reports can make a request or permission outdated."
+msgstr "报告发生变化时，请求或授权可能失效。"
+
+msgid "Every choice matters"
+msgstr "尊重每个人的选择"
+
+msgid "Fictional test data only. Requests appear in the recipient's platform inbox. No email is sent and no AI service is called."
+msgstr "仅供虚构数据测试。请求将显示在收件人的平台收件箱中；不会发送邮件，也不会调用 AI 服务。"
+
+msgid "I have selected the people I intend to ask."
+msgstr "我已选择希望征询的人员。"
+
+msgid "Invite the author and selected reviewers to make their own informed choices."
+msgstr "邀请作者和选定的审稿人在充分了解后各自作出选择。"
+
+msgid "No review AI permission requests have been sent to you."
+msgstr "您尚未收到审稿 AI 授权请求。"
+
+msgid "No submitted reports with a no-conflict declaration are available."
+msgstr "目前没有已提交且声明不存在利益冲突的审稿报告。"
+
+msgid "Not requested"
+msgstr "尚未请求"
+
+msgid "PRIVATE INBOX"
+msgstr "私人收件箱"
+
+msgid "Permission alone does not send content to AI or make a decision."
+msgstr "获得授权本身不会向 AI 发送内容，也不会作出决定。"
+
+msgid "Permission for the current review-report set"
+msgstr "对当前审稿报告集合的授权"
+
+msgid "Permission for this reviewer's submitted report"
+msgstr "对该审稿人已提交报告的授权"
+
+msgid "Permission inactive"
+msgstr "授权已失效"
+
+msgid "Permission requests"
+msgstr "授权请求"
+
+msgid "RESPONSIBLE AI"
+msgstr "负责任地使用 AI"
+
+msgid "REVIEWERS WITH ELIGIBLE REPORTS"
+msgstr "具有符合条件报告的审稿人"
+
+msgid "Recipients can grant or decline. A decline is respected and cannot be requested again for the same source."
+msgstr "收件人可以同意或拒绝。平台尊重拒绝决定，不会对同一材料重复发起请求。"
+
+msgid "Request review AI permissions"
+msgstr "请求审稿 AI 授权"
+
+msgid "Review AI permission inbox"
+msgstr "审稿 AI 授权收件箱"
+
+msgid "Review AI permissions"
+msgstr "审稿 AI 授权"
+
+msgid "Review requests sent to you and decide whether to allow each specific use."
+msgstr "查看发给您的请求，决定是否允许每一项特定用途。"
+
+msgid "SELECT RECIPIENTS"
+msgstr "选择收件人"
+
+msgid "SUBMITTING AUTHOR"
+msgstr "投稿作者"
+
+msgid "Select only the people you wish to ask. Each person responds independently."
+msgstr "仅选择您希望征询的人员。每个人独立回复。"
+
+msgid "Send selected requests"
+msgstr "发送选定的请求"
+
+msgid "Send the requests in the platform"
+msgstr "在平台内发送请求"
+
+msgid "Separate permission"
+msgstr "分别授权"
+
+msgid "Source changed"
+msgstr "材料已变化"
+
+msgid "The author and each reviewer decide for themselves."
+msgstr "作者和每位审稿人分别作出决定。"
+
+msgid "The author cannot see reviewer identities or confidential reports here. Each reviewer sees only their own request."
+msgstr "作者在此处看不到审稿人身份或保密报告；每位审稿人只能看到自己的请求。"
+
+msgid "The journal's review comparison AI policy must be enabled before requests can be created."
+msgstr "期刊须先启用审稿比较 AI 政策，才能创建请求。"
+
+msgid "These requests are optional. Viewing this page does not grant permission or send anything to an AI service."
+msgstr "这些请求均为自愿。查看页面不会授予权限，也不会向 AI 服务发送任何内容。"
+
+msgid "View choice"
+msgstr "查看并选择"
+
+msgid "Who would you like to ask?"
+msgstr "您希望征询谁？"
+
+msgid "YOUR REQUESTS"
+msgstr "您的请求"
+
+msgid "reviewers"
+msgstr "位审稿人"
+
+msgid "Request and track permissions"
+msgstr "请求并跟踪授权"
+
+msgid "The editorial office has requested your choice."
+msgstr "编辑部已请求您作出选择。"
+
+msgid "You may grant or decline this optional request below."
+msgstr "您可以在下方同意或拒绝此自愿请求。"
+
+msgid "The source, permission or journal policy changed; reload the page."
+msgstr "材料、授权或期刊政策已变化，请刷新页面。"
+
+msgid "Select between one and fifty recipients."
+msgstr "请选择一至五十位收件人。"
+
+msgid "The selected in-app requests are recorded. No email or AI request was sent."
+msgstr "已记录选定的站内请求；没有发送邮件或 AI 请求。"

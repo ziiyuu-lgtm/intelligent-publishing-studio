@@ -722,6 +722,47 @@ class ReviewAIConsent(models.Model):
         ]
 
 
+class ReviewAIPermissionRequest(models.Model):
+    """An in-app request for one person's permission, bound to a particular source."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Awaiting response")
+        GRANTED = "granted", _("Permission recorded")
+        DECLINED = "declined", _("Declined")
+        OUTDATED = "outdated", _("Source changed")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="review_ai_requests")
+    review_round = models.ForeignKey(ReviewRound, on_delete=models.PROTECT, related_name="review_ai_requests")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="review_ai_requests")
+    assignment = models.ForeignKey(ReviewAssignment, on_delete=models.PROTECT, null=True, blank=True, related_name="review_ai_requests")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_ai_requests_sent")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_ai_requests_received")
+    subject = models.CharField(max_length=10, choices=ReviewAIConsent.Subject.choices)
+    provider = models.CharField(max_length=30)
+    purpose = models.CharField(max_length=60)
+    source_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.CheckConstraint(condition=(models.Q(subject="author", assignment__isnull=True) |
+                                                models.Q(subject="reviewer", assignment__isnull=False)),
+                                   name="review_ai_request_subject_assignment"),
+            models.CheckConstraint(condition=(models.Q(status="pending", responded_at__isnull=True) |
+                                                models.Q(status__in=["granted", "declined", "outdated"], responded_at__isnull=False)),
+                                   name="review_ai_request_status_consistent"),
+            models.UniqueConstraint(fields=["review_round", "recipient", "provider", "purpose", "source_fingerprint"],
+                condition=models.Q(subject="author", status__in=["pending", "granted", "declined"]),
+                name="review_ai_request_author_scope"),
+            models.UniqueConstraint(fields=["assignment", "recipient", "provider", "purpose", "source_fingerprint"],
+                condition=models.Q(subject="reviewer", status__in=["pending", "granted", "declined"]),
+                name="review_ai_request_reviewer_scope"),
+        ]
+
+
 class ReviewSynthesisRun(models.Model):
     """A private request bound to an editor, a round and current consents."""
     class Status(models.TextChoices):
