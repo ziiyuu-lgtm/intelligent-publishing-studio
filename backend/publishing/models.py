@@ -627,6 +627,45 @@ class SubmissionVersion(models.Model):
         return self.title_snapshot is not None and self.abstract_snapshot is not None
 
 
+def supporting_file_path(instance, filename):
+    # Do not use an untrusted filename or path as the storage key.
+    return f"supporting/{uuid.uuid4().hex}.pdf"
+
+
+class SupportingFile(models.Model):
+    """Private, version-bound fictional supporting file in the local prototype."""
+    class Visibility(models.TextChoices):
+        EDITOR = "editor", _("Editorial only")
+        REVIEWER = "reviewer", _("Reviewer copy")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="supporting_files")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="supporting_files")
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="supporting_files_uploaded")
+    file = models.FileField(upload_to=supporting_file_path, max_length=255)
+    original_name = models.CharField(max_length=180)
+    visibility = models.CharField(max_length=10, choices=Visibility.choices)
+    size_bytes = models.PositiveBigIntegerField()
+    sha256 = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="supporting_files_checked")
+    checked_at = models.DateTimeField(null=True, blank=True)
+    checked_fingerprint = models.CharField(max_length=64, blank=True)
+    removed_at = models.DateTimeField(null=True, blank=True)
+    removed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="supporting_files_removed")
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(visibility__in=["editor", "reviewer"]), name="supporting_visibility_valid"),
+            models.CheckConstraint(condition=(models.Q(checked_at__isnull=True, checked_by__isnull=True, checked_fingerprint="") |
+                (models.Q(visibility="reviewer", checked_at__isnull=False, checked_by__isnull=False) &
+                 ~models.Q(checked_fingerprint=""))), name="supporting_review_check_valid"),
+            models.CheckConstraint(condition=(models.Q(removed_at__isnull=True, removed_by__isnull=True) |
+                models.Q(removed_at__isnull=False, removed_by__isnull=False)), name="supporting_removal_consistent"),
+        ]
+
+
 class ReviewRound(models.Model):
     class Status(models.TextChoices):
         OPEN = "open", _("Open")

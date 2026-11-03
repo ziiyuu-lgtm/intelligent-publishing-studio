@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Exists, F, OuterRef, Q
+from django.db.models import Exists, F, OuterRef, Prefetch, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -19,7 +19,7 @@ from .review_notices import visible_review_notices
 from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
                            MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
 from .models import (AuthorNotice, ConflictDeclaration, ContributorChangeRequest, ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
-                     PublicationDraft, ReviewAssignment, ReviewNotice, ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
+                     PublicationDraft, ReviewAssignment, ReviewNotice, ReviewRound, Submission, SubmissionEvent, SubmissionVersion, SupportingFile)
 
 ACTIVE_REVIEW_STATUSES = (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW)
 CONTRIBUTOR_CHANGE_STATUSES = (*ACTIVE_REVIEW_STATUSES, Submission.Status.REVISION_REQUESTED)
@@ -374,6 +374,20 @@ def submission_detail(request, pk):
                "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version)),
                "review_ai_permissions_available": settings.DEBUG and submission.status != Submission.Status.DRAFT,
                "local_publication_enabled": settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED}
+    if settings.DEBUG:
+        from .supporting_files import checked_and_current, reviewer_files_ready, verified_bytes
+        active = SupportingFile.objects.filter(submission=submission, removed_at__isnull=True)
+        versions = list(submission.versions.prefetch_related(Prefetch('supporting_files', queryset=active, to_attr='active_supporting')))
+        for version in versions:
+            for item in version.active_supporting:
+                item.integrity_ok = verified_bytes(item) is not None
+                item.review_check_ok = checked_and_current(item)
+        context['versions'] = versions
+        context['supporting_enabled'] = True
+        context['supporting_reviewer_ready'] = bool(review_round and reviewer_files_ready(review_round.version))
+    else:
+        from .supporting_files import reviewer_files_ready
+        context['supporting_reviewer_ready'] = bool(review_round and reviewer_files_ready(review_round.version))
     try:
         context["contributors"] = validate_contributors(submission.contributors_config)
         context["contributors_ready"] = ready_to_submit(context["contributors"])
@@ -753,6 +767,7 @@ def review_copy_screen(request, pk):
 @never_cache
 @require_POST
 def review_invite(request, pk):
+    from .supporting_files import reviewer_files_ready
     submission = _submission(pk)
     if not _editor_can_view(request.user, submission):
         raise Http404
@@ -761,6 +776,8 @@ def review_invite(request, pk):
         return HttpResponse(_("There is no open review round."), status=409)
     if not _review_copy_ready(submission, initial_round.version):
         return HttpResponse(_("The reviewer file must be available and checked before inviting reviewers."), status=409)
+    if not reviewer_files_ready(initial_round.version):
+        return HttpResponse(_("Reviewer supporting files must be checked and available before inviting reviewers."), status=409)
     form = InviteForm(request.POST, submission=submission, actor=request.user)
     if not form.is_valid():
         messages.error(request, _("Choose an eligible reviewer for this journal."))
@@ -775,6 +792,8 @@ def review_invite(request, pk):
             return HttpResponse(_("There is no open review round."), status=409)
         if not _review_copy_ready(submission, review_round.version):
             return HttpResponse(_("The reviewer file must be available and checked before inviting reviewers."), status=409)
+        if not reviewer_files_ready(review_round.version):
+            return HttpResponse(_("Reviewer supporting files must be checked and available before inviting reviewers."), status=409)
         if not _has_role(reviewer, submission.journal, Membership.Role.REVIEWER):
             raise Http404
         if (submission.reviews.filter(invited_by=reviewer).exists() or
@@ -806,9 +825,18 @@ def review_detail(request, pk):
     form = ReportForm() if (assignment.status == ReviewAssignment.Status.ACCEPTED and
                             assignment.conflict == ReviewAssignment.Conflict.NONE and
                             assignment.round.status == ReviewRound.Status.OPEN) else None
+    files = []
+    copy_ready = _review_copy_ready(assignment.submission, assignment.round.version)
+    if settings.DEBUG and copy_ready and assignment.status in ('accepted', 'submitted') and assignment.conflict == 'none':
+        from .supporting_files import checked_and_current, verified_bytes
+        current = _open_round(assignment.submission)
+        if current and current.pk == assignment.round_id:
+            candidates = SupportingFile.objects.filter(submission=assignment.submission, version=assignment.round.version,
+                visibility=SupportingFile.Visibility.REVIEWER, removed_at__isnull=True)
+            files = [item for item in candidates if checked_and_current(item) and verified_bytes(item) is not None]
     return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
         "review_ai_permissions_available": settings.DEBUG,
-        "review_copy_ready": _review_copy_ready(assignment.submission, assignment.round.version)})
+        "supporting_files": files, "review_copy_ready": copy_ready})
 
 
 @login_required
@@ -1004,6 +1032,7 @@ def submission_revision(request, pk):
     form = RevisionForm(form_data, request.FILES or None, review_mode=submission.review_mode, initial=initial)
     if request.method == "POST" and form.is_valid():
         version = None
+        saved_supporting = []
         try:
             with transaction.atomic():
                 submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
@@ -1025,12 +1054,16 @@ def submission_revision(request, pk):
                     review_copy_confirmed=form.cleaned_data.get("review_copy_confirmed", False),
                 )
                 version.save()
+                from .supporting_files import save_files
+                save_files(submission, version, request.user, form.cleaned_data, saved_supporting)
                 ReviewRound.objects.create(submission=submission, version=version, number=previous_round.number + 1)
                 submission.status = Submission.Status.SUBMITTED
                 submission.title, submission.abstract = version.title_snapshot, version.abstract_snapshot
                 submission.save(update_fields=["status", "title", "abstract"])
                 _event(submission, request.user, "revision_submitted")
         except Exception:
+            for storage, name in saved_supporting:
+                storage.delete(name)
             if version and version.manuscript.name and version.manuscript._committed:
                 version.manuscript.storage.delete(version.manuscript.name)
             if version and version.review_copy.name and version.review_copy._committed:

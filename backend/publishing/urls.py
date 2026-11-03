@@ -1,4 +1,5 @@
 from django.urls import path
+from . import supporting_views
 from . import image_ai_views, site_change_review_views, review_comparison_views, review_ai_consent_views, review_ai_reply_views, review_ai_request_views, review_synthesis_views, version_metadata_views
 from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, design_history_views, editor_ai_reply_views, editor_comparison_consent_views, editor_comparison_request_views, editor_revision_comparison_views, editor_revision_views, issue_views, manual_layout_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, visual_ai_review_views, views
 
@@ -180,6 +181,10 @@ urlpatterns = [
     path("journals/<slug:slug>/test-articles/<uuid:pk>/pdf/", production_views.test_article_pdf, name="test_article_pdf"),
     path("journals/<slug:slug>/test-issues/<uuid:pk>/", issue_views.test_issue, name="test_issue"),
     path("submissions/<uuid:pk>/", views.submission_detail, name="submission_detail"),
+    path("submissions/<uuid:pk>/supporting-files/", supporting_views.manage_supporting_files, name="manage_supporting_files"),
+    path("supporting-files/<uuid:pk>/draft/", supporting_views.toggle_draft_file, name="toggle_draft_file"),
+    path("supporting-files/<uuid:pk>/check/", supporting_views.check_reviewer_file, name="check_reviewer_file"),
+    path("supporting-files/<uuid:pk>/download/", supporting_views.download_supporting_file, name="download_supporting_file"),
     path("submissions/<uuid:pk>/progress/", author_submission_views.author_submission_progress, name="author_submission_progress"),
     path("submissions/<uuid:pk>/authors/", views.submission_contributors, name="submission_contributors"),
     path("submissions/<uuid:pk>/author-changes/new/", views.request_contributor_change, name="request_contributor_change"),

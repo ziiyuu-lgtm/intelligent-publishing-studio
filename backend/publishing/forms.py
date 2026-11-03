@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.forms import BaseFormSet, formset_factory
 from django.utils.translation import gettext_lazy as _
@@ -9,6 +10,8 @@ from .site_sections import (MAX_BODY_LENGTH, MAX_HEADING_LENGTH, MAX_SECTIONS, S
                             InvalidSections, validate_sections)
 
 MAX_MANUSCRIPT_BYTES = 10 * 1024 * 1024
+MAX_SUPPORTING_FILES = 5
+MAX_SUPPORTING_TOTAL_BYTES = 25 * 1024 * 1024
 
 
 def validate_pdf(document):
@@ -43,7 +46,51 @@ class SubmissionForm(forms.ModelForm):
         return validate_pdf(self.cleaned_data["review_copy"])
 
 
-class RevisionForm(forms.Form):
+class MultiplePDFInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultiplePDFField(forms.FileField):
+    def clean(self, data, initial=None):
+        if not data:
+            return []
+        files = data if isinstance(data, (list, tuple)) else [data]
+        if len(files) > MAX_SUPPORTING_FILES:
+            raise forms.ValidationError(_("Choose no more than five supporting files."))
+        clean_one = super().clean
+        return [validate_pdf(clean_one(item, initial)) for item in files]
+
+
+class SupportingUploadForm(forms.Form):
+    editor_supporting_files = MultiplePDFField(required=False, label=_("Editorial-only files"),
+        widget=MultiplePDFInput(attrs={"accept": ".pdf,application/pdf", "multiple": True}))
+    reviewer_supporting_files = MultiplePDFField(required=False, label=_("Files for reviewers"),
+        widget=MultiplePDFInput(attrs={"accept": ".pdf,application/pdf", "multiple": True}))
+    reviewer_files_confirmed = forms.BooleanField(required=False,
+        label=_("I checked reviewer files and filenames for identifying information."))
+
+    def __init__(self, *args, require_files=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.require_supporting_files = require_files
+        if not settings.DEBUG:
+            for field in ("editor_supporting_files", "reviewer_supporting_files", "reviewer_files_confirmed"):
+                self.fields.pop(field)
+
+    def clean(self):
+        cleaned = super().clean()
+        editorial = cleaned.get("editor_supporting_files") or []
+        reviewer = cleaned.get("reviewer_supporting_files") or []
+        files = editorial + reviewer
+        if self.require_supporting_files and not files and not self.errors:
+            raise forms.ValidationError(_("Choose at least one supporting PDF."))
+        if len(files) > MAX_SUPPORTING_FILES or sum(item.size for item in files) > MAX_SUPPORTING_TOTAL_BYTES:
+            raise forms.ValidationError(_("Use at most five supporting PDFs totalling no more than 25 MB."))
+        if reviewer and not cleaned.get("reviewer_files_confirmed"):
+            self.add_error("reviewer_files_confirmed", _("Confirm that you checked these files and filenames."))
+        return cleaned
+
+
+class RevisionForm(SupportingUploadForm):
     revised_title = forms.CharField(label=_("Manuscript title"), max_length=250)
     revised_abstract = forms.CharField(label=_("Manuscript abstract"), max_length=10000,
         widget=forms.Textarea(attrs={"rows": 6}))

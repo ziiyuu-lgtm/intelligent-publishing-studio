@@ -7761,3 +7761,177 @@ msgstr "第一个版本"
 
 msgid "FIRST VERSION"
 msgstr "第一个版本"
+
+msgid "Supporting files"
+msgstr "补充文件"
+
+msgid "Manage supporting files"
+msgstr "管理补充文件"
+
+msgid "VERSION"
+msgstr "版本"
+
+msgid "A little care before sharing"
+msgstr "分享前请仔细检查"
+
+msgid "Fictional test data only. Review every file and filename for identifying information before sharing it for review. The platform does not anonymise or scan files automatically."
+msgstr "仅限虚构测试数据。在提供审稿前，请检查文件及文件名是否包含身份信息。平台不会自动匿名化或扫描文件。"
+
+msgid "YOUR FILES"
+msgstr "您的文件"
+
+msgid "Add supporting PDFs"
+msgstr "添加补充 PDF 文件"
+
+msgid "Choose who can see each file. The editor must check reviewer files before inviting reviewers."
+msgstr "请选择每个文件的可见范围。编辑须检查审稿附件后才能邀请审稿人。"
+
+msgid "Editorial-only files"
+msgstr "仅编辑可见的文件"
+
+msgid "For the assigned editor and you"
+msgstr "仅您和指派的编辑可查看"
+
+msgid "Files for reviewers"
+msgstr "提供给审稿人的文件"
+
+msgid "Available after editorial review and reviewer acceptance"
+msgstr "编辑检查且审稿人接受邀请后可查看"
+
+msgid "I checked reviewer files and filenames for identifying information."
+msgstr "我已检查审稿文件及文件名中的身份信息。"
+
+msgid "Add files to draft"
+msgstr "将文件添加至草稿"
+
+msgid "PDF only · up to 10 MB each"
+msgstr "仅支持 PDF · 每个文件不超过 10 MB"
+
+msgid "DRAFT CONTENTS"
+msgstr "草稿内容"
+
+msgid "Files in this version"
+msgstr "本版本的文件"
+
+msgid "Up to five active files, 25 MB total for each version."
+msgstr "每个版本最多 5 个有效文件，总计不超过 25 MB。"
+
+msgid "Editorial only"
+msgstr "仅编辑可见"
+
+msgid "For reviewers · check pending"
+msgstr "提供给审稿人 · 等待检查"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Confirm"
+msgstr "确认"
+
+msgid "No supporting files added yet."
+msgstr "尚未添加补充文件。"
+
+msgid "Removed from draft"
+msgstr "已从草稿移除"
+
+msgid "Removed test files are retained and can be restored while this is a draft."
+msgstr "已移除的测试文件会保留；草稿阶段可以恢复。"
+
+msgid "Restore"
+msgstr "恢复"
+
+msgid "Shared with intention"
+msgstr "有选择地分享"
+
+msgid "You choose"
+msgstr "作者选择"
+
+msgid "Separate editorial files from materials intended for reviewers."
+msgstr "区分仅编辑可见的文件与提供给审稿人的材料。"
+
+msgid "The editor checks"
+msgstr "编辑检查"
+
+msgid "Each reviewer file and its filename require a manual check."
+msgstr "编辑需人工检查每份审稿附件及其文件名。"
+
+msgid "Reviewers accept"
+msgstr "审稿人接受邀请"
+
+msgid "Eligible reviewers can access checked materials for their current round."
+msgstr "符合条件的审稿人可以查看当前审稿轮次已检查的材料。"
+
+msgid "Version by version"
+msgstr "按版本管理"
+
+msgid "Supporting files are linked to this version. Add new files when submitting a revision; earlier files are not carried forward."
+msgstr "补充文件与本版本绑定。提交修回稿时需重新添加；先前附件不会自动沿用。"
+
+msgid "Reviewer supporting files must be checked and available before inviting reviewers."
+msgstr "邀请审稿人前，须完成人工检查且确保审稿附件可用。"
+
+msgid "Reviewer files require a manual editorial check for each version."
+msgstr "每个版本的审稿附件均需编辑人工检查。"
+
+msgid "For reviewers"
+msgstr "提供给审稿人"
+
+msgid "File unavailable or changed"
+msgstr "文件不可用或已更改"
+
+msgid "Manual check recorded"
+msgstr "已记录人工检查"
+
+msgid "Editorial check pending or file changed"
+msgstr "等待编辑检查或文件已更改"
+
+msgid "I checked this file and its filename for identifying information."
+msgstr "我已检查此文件及其文件名中的身份信息。"
+
+msgid "OPTIONAL MATERIALS"
+msgstr "可选材料"
+
+msgid "Supporting files for this version"
+msgstr "本版本的补充文件"
+
+msgid "Earlier supporting files are not carried forward. Add up to five PDFs, 10 MB each and 25 MB total."
+msgstr "先前附件不会自动沿用。最多添加 5 个 PDF，每个不超过 10 MB，总计不超过 25 MB。"
+
+msgid "The editor must manually check reviewer files and filenames before invitations. The platform does not anonymise them."
+msgstr "编辑必须在邀请审稿人前人工检查审稿附件和文件名。平台不会自动匿名化。"
+
+msgid "Materials provided for this review round."
+msgstr "提供给本轮审稿的材料。"
+
+msgid "Choose no more than five supporting files."
+msgstr "最多选择 5 个补充文件。"
+
+msgid "Choose at least one supporting PDF."
+msgstr "请至少选择一个补充 PDF 文件。"
+
+msgid "Use at most five supporting PDFs totalling no more than 25 MB."
+msgstr "最多使用 5 个补充 PDF 文件，总计不超过 25 MB。"
+
+msgid "Confirm that you checked these files and filenames."
+msgstr "请确认您已检查这些文件及其文件名。"
+
+msgid "Supporting files saved in this fictional draft."
+msgstr "补充文件已保存至此虚构草稿。"
+
+msgid "Draft file selection updated."
+msgstr "草稿文件选择已更新。"
+
+msgid "Manual check recorded. This does not guarantee anonymity."
+msgstr "已记录人工检查；这不保证完全匿名。"
+
+msgid "Confirm the manual file and filename check."
+msgstr "请确认已人工检查文件及文件名。"
+
+msgid "Confirm the supporting-file action."
+msgstr "请确认对补充文件的操作。"
+
+msgid "The supporting file is missing or changed."
+msgstr "补充文件缺失或已更改。"
+
+msgid "The supporting-file limit or draft changed; reload the page."
+msgstr "已达到附件上限，或草稿状态已变化；请刷新页面。"
