@@ -155,6 +155,34 @@ class ImageWorkflowChecks:
         self.client.force_login(self.second_user())
         self.assertEqual(self.client.get(url,{'target':'section-2'}).status_code,404)
 
+    def test_home_image_comparison_uses_current_scoped_image_and_candidate(self):
+        asset=self.homepage_modules();run,_=self.start()
+        private='private_journal_image' if self.kind=='journal' else 'private_portal_image'
+        current_url=reverse(private,args=[self.slug(),asset.pk])
+        before=(self.site.revision,self.site.sections_config,self.site.hero_asset_id)
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            hero=self.client.get(self.route('site_preview',run),{'fit':'contain','position':'left'})
+            module=self.client.get(self.route('site_preview',run),{'target':'section-2','fit':'cover','position':'bottom'})
+        provider.assert_not_called()
+        self.assertEqual(hero.status_code,200);self.assertEqual(module.status_code,200)
+        current=hero.context['image_comparison']
+        self.assertEqual((current['current_url'],current['current_alt'],current['current_fit'],current['current_position']),
+                         (current_url,'Existing hero','contain','bottom'))
+        self.assertEqual((current['candidate_url'],current['candidate_fit'],current['candidate_position']),
+                         (self.route('image',run),'contain','left'))
+        self.assertEqual(module.context['image_comparison']['current_alt'],'Existing module image')
+        self.assertEqual(module.context['image_comparison']['current_position'],'top')
+        self.assertContains(module,'Compare images before applying')
+        self.assertContains(module,current_url)
+        self.assertContains(module,'data-candidate-comparison')
+        self.assertEqual(self.client.get(current_url).status_code,200)
+        self.client.force_login(self.second_user())
+        self.assertEqual(self.client.get(current_url).status_code,200)
+        self.assertEqual(self.client.get(self.route('site_preview',run),{'target':'section-2'}).status_code,404)
+        self.site.refresh_from_db();run.refresh_from_db()
+        self.assertEqual((self.site.revision,self.site.sections_config,self.site.hero_asset_id),before)
+        self.assertIsNone(run.accepted_at)
+
     def test_apply_home_module_changes_only_the_signed_placement(self):
         asset=self.homepage_modules();original=self.site.sections_config
         run,_=self.start();token=self.home_review(run,target='section-2',fit='contain',position='bottom')
@@ -278,6 +306,27 @@ class ImageWorkflowChecks:
         changed = self.client.get(url, {'page':'editorial-board','from_page':'about','target':'block-2'})
         self.assertEqual(changed.status_code,200)
         self.assertEqual(changed.context['image_candidate_page']['candidate_target'],'main')
+
+    def test_page_and_block_comparison_shows_existing_or_empty_placement(self):
+        asset=self.page_with_blocks()
+        self.site.pages_config[0]['blocks'][2]['image_alt']='Existing <block> image'
+        self.site.save(update_fields=['pages_config'])
+        run,_=self.start()
+        block=self.client.get(self.route('page_preview',run),{'page':'about','target':'block-2','fit':'contain','position':'right'})
+        main=self.client.get(self.route('page_preview',run),{'page':'about','target':'main'})
+        empty=self.client.get(self.route('page_preview',run),{'page':'about','target':'block-0'})
+        self.assertEqual(block.status_code,200);self.assertEqual(main.status_code,200);self.assertEqual(empty.status_code,200)
+        comp=block.context['image_candidate_page']['image_comparison']
+        private='private_journal_image' if self.kind=='journal' else 'private_portal_image'
+        self.assertEqual(comp['current_url'],reverse(private,args=[self.slug(),asset.pk]))
+        self.assertEqual((comp['current_alt'],comp['current_fit'],comp['current_position']),('Existing <block> image','cover','top'))
+        self.assertEqual((comp['candidate_fit'],comp['candidate_position']),('contain','right'))
+        self.assertTrue(comp['page_placement'])
+        self.assertContains(block,'Existing &lt;block&gt; image')
+        self.assertNotContains(block,'Existing <block> image')
+        self.assertEqual(main.context['image_candidate_page']['image_comparison']['current_alt'],'Existing image')
+        self.assertEqual(empty.context['image_candidate_page']['image_comparison']['current_url'],'')
+        self.assertContains(empty,'No image currently selected')
 
     def test_apply_block_image_preserves_page_and_other_blocks(self):
         original = self.page_with_blocks(); before = self.site.pages_config

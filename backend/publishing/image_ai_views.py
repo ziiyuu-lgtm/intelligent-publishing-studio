@@ -172,6 +172,26 @@ def _homepage_review(raw):
         raise ValueError('invalid review') from exc
 
 
+def _image_comparison(slug, kind, run, current, fit, position, page_placement=False):
+    """Describe the validated current and candidate images for private review."""
+    current_id = current.get('image_asset_id')
+    route = 'private_journal_image' if kind == 'journal' else 'private_portal_image'
+    current_fit = current.get('image_fit', 'cover')
+    current_position = current.get('image_position', 'center')
+    return {
+        'current_url':reverse(route, args=[slug, current_id]) if current_id else '',
+        'current_alt':current.get('image_alt', '') if current_id else '',
+        'current_fit':current_fit, 'current_position':current_position,
+        'current_fit_label':dict(HERO_FIT_CHOICES)[current_fit] if current_id else '',
+        'current_position_label':dict(HERO_POSITION_CHOICES)[current_position] if current_id else '',
+        'candidate_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
+        'candidate_alt':run.image_description, 'candidate_fit':fit, 'candidate_position':position,
+        'candidate_fit_label':dict(HERO_FIT_CHOICES)[fit],
+        'candidate_position_label':dict(HERO_POSITION_CHOICES)[position],
+        'page_placement':page_placement,
+    }
+
+
 def _event(site, actor, kind, action):
     site_image_views._event(site, actor, kind, action)
 
@@ -343,6 +363,9 @@ def site_preview(request, slug, run_id, kind):
     reviewed = _review_token(request.user, site, run, kind, candidate, fit, position)
     if target_index is not None:
         reviewed = signing.dumps({'target':target, 'image':reviewed}, salt=IMAGE_SECTION_PREVIEW_SALT, compress=True)
+    current_image = ({'image_asset_id':str(site.hero_asset_id) if site.hero_asset_id else '',
+                      'image_alt':site.hero_alt, 'image_fit':site.hero_fit, 'image_position':site.hero_position}
+                     if target_index is None else sections[target_index])
     context = {'preview':True, 'image_candidate_preview':True,
                'image_candidate_hero':target_index is None, 'candidate_target':target,
                'candidate_section_index':target_index, 'candidate_targets':targets,
@@ -354,6 +377,7 @@ def site_preview(request, slug, run_id, kind):
                'candidate_fit_label':dict(HERO_FIT_CHOICES)[fit],
                'candidate_position_label':dict(HERO_POSITION_CHOICES)[position],
                'candidate_reviewed':reviewed,
+               'image_comparison':_image_comparison(slug, kind, run, current_image, fit, position),
                'candidate_apply_url':reverse(_route(kind, 'apply_preview'), args=[slug, run.pk]),
                'hero_fit_choices':HERO_FIT_CHOICES, 'hero_position_choices':HERO_POSITION_CHOICES}
     if kind == 'journal':
@@ -409,6 +433,7 @@ def page_preview(request, slug, run_id, kind):
     reviewed = signing.dumps({'page':page_slug, 'target':target,
         'image':_review_token(request.user, site, run, kind, candidate, fit, position)},
         salt=IMAGE_PAGE_PREVIEW_SALT, compress=True)
+    current_image = page if target_index is None else page['blocks'][target_index]
     context = {'candidate_image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
         'candidate_back_url':back_url, 'candidate_alt':run.image_description,
         'candidate_fit':fit, 'candidate_position':position,
@@ -419,6 +444,7 @@ def page_preview(request, slug, run_id, kind):
         'candidate_pages':pages, 'candidate_page_slug':page_slug,
         'candidate_targets':targets, 'candidate_target':target, 'candidate_target_index':target_index,
         'candidate_target_label':target_label,
+        'image_comparison':_image_comparison(slug, kind, run, current_image, fit, position, page_placement=True),
         'hero_fit_choices':HERO_FIT_CHOICES, 'hero_position_choices':HERO_POSITION_CHOICES}
     return site_page_views._page(request, slug, page_slug, kind, True,
         expected=(site.revision, _fingerprint(site, kind)), image_candidate_page=context)

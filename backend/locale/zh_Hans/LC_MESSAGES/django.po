@@ -6993,3 +6993,30 @@ msgstr "模块 %(number)s：%(heading)s"
 
 msgid "Applying will create the default homepage modules in the draft and may change its layout, as shown below."
 msgstr "应用后将在草稿中创建默认首页模块，页面布局可能随之改变，效果如下方预览所示。"
+
+msgid "SIDE-BY-SIDE REVIEW"
+msgstr "并排审核"
+
+msgid "Compare images before applying"
+msgstr "应用前对比图片"
+
+msgid "Framing is approximate. Review the full page below before applying."
+msgstr "此处的图片裁切仅供参考。应用前请查看下方完整页面效果。"
+
+msgid "Current draft"
+msgstr "当前草稿"
+
+msgid "BEFORE"
+msgstr "当前"
+
+msgid "No image currently selected"
+msgstr "当前未选择图片"
+
+msgid "This placement has no image in the draft."
+msgstr "草稿的此位置尚未设置图片。"
+
+msgid "Proposed image"
+msgstr "候选图片"
+
+msgid "AFTER"
+msgstr "候选"

@@ -1,0 +1,15 @@
+{% load i18n %}
+<div class="image-compare" aria-labelledby="image-compare-heading" data-image-comparison>
+  <div class="image-compare-heading"><div><span class="eyebrow">{% translate "SIDE-BY-SIDE REVIEW" %}</span><h2 id="image-compare-heading">{% translate "Compare images before applying" %}</h2><p>{% translate "Framing is approximate. Review the full page below before applying." %}</p></div></div>
+  <div class="image-compare-grid">
+    <figure class="image-compare-card"><figcaption><strong>{% translate "Current draft" %}</strong><span>{% translate "BEFORE" %}</span></figcaption>
+      <div class="image-compare-frame{% if comparison.page_placement %} image-compare-frame--page{% endif %}" data-current-frame>{% if comparison.current_url %}<img src="{{ comparison.current_url }}" alt="{{ comparison.current_alt }}" style="object-fit:{{ comparison.current_fit }};object-position:{{ comparison.current_position }}">{% else %}<span class="image-compare-empty">{% translate "No image currently selected" %}</span>{% endif %}</div>
+      <p class="image-compare-description" data-current-description>{% if comparison.current_url %}{{ comparison.current_alt }}{% else %}{% translate "This placement has no image in the draft." %}{% endif %}</p>
+      <p class="image-compare-settings" data-current-settings>{% if comparison.current_url %}{{ comparison.current_fit_label }} · {{ comparison.current_position_label }}{% endif %}</p>
+    </figure>
+    <figure class="image-compare-card image-compare-card--candidate"><figcaption><strong>{% translate "Proposed image" %}</strong><span>{% translate "AFTER" %}</span></figcaption>
+      <div class="image-compare-frame{% if comparison.page_placement %} image-compare-frame--page{% endif %}"><img data-candidate-comparison src="{{ comparison.candidate_url }}" alt="{{ comparison.candidate_alt }}" style="object-fit:{{ comparison.candidate_fit }};object-position:{{ comparison.candidate_position }}"></div>
+      <p class="image-compare-description">{{ comparison.candidate_alt }}</p><p class="image-compare-settings" data-comparison-settings>{{ comparison.candidate_fit_label }} · {{ comparison.candidate_position_label }}</p>
+    </figure>
+  </div>
+</div>
