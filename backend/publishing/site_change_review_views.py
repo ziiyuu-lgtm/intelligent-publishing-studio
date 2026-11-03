@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET
 from . import portal_views
 from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, appearance_for, legacy_to_blueprint
-from .site_images import hero_reference_valid
+from .site_images import asset_is_intact, hero_reference_valid
 from .module_images import IMAGE_FIELDS
 from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES
 from .site_pages import validate_pages
@@ -136,12 +136,43 @@ def _block_side(pages, page_slug):
                        'heading':block['heading'], 'body':block['body'], 'visible':block['visible'],
                        'link_label':block['link_label'], 'link_url':block['link_url'],
                        'image_alt':block.get('image_alt', ''),
+                       'image_asset_id':block.get('image_asset_id'),
+                       'image_fit_css':block.get('image_fit', ''),
+                       'image_position_css':block.get('image_position', ''),
                        'image_fit':dict(HERO_FIT_CHOICES).get(block.get('image_fit'), ''),
                        'image_position':dict(HERO_POSITION_CHOICES).get(block.get('image_position'), ''),
                        'custom_style':bool(block.get('design')),
                        'grid_span':block.get('grid_span', 12) if page.get('block_layout') else None})
     return {'state':'present', 'title':page['title'], 'slug':page['slug'],
             'visible':page['visible'], 'blocks':blocks}
+
+
+def _attach_block_images(site, kind, slug, versions):
+    """Attach only intact images protected by each version's site-scoped references."""
+    relevant = [(version, side) for version, side in versions if version is not None and side['state'] == 'present']
+    ids = {block['image_asset_id'] for _, side in relevant for block in side['blocks'] if block['image_asset_id']}
+    if not ids:
+        return
+    intact = set()
+    assets = site.images.filter(pk__in=ids).only('id','image_data','media_type','width','height','sha256')
+    for asset in assets.iterator(chunk_size=1):
+        try:
+            if asset_is_intact(asset):
+                intact.add(str(asset.pk))
+        except (TypeError, ValueError):
+            continue
+    image_route = 'private_journal_image' if kind == 'journal' else 'private_portal_image'
+    for version, side in relevant:
+        referenced = {str(value) for value in version.module_image_references.filter(asset_id__in=ids).values_list('asset_id', flat=True)}
+        for block in side['blocks']:
+            asset_id = block['image_asset_id']
+            if not asset_id:
+                continue
+            if asset_id in referenced and asset_id in intact:
+                block['image_state'] = 'available'
+                block['image_url'] = reverse(image_route, args=[slug,asset_id])
+            else:
+                block['image_state'] = 'unavailable'
 
 
 def _appearance(version, kind):
@@ -244,6 +275,7 @@ def block_review(request, slug, page_slug, kind):
     after = _block_side(site.pages_config, page_slug)
     if before['state'] != 'present' and after['state'] != 'present':
         raise Http404
+    _attach_block_images(site, kind, slug, [(release,before),(site,after)])
     draft_route = 'preview_journal_page' if kind == 'journal' else 'preview_publisher_page'
     public_route = 'public_journal_page' if kind == 'journal' else 'public_publisher_page'
     compare_route = 'journal_site_change_review' if kind == 'journal' else 'publisher_site_change_review'

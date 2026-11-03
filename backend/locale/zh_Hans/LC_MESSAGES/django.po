@@ -6916,3 +6916,6 @@ msgstr "网格宽度"
 
 msgid "No content blocks in this page."
 msgstr "此页面没有内容块。"
+
+msgid "Text and settings are validated for display. Links are shown as text. Image previews use a fixed frame; check full-page previews for the final layout."
+msgstr "文字和设置经过验证后显示；链接以文字呈现。图片预览使用固定尺寸，请通过完整页面预览检查最终布局。"

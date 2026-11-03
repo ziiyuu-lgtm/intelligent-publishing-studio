@@ -10,6 +10,6 @@
   {% include "publishing/_site_block_review_side.html" with side=before label=published_label revision=release.revision preview_url=release_url %}
   {% include "publishing/_site_block_review_side.html" with side=after label=draft_label revision=site.revision preview_url=draft_url %}
 </div>
-<p class="site-review-note">{% translate "Text and settings are validated for display. Links are shown as text; use full-page previews to check images and visual design." %}</p>
+<p class="site-review-note">{% translate "Text and settings are validated for display. Links are shown as text. Image previews use a fixed frame; check full-page previews for the final layout." %}</p>
 <a class="button" href="{{ compare_url }}">{% translate "Return to website changes" %} →</a>
 {% endblock %}

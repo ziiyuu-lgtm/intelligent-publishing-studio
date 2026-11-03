@@ -4,6 +4,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from publishing.models import JournalSiteDraft, Membership, OrganisationMembership
+from publishing.module_images import sync_image_references
 from publishing.site_change_review_views import _block_side
 from . import test_site_images as helpers
 
@@ -22,6 +23,7 @@ class SiteBlockReviewTests(TestCase):
     login = helpers.SiteImageTests.login
     token = helpers.SiteImageTests.token
     publish = helpers.SiteImageTests.publish
+    upload = helpers.SiteImageTests.upload
 
     def review(self, kind, page_slug='about'):
         route = 'journal_site_block_review' if kind == 'journal' else 'publisher_site_block_review'
@@ -123,4 +125,59 @@ class SiteBlockReviewTests(TestCase):
             pages_config=[{'slug':'about','title':'Other page','body':'','visible':True}])
         self.client.force_login(self.other_journal_manager)
         url = reverse('journal_site_block_review',args=[self.other_journal.slug,'about'])
+        self.assertEqual(self.client.get(url).status_code,404)
+
+    def test_images_are_scoped_to_each_version_and_integrity_checked(self):
+        for kind in ('journal','portal'):
+            with self.subTest(kind=kind):
+                self.assertEqual(self.upload(kind,data=helpers.image_bytes('PNG'),alt='First image').status_code,302)
+                site = self.owner(kind)[2]; site.refresh_from_db(); old_asset = site.hero_asset
+                old_block = block('Old image','Old description',False)
+                old_block.update(image_asset_id=str(old_asset.pk),image_alt='Old fictional image',image_fit='cover',image_position='top')
+                site.pages_config = [{'slug':'about','title':'About','body':'','visible':True,'blocks':[old_block]}]
+                site.save(update_fields=['pages_config'])
+                sync_image_references(site,site,site.sections_config,pages=site.pages_config)
+                self.assertEqual(self.publish(kind).status_code,302)
+                self.assertEqual(self.upload(kind,data=helpers.image_bytes('JPEG'),alt='Second image').status_code,302)
+                site.refresh_from_db(); new_asset = site.hero_asset
+                new_block = block('New image','New description')
+                new_block.update(image_asset_id=str(new_asset.pk),image_alt='New fictional image',image_fit='contain',image_position='bottom')
+                site.pages_config[0]['blocks'] = [new_block]
+                site.save(update_fields=['pages_config'])
+                sync_image_references(site,site,site.sections_config,pages=site.pages_config)
+                response = self.client.get(self.review(kind))
+                old = response.context['before']['blocks'][0]
+                new = response.context['after']['blocks'][0]
+                self.assertEqual((old['image_state'],new['image_state']),('available','available'))
+                route = 'private_journal_image' if kind == 'journal' else 'private_portal_image'
+                self.assertEqual(old['image_url'],reverse(route,args=[self.owner(kind)[1],old_asset.pk]))
+                self.assertEqual(new['image_url'],reverse(route,args=[self.owner(kind)[1],new_asset.pk]))
+                self.assertContains(response,'object-fit:cover;object-position:top',html=False)
+                self.assertContains(response,'object-fit:contain;object-position:bottom',html=False)
+                self.assertEqual(self.client.get(old['image_url']).status_code,200)
+                self.assertEqual(self.client.get(new['image_url']).status_code,200)
+                site.module_image_references.filter(asset=new_asset).delete()
+                response = self.client.get(self.review(kind))
+                self.assertEqual(response.context['before']['blocks'][0]['image_state'],'available')
+                self.assertEqual(response.context['after']['blocks'][0]['image_state'],'unavailable')
+                self.assertNotContains(response,reverse(route,args=[self.owner(kind)[1],new_asset.pk]))
+                old_asset.image_data = b'corrupted'; old_asset.save(update_fields=['image_data'])
+                response = self.client.get(self.review(kind))
+                self.assertEqual(response.context['before']['blocks'][0]['image_state'],'unavailable')
+                self.assertContains(response,'Image unavailable')
+                self.assertEqual(self.client.get(old['image_url']).status_code,404)
+
+    def test_foreign_image_is_unavailable_even_with_a_spurious_reference(self):
+        self.assertEqual(self.upload('portal',alt='Other site image').status_code,302)
+        self.psite.refresh_from_db(); foreign = self.psite.hero_asset
+        item = block('Foreign image','Caption')
+        item.update(image_asset_id=str(foreign.pk),image_alt='Foreign image',image_fit='cover',image_position='center')
+        self.jsite.pages_config = [{'slug':'about','title':'About','body':'','visible':True,'blocks':[item]}]
+        self.jsite.save(update_fields=['pages_config'])
+        self.jsite.module_image_references.create(asset=foreign)
+        self.login('journal')
+        response = self.client.get(self.review('journal'))
+        self.assertEqual(response.context['after']['blocks'][0]['image_state'],'unavailable')
+        url = reverse('private_journal_image',args=[self.journal.slug,foreign.pk])
+        self.assertNotContains(response,url)
         self.assertEqual(self.client.get(url).status_code,404)
