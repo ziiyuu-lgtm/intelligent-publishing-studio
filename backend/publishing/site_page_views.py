@@ -162,9 +162,10 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
             raise Http404
         # Overlay only the image presentation for this private response. The
         # validated saved page and its image references remain untouched.
-        page = {**page, "image_alt":image_candidate_page["candidate_alt"],
-                "image_fit":image_candidate_page["candidate_fit"],
-                "image_position":image_candidate_page["candidate_position"]}
+        if image_candidate_page["candidate_target_index"] is None:
+            page = {**page, "image_alt":image_candidate_page["candidate_alt"],
+                    "image_fit":image_candidate_page["candidate_fit"],
+                    "image_position":image_candidate_page["candidate_position"]}
     if page_override is not None:
         if not preview:
             raise Http404
@@ -199,14 +200,18 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
     image_url = ""
     if page.get("image_asset_id"):
         image_url = reverse(image_route, args=[slug, page["image_asset_id"]])
-    if image_candidate_page is not None:
+    if image_candidate_page is not None and image_candidate_page["candidate_target_index"] is None:
         image_url = image_candidate_page["candidate_image_url"]
     blocks = []
-    for block in page.get("blocks", []):
+    for index, block in enumerate(page.get("blocks", [])):
         if block["visible"]:
             block = dict(block)
             block.setdefault("grid_span", 12)
             block["image_url"] = reverse(image_route, args=[slug, block["image_asset_id"]]) if block.get("image_asset_id") else ""
+            if image_candidate_page is not None and image_candidate_page["candidate_target_index"] == index:
+                block.update(image_url=image_candidate_page["candidate_image_url"],
+                    image_alt=image_candidate_page["candidate_alt"], image_fit=image_candidate_page["candidate_fit"],
+                    image_position=image_candidate_page["candidate_position"], candidate_preview=True)
             block["appearance"] = block_appearance(block["design"]) if block.get("design") else None
             blocks.append(block)
     home_route = ("preview_journal_site" if kind == "journal" else "preview_publisher_portal") if preview else (

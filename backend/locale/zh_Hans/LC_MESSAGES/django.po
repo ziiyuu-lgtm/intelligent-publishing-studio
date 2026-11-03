@@ -6958,3 +6958,28 @@ msgstr "页面或网站草稿已更改，请重新预览。"
 
 msgid "The reviewed image was applied to the draft page. Publish separately after review."
 msgstr "已将审核后的图片应用到页面草稿。请审核后另行发布。"
+
+msgid "Choose a page and image placement, then update the preview. Publishing remains separate."
+msgstr "选择页面和图片位置，然后更新预览。发布仍需单独操作。"
+
+msgid "Image placement"
+msgstr "图片位置"
+
+msgid "Page main image"
+msgstr "页面主图"
+
+msgid "Untitled block"
+msgstr "未命名区块"
+
+#, python-format
+msgid "Block %(number)s: %(heading)s"
+msgstr "区块 %(number)s：%(heading)s"
+
+msgid "Displayed placement"
+msgstr "当前预览位置"
+
+msgid "The image will be added to the library if needed. Only the selected placement in this draft will change."
+msgstr "若图片尚未入库，系统会将其加入素材库。草稿中仅所选图片位置会发生变化。"
+
+msgid "The image placement is unavailable; update the preview."
+msgstr "图片位置不可用，请更新预览。"

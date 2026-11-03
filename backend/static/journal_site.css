@@ -69,6 +69,7 @@
 /* Independent page blocks: free ordering and several content treatments. */
 .journal-site__page-blocks{display:grid;gap:32px;margin:40px auto 0;max-width:var(--page-width,100%)}
 .journal-site__page-block{min-width:0;line-height:1.8;overflow-wrap:anywhere}
+.journal-site__page-block.image-candidate-target{outline:3px solid #278575;outline-offset:6px}
 .journal-site__page-block h2{font-size:clamp(1.3rem,2vw,1.8rem);line-height:1.25;margin:0 0 12px}
 .journal-site__page-block-image{display:block;width:100%;aspect-ratio:16/9;max-height:480px;border-radius:8px;margin:0 0 20px}
 .journal-site__page-block--image.has-image{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}

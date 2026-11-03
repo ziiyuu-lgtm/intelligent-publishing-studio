@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from django.test import Client, TestCase, override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core import signing
 from django.urls import reverse
 
 from publishing.ai_provider import ProviderError
@@ -116,6 +117,100 @@ class ImageWorkflowChecks:
         response = self.client.get(self.route('page_preview', run), options)
         self.assertEqual(response.status_code, 200)
         return response.context['image_candidate_page']['candidate_reviewed']
+
+    def page_with_blocks(self):
+        self.page_examples()
+        scope = {'journal_site':self.site} if self.kind == 'journal' else {'portal_site':self.site}
+        image = normalise_image(SimpleUploadedFile('existing.png', image_helpers.image_bytes(), content_type='image/png'))
+        asset = SiteImageAsset.objects.create(**scope, uploaded_by=self.manager, default_alt='Existing image', **image)
+        self.site.pages_config[0].update(image_asset_id=str(asset.pk), image_alt='Existing image',
+            image_fit='cover', image_position='center', blocks=[
+                {'kind':'text', 'heading':'Scope', 'body':'Public text.', 'visible':True, 'link_label':'', 'link_url':''},
+                {'kind':'text', 'heading':'Hidden material', 'body':'Hidden text.', 'visible':False, 'link_label':'', 'link_url':''},
+                {'kind':'image', 'heading':'Research themes', 'body':'Fictional themes.', 'visible':True, 'link_label':'', 'link_url':'',
+                 'image_asset_id':str(asset.pk), 'image_alt':'Existing block image', 'image_fit':'cover', 'image_position':'top'},
+            ])
+        from publishing.module_images import sync_image_references
+        sync_image_references(self.site, self.site, self.site.sections_config, pages=self.site.pages_config)
+        self.site.save(update_fields=['pages_config'])
+        return asset
+
+    def test_block_image_preview_shows_only_visible_targets_without_writing(self):
+        original = self.page_with_blocks(); run, _ = self.start()
+        url = self.route('page_preview',run)
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            response = self.client.get(url, {'page':'about','target':'block-2','fit':'contain','position':'bottom'})
+        provider.assert_not_called()
+        self.assertContains(response, 'Block 3: Research themes')
+        self.assertContains(response, 'image-candidate-target')
+        self.assertContains(response, 'object-fit:contain;object-position:bottom')
+        self.assertContains(response, self.route('image',run))
+        self.assertNotContains(response, 'Hidden material')
+        self.assertEqual(response.context['image_candidate_page']['candidate_target_index'],2)
+        self.assertEqual(response.context['page']['image_asset_id'],str(original.pk))
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual(self.site.pages_config[0]['blocks'][2]['image_asset_id'],str(original.pk))
+        self.assertIsNone(run.accepted_at);self.assertEqual(self.site.images.count(),1)
+        for target in ('block-1','block-9','block--1','block-00','main<script>'):
+            self.assertEqual(self.client.get(url, {'page':'about','target':target}).status_code,400)
+        changed = self.client.get(url, {'page':'editorial-board','from_page':'about','target':'block-2'})
+        self.assertEqual(changed.status_code,200)
+        self.assertEqual(changed.context['image_candidate_page']['candidate_target'],'main')
+
+    def test_apply_block_image_preserves_page_and_other_blocks(self):
+        original = self.page_with_blocks(); before = self.site.pages_config
+        run, _ = self.start(); token = self.page_review(run, page='about',target='block-2',fit='contain',position='bottom')
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            result = self.client.post(self.route('apply_page_preview',run), {
+                'confirm':'yes','reviewed_image':token,'target':'block-0','page':'editorial-board'})
+        provider.assert_not_called(); self.assertEqual(result.status_code,302)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        page = self.site.pages_config[0]
+        self.assertEqual(page['image_asset_id'],str(original.pk))
+        self.assertEqual(page['blocks'][:2],before[0]['blocks'][:2])
+        self.assertEqual(self.site.pages_config[1],before[1])
+        self.assertEqual(page['blocks'][2],{**before[0]['blocks'][2], 'image_asset_id':str(run.accepted_asset_id),
+            'image_alt':'A fictional landscape with circles','image_fit':'contain','image_position':'bottom'})
+        self.assertEqual(self.site.module_image_references.count(),2)
+        self.assertEqual(self.client.post(self.route('apply_page_preview',run), {'confirm':'yes','reviewed_image':token}).status_code,409)
+
+    def test_reordered_or_hidden_block_invalidates_review(self):
+        self.page_with_blocks(); run, _ = self.start()
+        token = self.page_review(run, page='about',target='block-2')
+        self.site.pages_config[0]['blocks'].reverse()
+        self.site.save(update_fields=['pages_config'])
+        self.assertEqual(self.client.post(self.route('apply_page_preview',run), {'confirm':'yes','reviewed_image':token}).status_code,409)
+        self.assertEqual(self.site.images.count(),1)
+        self.assertEqual(self.client.get(self.route('page_preview',run), {'page':'about','target':'block-0'}).status_code,409)
+
+    def test_block_apply_keeps_published_block_unchanged(self):
+        original = self.page_with_blocks()
+        manage = 'manage_journal_site' if self.kind == 'journal' else 'manage_publisher_portal'
+        publish = 'publish_journal_site' if self.kind == 'journal' else 'publish_publisher_portal'
+        data = self.client.get(reverse(manage, args=[self.slug()])).context
+        self.assertEqual(self.client.post(reverse(publish, args=[self.slug()]), {
+            'revision':str(data['site'].revision), 'fingerprint':data['fingerprint'],
+            'confirm':'yes', 'synthetic':'yes'}).status_code,302)
+        self.site.refresh_from_db(); release_id = self.site.current_release_id
+        run, _ = self.start(); token = self.page_review(run,page='about',target='block-2')
+        self.assertEqual(self.client.post(self.route('apply_page_preview',run), {'confirm':'yes','reviewed_image':token}).status_code,302)
+        self.site.refresh_from_db();run.refresh_from_db()
+        self.assertEqual(self.site.current_release_id,release_id)
+        self.assertEqual(self.site.current_release.pages_config[0]['blocks'][2]['image_asset_id'],str(original.pk))
+        self.assertEqual(self.site.pages_config[0]['blocks'][2]['image_asset_id'],str(run.accepted_asset_id))
+        public_image = 'public_journal_image' if self.kind == 'journal' else 'public_portal_image'
+        self.assertEqual(Client().get(reverse(public_image,args=[self.slug(),run.accepted_asset_id])).status_code,404)
+
+    def test_existing_main_image_review_token_still_applies_to_main(self):
+        self.page_with_blocks(); run, _ = self.start()
+        current = self.page_review(run, page='about')
+        from publishing.image_ai_views import IMAGE_PAGE_PREVIEW_SALT
+        contents = signing.loads(current, salt=IMAGE_PAGE_PREVIEW_SALT)
+        legacy = signing.dumps({'page':contents['page'],'image':contents['image']}, salt=IMAGE_PAGE_PREVIEW_SALT, compress=True)
+        self.assertEqual(self.client.post(self.route('apply_page_preview',run), {'confirm':'yes','reviewed_image':legacy}).status_code,302)
+        self.site.refresh_from_db();run.refresh_from_db()
+        self.assertEqual(self.site.pages_config[0]['image_asset_id'],str(run.accepted_asset_id))
+        self.assertNotEqual(self.site.pages_config[0]['blocks'][2]['image_asset_id'],str(run.accepted_asset_id))
 
     def test_candidate_page_preview_is_private_and_read_only(self):
         self.page_examples(); run, _ = self.start()

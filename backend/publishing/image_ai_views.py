@@ -124,6 +124,19 @@ def _read_review(raw):
     return value
 
 
+def _page_image_target(value, page):
+    """Resolve a visible block by its snapshot-bound index, or the main image."""
+    if value == 'main':
+        return None
+    if not isinstance(value, str) or not re.fullmatch(r'block-(0|[1-9][0-9]?)', value):
+        raise ValueError('invalid target')
+    index = int(value[6:])
+    blocks = page.get('blocks', [])
+    if index >= len(blocks) or not blocks[index]['visible']:
+        raise ValueError('unavailable target')
+    return index
+
+
 def _event(site, actor, kind, action):
     site_image_views._event(site, actor, kind, action)
 
@@ -318,9 +331,26 @@ def page_preview(request, slug, run_id, kind):
                 'manage_journal_pages' if kind == 'journal' else 'manage_publisher_pages', args=[slug]),
         }))
     page_slug = request.GET.get('page', pages[0]['slug'])
-    if not any(page['slug'] == page_slug for page in pages):
+    page = next((page for page in pages if page['slug'] == page_slug), None)
+    if page is None:
         raise Http404
-    reviewed = signing.dumps({'page':page_slug,
+    # The placement list belongs to the previously displayed page. Reset it
+    # when a different page is selected, including without JavaScript.
+    target = request.GET.get('target', 'main')
+    if request.GET.get('from_page', page_slug) != page_slug:
+        target = 'main'
+    try:
+        target_index = _page_image_target(target, page)
+    except ValueError:
+        return HttpResponse(_('The image placement is unavailable; update the preview.'), status=400)
+    targets = [{'value':'main', 'label':_('Page main image')}]
+    for index, block in enumerate(page.get('blocks', [])):
+        if block['visible']:
+            label = block['heading'] or _('Untitled block')
+            targets.append({'value':f'block-{index}', 'label':_('Block %(number)s: %(heading)s') % {
+                'number':index + 1, 'heading':label}})
+    target_label = next(item['label'] for item in targets if item['value'] == target)
+    reviewed = signing.dumps({'page':page_slug, 'target':target,
         'image':_review_token(request.user, site, run, kind, candidate, fit, position)},
         salt=IMAGE_PAGE_PREVIEW_SALT, compress=True)
     context = {'candidate_image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
@@ -331,6 +361,8 @@ def page_preview(request, slug, run_id, kind):
         'candidate_reviewed':reviewed,
         'candidate_apply_url':reverse(_route(kind, 'apply_page_preview'), args=[slug, run.pk]),
         'candidate_pages':pages, 'candidate_page_slug':page_slug,
+        'candidate_targets':targets, 'candidate_target':target, 'candidate_target_index':target_index,
+        'candidate_target_label':target_label,
         'hero_fit_choices':HERO_FIT_CHOICES, 'hero_position_choices':HERO_POSITION_CHOICES}
     return site_page_views._page(request, slug, page_slug, kind, True,
         expected=(site.revision, _fingerprint(site, kind)), image_candidate_page=context)
@@ -349,7 +381,7 @@ def apply_page_preview(request, slug, run_id, kind):
         if not isinstance(raw, str) or len(raw) > 8192:
             raise ValueError('invalid review')
         review = signing.loads(raw, salt=IMAGE_PAGE_PREVIEW_SALT, max_age=IMAGE_PREVIEW_MAX_AGE)
-        if (not isinstance(review, dict) or set(review) != {'page', 'image'} or
+        if (not isinstance(review, dict) or set(review) not in ({'page', 'image'}, {'page', 'image', 'target'}) or
                 not isinstance(review['page'], str) or len(review['page']) > 60):
             raise ValueError('invalid review')
         reviewed = _read_review(review['image'])
@@ -372,8 +404,14 @@ def apply_page_preview(request, slug, run_id, kind):
         if received != expected or (not run.accepted_at and not _current(site, run, kind)):
             return HttpResponse(_('The image or site draft changed; preview it again.'), status=409)
         pages = site_page_views._valid_design(site, site, kind, site)
-        if pages is None or not any(page['slug'] == review['page'] for page in pages):
+        page = next((item for item in pages if item['slug'] == review['page']), None) if pages is not None else None
+        if page is None:
             return HttpResponse(_('The page or site draft changed; preview it again.'), status=409)
+        try:
+            # Previous one-hour tokens without a target referred to the main image.
+            target_index = _page_image_target(review.get('target', 'main'), page)
+        except ValueError:
+            return HttpResponse(_('The image placement is unavailable; update the preview.'), status=409)
         if not run.accepted_at:
             if site.images.count() >= MAX_SITE_IMAGES:
                 return HttpResponse(_('This site has reached its local image-library limit.'), status=409)
@@ -383,9 +421,15 @@ def apply_page_preview(request, slug, run_id, kind):
             run.accepted_asset, run.accepted_at, run.image_data = candidate, timezone.now(), None
             run.save(update_fields=['accepted_asset', 'accepted_at', 'image_data'])
             _event(site, request.user, kind, 'image_ai_saved_to_library')
-        new_pages = [{**page, 'image_asset_id':str(candidate.pk), 'image_alt':reviewed['description'],
-                      'image_fit':reviewed['fit'], 'image_position':reviewed['position']}
-                     if page['slug'] == review['page'] else page for page in pages]
+        image_fields = {'image_asset_id':str(candidate.pk), 'image_alt':reviewed['description'],
+                        'image_fit':reviewed['fit'], 'image_position':reviewed['position']}
+        if target_index is None:
+            updated_page = {**page, **image_fields}
+        else:
+            updated_page = {**page, 'blocks':[
+                {**block, **image_fields} if index == target_index else block
+                for index, block in enumerate(page['blocks'])]}
+        new_pages = [updated_page if item['slug'] == review['page'] else item for item in pages]
         if site.pages_config != new_pages:
             sync_image_references(site, site, site.sections_config, pages=new_pages)
             site.pages_config = new_pages
