@@ -6163,3 +6163,6 @@ msgstr "已保存内容和样式的近似预览"
 
 msgid "The canvas shows shortened text and saved styles in a responsive 12-column grid. Open the full preview to check details. Hidden blocks remain in the draft."
 msgstr "画布在响应式 12 列网格中显示简略文字和已保存的样式。请打开完整预览核对细节；隐藏区块仍保留在草稿中。"
+
+msgid "This private review shows saved page content on the site. The AI request used your brief and block structure; reviewing makes no additional AI request."
+msgstr "此私人审核在站点内显示已保存的页面内容。AI 请求使用了您填写的简介和区块结构；审核不会再次发出 AI 请求。"

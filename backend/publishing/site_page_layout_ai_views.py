@@ -23,6 +23,7 @@ from .ai_provider import ProviderError
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since, portal_requests_since
 from .ai_views import _provider_configured
 from .models import JournalSiteEvent
+from .layout_canvas import canvas_row
 from .module_images import images_valid
 from .page_layout_ai_forms import LayoutBlockFormSet, LayoutSettingsForm
 from .page_layout_ai_provider import MAX_BRIEF_LENGTH, MAX_OPTIONS, PROMPT_VERSION, describe_blocks, materialize_layout, validate_options
@@ -200,7 +201,7 @@ def _result(request, slug, run_id, kind, override=None, status=200):
             rows = []
             for form, placement in zip(formset, option["blocks"]):
                 block = page["blocks"][int(placement["id"][1:])]
-                rows.append({"form":form, "label":block["heading"] or block["kind"], "visible":block["visible"]})
+                rows.append(canvas_row(form, block, owner, kind))
             choices.append({"index":i, "settings":settings_form, "formset":formset, "rows":rows})
     return _no_index(render(request, "publishing/page_layout_ai_result.html", {
         "owner":owner, "site":site, "run":run, "page":page, "current":current, "allowed":allowed, "choices":choices,

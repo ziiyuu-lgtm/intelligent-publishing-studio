@@ -2,8 +2,8 @@
 (() => {
   document.querySelectorAll('[data-manual-layout]').forEach(editor => {
     const sketch = editor.querySelector('[data-layout-sketch]');
-    const gap = editor.querySelector('[name="settings-gap"]');
-    const alignment = editor.querySelector('[name="settings-alignment"]');
+    const gap = editor.querySelector('[data-layout-gap]');
+    const alignment = editor.querySelector('[data-layout-alignment]');
     const buttons = [...editor.querySelectorAll('[data-manual-viewport]')];
     const displayButtons = [...editor.querySelectorAll('[data-manual-display]')];
     if (!sketch || !gap || !alignment) return;

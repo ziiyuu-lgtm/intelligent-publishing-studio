@@ -10,8 +10,10 @@ from .page_layout_ai_provider import validate_options
 
 
 class LayoutSettingsForm(forms.Form):
-    gap = forms.IntegerField(label=_("Gap between blocks (px)"), min_value=0, max_value=64)
-    alignment = forms.ChoiceField(label=_("Alignment within a row"), choices=GRID_ALIGNMENTS)
+    gap = forms.IntegerField(label=_("Gap between blocks (px)"), min_value=0, max_value=64,
+                             widget=forms.NumberInput(attrs={"data-layout-gap":""}))
+    alignment = forms.ChoiceField(label=_("Alignment within a row"), choices=GRID_ALIGNMENTS,
+                                  widget=forms.Select(attrs={"data-layout-alignment":""}))
 
 
 class LayoutBlockForm(forms.Form):

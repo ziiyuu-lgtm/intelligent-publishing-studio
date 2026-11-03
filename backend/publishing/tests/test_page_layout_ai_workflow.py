@@ -136,6 +136,55 @@ class PageLayoutWorkflowTests(TestCase):
                 self.assertContains(public.get(self.page_url(kind, "public", "author-guidelines")), "--block-grid-span:8")
                 self.transport.reset_mock()
 
+    def test_ai_canvas_uses_scoped_saved_content_without_another_request(self):
+        for kind in ("journal", "portal"):
+            with self.subTest(kind=kind):
+                asset = self.add_image(kind, "Private example image")
+                self.assertEqual(self.save_pages(kind, [self.page()]).status_code, 302)
+                visible = self.block("Visible <title>", asset, True, url="https://example.org/private")
+                visible["body"] = "Saved <script>alert(1)</script> text."
+                visible["design"] = {"layout":"image_left", "width":100, "background":"#e2f1e7",
+                    "accent":"#234f40", "alignment":"left", "padding":20, "radius":12, "gap":16}
+                hidden = self.block("Hidden block", asset, False)
+                hidden["body"] = "HIDDEN_CANVAS_BODY"
+                last = self.block("Last block", kind="text")
+                self.assertEqual(self.save_blocks(kind, [visible, hidden, last]).status_code, 302)
+                data = self.request_data(kind)
+                second = {"gap":12, "alignment":"start", "blocks":[
+                    {"id":"b0", "grid_span":12}, {"id":"b2", "grid_span":6},
+                    {"id":"b1", "grid_span":6}]}
+                self.transport.return_value = response([OPTIONS[0], second])
+                self.assertEqual(self.client.post(self.ai_url(kind, "request"), data).status_code, 302)
+                self.assertEqual(self.transport.call_count, 1)
+                wire = self.transport.call_args.args[0].data.decode()
+                for value in ("Saved", "Visible", "example.org", str(asset.pk), "HIDDEN_CANVAS_BODY"):
+                    self.assertNotIn(value, wire)
+                result_url = self.ai_url(kind, "result", data["request_id"])
+                result = self.client.get(result_url)
+                self.assertContains(result, 'data-layout-content-mode="yes"', count=2)
+                self.assertContains(result, 'data-layout-content')
+                self.assertEqual(result.context["choices"][0]["rows"][0]["block"]["heading"], "Last block")
+                self.assertEqual(result.context["choices"][1]["rows"][0]["block"]["heading"], "Visible <title>")
+                self.assertContains(result, "Saved &lt;script&gt;alert(1)&lt;/script&gt; text.")
+                self.assertNotContains(result, "<script>alert(1)</script>")
+                self.assertContains(result, "--block-bg:#e2f1e7")
+                self.assertContains(result, "block-layout-image_left")
+                self.assertContains(result, self.route(kind, "private", asset.pk))
+                self.assertNotContains(result, "HIDDEN_CANVAS_BODY")
+                self.assertNotContains(result, "https://example.org/private")
+                self.assertEqual(self.client.get(self.route(kind, "private", asset.pk)).status_code, 200)
+                self.assertNotEqual(Client().get(self.route(kind, "private", asset.pk)).status_code, 200)
+                self.assertIn("no-store", result["Cache-Control"])
+                bad = self.client.post(self.ai_url(kind, "preview", data["request_id"], 0),
+                    {**self.review_data(data["revision"]), "blocks_0-0-grid_span":"13"})
+                self.assertEqual(bad.status_code, 400)
+                self.assertContains(bad, "Saved &lt;script&gt;alert(1)&lt;/script&gt; text.", status_code=400)
+                self.assertEqual(self.transport.call_count, 1)
+                outsider = self.other_journal_manager if kind == "journal" else self.other_portal_manager
+                self.client.force_login(outsider)
+                self.assertEqual(self.client.get(result_url).status_code, 404)
+                self.transport.reset_mock()
+
     def test_access_consent_tampering_staleness_and_policy_revocation(self):
         for kind in ("journal", "portal"):
             with self.subTest(kind=kind):
