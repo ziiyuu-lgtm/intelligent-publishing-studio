@@ -353,6 +353,7 @@ class JournalAIPolicy(models.Model):
     site_image_enabled = models.BooleanField(_("Enable AI image generation"), default=False)
     revision_plan_enabled = models.BooleanField(_("Enable author AI revision planning"), default=False)
     editor_revision_comparison_enabled = models.BooleanField(_("Enable editor AI revision comparison"), default=False)
+    review_synthesis_enabled = models.BooleanField(_("Enable AI review report comparison"), default=False)
     journal_daily_limit = models.PositiveSmallIntegerField(_("Journal request limit per 24 hours"), default=10,
         validators=[MinValueValidator(1), MaxValueValidator(100)])
     revision = models.PositiveIntegerField(default=1)
@@ -719,6 +720,36 @@ class ReviewAIConsent(models.Model):
                                     condition=models.Q(subject="reviewer", ended_at__isnull=True),
                                     name="review_ai_one_reviewer_report"),
         ]
+
+
+class ReviewSynthesisRun(models.Model):
+    """A private request bound to an editor, a round and current consents."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Unavailable")
+        CANCELLED = "cancelled", _("Cancelled")
+
+    id = models.UUIDField(primary_key=True, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="review_synthesis_runs")
+    review_round = models.ForeignKey(ReviewRound, on_delete=models.PROTECT, related_name="review_synthesis_runs")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="review_synthesis_runs")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="review_synthesis_runs")
+    author_consent = models.ForeignKey(ReviewAIConsent, on_delete=models.PROTECT, related_name="author_synthesis_runs")
+    sources = models.JSONField(default=list)
+    model_name = models.CharField(max_length=100)
+    prompt_version = models.CharField(max_length=60)
+    policy_revision = models.PositiveIntegerField()
+    source_fingerprint = models.CharField(max_length=64)
+    input_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    result = models.JSONField(default=list, blank=True)
+    error_code = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
 
 
 class ReviewDeadlineEvent(models.Model):

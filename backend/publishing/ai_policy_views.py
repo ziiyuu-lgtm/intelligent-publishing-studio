@@ -17,7 +17,7 @@ from .models import Journal, JournalAIPolicy, JournalAIPolicyEvent, Membership
 from .ai_usage import journal_requests_since
 from .views import _has_role
 
-POLICY_FIELDS = ("metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "site_modules_enabled", "site_pages_enabled", "site_page_blocks_enabled", "site_page_layout_enabled", "site_image_enabled", "revision_plan_enabled", "editor_revision_comparison_enabled", "journal_daily_limit")
+POLICY_FIELDS = ("metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "site_modules_enabled", "site_pages_enabled", "site_page_blocks_enabled", "site_page_layout_enabled", "site_image_enabled", "revision_plan_enabled", "editor_revision_comparison_enabled", "review_synthesis_enabled", "journal_daily_limit")
 
 
 def _managed_journal(user, slug, locked=False):

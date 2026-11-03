@@ -50,7 +50,7 @@ class ReviewAIPermissionTests(TestCase):
         self.client.force_login(self.editor)
         page = self.client.get(self.editor_url)
         self.assertEqual(page.context['ai_readiness'], {'author':True,'reviewers':1,'total':1})
-        self.assertContains(page, 'AI report processing is not available yet')
+        self.assertContains(page, 'Permissions and journal policy are checked for every request')
         self.assertFalse(SubmissionEvent.objects.filter(action='editorial_decision').exists())
 
     def test_author_cannot_see_reviewer_identity_or_report(self):

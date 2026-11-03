@@ -1,7 +1,4 @@
-"""Scope and fingerprints for a future review-report AI task.
-
-These functions record/read permissions only. There is no AI execution path.
-"""
+"""Scope and fingerprints for source-bound review-report AI permissions."""
 import json
 from django.conf import settings
 from django.utils.crypto import salted_hmac

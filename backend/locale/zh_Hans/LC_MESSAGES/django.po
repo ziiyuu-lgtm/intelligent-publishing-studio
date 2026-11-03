@@ -7236,3 +7236,180 @@ msgstr "结果"
 
 msgid "Not permitted"
 msgstr "未授权"
+
+msgid "Enable AI review report comparison"
+msgstr "启用 AI 审稿报告比较"
+
+msgid "AI review comparison"
+msgstr "AI 审稿比较"
+
+msgid "Back to review reports"
+msgstr "返回审稿报告"
+
+msgid "Compare review reports with AI"
+msgstr "用 AI 比较审稿报告"
+
+msgid "Select authorised excerpts and review every suggestion against its source."
+msgstr "选择已授权摘录，并对照来源逐项核查建议。"
+
+msgid "Permission required"
+msgstr "需要授权"
+
+msgid "available"
+msgstr "项可用"
+
+msgid "Not enabled"
+msgstr "未启用"
+
+msgid "Server configuration"
+msgstr "服务器配置"
+
+msgid "Configured"
+msgstr "已配置"
+
+msgid "Not configured"
+msgstr "未配置"
+
+msgid "Fictional test data only. This tool organises selected reports; it cannot verify findings or make an editorial decision."
+msgstr "仅供虚构数据测试。本工具整理所选报告，不能核实研究结论或作出编辑决定。"
+
+msgid "SELECT SOURCE TEXT"
+msgstr "选择来源文本"
+
+msgid "Choose the reports to compare"
+msgstr "选择需要比较的报告"
+
+msgid "Choose two to four reports with active reviewer permission. Copy an exact excerpt from each selected report."
+msgstr "选择两至四份获得审稿人有效授权的报告，并从每份所选报告中准确复制一段摘录。"
+
+msgid "Submitted report"
+msgstr "已提交的报告"
+
+msgid "Include an excerpt from this report"
+msgstr "包含这份报告的一段摘录"
+
+msgid "Selected excerpt"
+msgstr "选中的摘录"
+
+msgid "Paste an exact excerpt here"
+msgstr "在此粘贴准确的原文摘录"
+
+msgid "Up to 3,000 characters; exact source text only."
+msgstr "最多 3,000 个字符，必须与来源原文一致。"
+
+msgid "Before sending"
+msgstr "发送前确认"
+
+msgid "Only selected excerpts and temporary source labels are sent to OpenAI. Titles, PDFs and account names are not added automatically; excerpts may still contain identifiers."
+msgstr "仅向 OpenAI 发送所选摘录和临时来源标记。系统不会自动附加标题、PDF 或账号名称，但摘录本身仍可能包含身份信息。"
+
+msgid "Provider charges and retention may apply. Once sent, a request cannot be recalled. Results and quoted evidence are saved privately for this editor in the test workspace."
+msgstr "服务商可能收费或保留数据。请求一旦发送便无法撤回。结果及引用证据将保存在此编辑的测试工作区中。"
+
+msgid "I confirm sending these selected excerpts for this request."
+msgstr "我确认在本次请求中发送这些选中的摘录。"
+
+msgid "Generate comparison"
+msgstr "生成比较"
+
+msgid "Author permission, at least two reviewer permissions, the journal switch and server configuration are required."
+msgstr "需要作者授权、至少两位审稿人授权、期刊开关及服务器配置。"
+
+msgid "Interpret with care"
+msgstr "谨慎解读"
+
+msgid "Each item includes source quotations. The quotes are checked against the selected text, but the AI's interpretation may still be wrong."
+msgstr "每一项都附有来源原句。系统会核对引文是否出自所选文本，但 AI 的理解仍可能有误。"
+
+msgid "The editor checks the full reports and makes the decision. No message is sent to authors or reviewers."
+msgstr "编辑需要核查完整报告并作出决定。系统不会向作者或审稿人发送消息。"
+
+msgid "Your recent requests"
+msgstr "您最近的请求"
+
+msgid "No requests for this scope yet."
+msgstr "此范围尚无请求。"
+
+msgid "Back to AI comparison"
+msgstr "返回 AI 比较"
+
+msgid "Review comparison draft"
+msgstr "审稿比较草稿"
+
+msgid "A starting point for your assessment, with quotations from the selected excerpts."
+msgstr "供编辑评估的起点，并附有所选摘录的原文。"
+
+msgid "Quotations match the selected excerpts, but the AI's interpretation may be wrong. Check each point against the complete reports."
+msgstr "引文与所选摘录匹配，但 AI 的理解可能有误。请对照完整报告核查每一项。"
+
+msgid "DRAFT ONLY"
+msgstr "仅为草稿"
+
+msgid "Themes to review"
+msgstr "需要核查的主题"
+
+msgid "Source labels apply only to this request."
+msgstr "来源标记仅适用于本次请求。"
+
+msgid "POTENTIAL AGREEMENT"
+msgstr "可能的共识"
+
+msgid "POTENTIAL DIFFERENCE"
+msgstr "可能的分歧"
+
+msgid "QUESTION TO CHECK"
+msgstr "待核查问题"
+
+msgid "SOURCE EVIDENCE"
+msgstr "来源依据"
+
+msgid "No comparable points were returned for these excerpts."
+msgstr "这些摘录没有返回可比较的要点。"
+
+msgid "The comparison could not be generated. No automatic retry was made."
+msgstr "无法生成比较结果，系统未自动重试。"
+
+msgid "This request is pending."
+msgstr "此请求正在等待处理。"
+
+msgid "This request was cancelled."
+msgstr "此请求已取消。"
+
+msgid "The editor remains responsible for the final assessment and decision."
+msgstr "编辑负责最终评估和决定。"
+
+msgid "Return to review reports"
+msgstr "返回审稿报告"
+
+msgid "Permissions and journal policy are checked for every request. The editor remains responsible for the decision."
+msgstr "每次请求都会检查授权和期刊政策，编辑仍负责作出决定。"
+
+msgid "Compare authorised excerpts with AI"
+msgstr "使用 AI 比较已授权摘录"
+
+msgid "If the journal enables this task, the editor selects excerpts and confirms each request separately. Excerpts may contain manuscript information or identifiers. The manuscript PDF is not included automatically."
+msgstr "如果期刊启用此功能，编辑将选择摘录并逐次确认请求。摘录可能包含稿件信息或身份信息，系统不会自动附加稿件 PDF。"
+
+msgid "Separate checks still apply"
+msgstr "仍需经过独立检查"
+
+msgid "Recording permission does not itself send information or make an editorial decision. The journal must enable this task and the editor must confirm each request."
+msgstr "记录授权本身不会发送信息或作出编辑决定。期刊必须启用该功能，编辑也必须逐次确认请求。"
+
+msgid "Review report comparison has its own switch and requires the relevant author and reviewer permissions and editor confirmation."
+msgstr "审稿报告比较具有独立开关，需要相关作者和审稿人的授权以及编辑确认。"
+
+msgid "The review or permission changed; reload the page."
+msgstr "审稿内容或授权已变化，请重新加载页面。"
+
+msgid "Choose two to four permitted reports and copy an exact, non-empty excerpt from each."
+msgstr "请选择两至四份已授权报告，并从每份报告中准确复制非空摘录。"
+
+msgid "The required author permission, journal policy or server configuration is unavailable."
+msgstr "缺少所需的作者授权、期刊政策或服务器配置。"
+
+msgid "This request has changed; start a new one."
+msgstr "本次请求已变化，请重新开始。"
+
+msgid "Permissions changed; the request was cancelled."
+msgstr "授权已变化，本次请求已取消。"
