@@ -171,6 +171,10 @@ def _render(request, organisation, design, journals, **extra):
         if design.hero_asset_id:
             route = "private_portal_image" if extra.get("preview") else "public_portal_image"
             hero_image_url = reverse(route, args=[organisation.slug, design.hero_asset_id])
+    if extra.get("image_candidate_preview"):
+        if not extra.get("preview"):
+            raise Http404
+        hero_image_url = extra["candidate_image_url"]
     return _no_index(render(request, "publishing/publisher_portal.html", {
         "organisation":organisation, "design":design, "appearance":appearance, "journals":journals, "hero_image_url":hero_image_url,
         "page_navigation":page_navigation(pages, "portal", organisation.slug, bool(extra.get("preview"))),

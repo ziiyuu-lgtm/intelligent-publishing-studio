@@ -89,6 +89,10 @@ def _render_site(request, journal, design, **context):
         if design.hero_asset_id:
             route = "private_journal_image" if context.get("preview") else "public_journal_image"
             hero_image_url = reverse(route, args=[journal.slug, design.hero_asset_id])
+    if context.get("image_candidate_preview"):
+        if not context.get("preview"):
+            raise Http404
+        hero_image_url = context["candidate_image_url"]
     return _no_index(render(request, "publishing/journal_site.html", {"journal": journal, "design": design,
         "appearance": _appearance(design), "sections": sections, "hero_image_url":hero_image_url,
         "page_navigation":page_navigation(pages, "journal", journal.slug, bool(context.get("preview"))),

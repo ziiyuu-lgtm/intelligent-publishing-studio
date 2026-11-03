@@ -6,11 +6,13 @@ import uuid
 from unittest.mock import patch
 
 from django.test import Client, TestCase, override_settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from publishing.ai_provider import ProviderError
 from publishing.image_ai_provider import generate_image
-from publishing.models import Membership, OrganisationMembership, SiteImageGenerationRun
+from publishing.models import Membership, OrganisationMembership, SiteImageAsset, SiteImageGenerationRun
+from publishing.site_images import normalise_image
 from . import test_site_ai as site_helpers
 from . import test_publisher_portal_ai as portal_helpers
 from . import test_site_images as image_helpers
@@ -164,6 +166,70 @@ class ImageWorkflowChecks:
         self.assertEqual(self.client.get(self.route('image',run)).status_code,404)
         self.assertEqual(self.client.post(self.route('accept',run),{'confirm':'yes'}).status_code,409)
         self.assertEqual(self.site.images.count(),0)
+
+    def test_candidate_site_preview_is_private_read_only_and_configurable(self):
+        run, _ = self.start()
+        before = (self.site.revision, self.site.hero_asset_id, self.site.hero_alt, self.site.hero_fit, self.site.hero_position)
+        preview_url = self.route('site_preview', run)
+        self.assertContains(self.client.get(self.route('result', run)), preview_url)
+        with patch('publishing.image_ai_provider._send_request') as send:
+            page = self.client.get(preview_url, {'fit':'contain', 'position':'bottom'})
+        send.assert_not_called()
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('no-store', page['Cache-Control'])
+        self.assertEqual(page['X-Robots-Tag'], 'noindex, nofollow, noarchive')
+        self.assertContains(page, 'See this image on your website')
+        self.assertContains(page, self.route('image', run))
+        self.assertContains(page, 'object-fit:contain;object-position:bottom')
+        self.assertContains(page, self.route('result', run))
+        self.assertEqual(self.client.get(preview_url, {'fit':'url(javascript:alert(1))'}).status_code, 400)
+        self.assertEqual(self.client.get(preview_url, {'position':'invalid'}).status_code, 400)
+        self.assertEqual(self.client.post(preview_url).status_code, 405)
+        self.site.refresh_from_db(); run.refresh_from_db()
+        self.assertEqual((self.site.revision, self.site.hero_asset_id, self.site.hero_alt, self.site.hero_fit, self.site.hero_position), before)
+        self.assertIsNone(run.accepted_at); self.assertEqual(self.site.images.count(), 0)
+        self.client.force_login(self.second_user())
+        self.assertEqual(self.client.get(preview_url).status_code, 404)
+        self.client.force_login(self.manager)
+        self.site.headline = 'Changed draft'; self.site.revision += 1
+        self.site.save(update_fields=['headline','revision'])
+        self.assertEqual(self.client.get(preview_url).status_code, 409)
+        self.assertNotContains(self.client.get(self.route('result', run)), preview_url)
+
+    def test_preview_overlays_existing_hero_without_changing_it(self):
+        scope = {'journal_site':self.site} if self.kind == 'journal' else {'portal_site':self.site}
+        data = normalise_image(SimpleUploadedFile('existing.png', image_helpers.image_bytes(), content_type='image/png'))
+        asset = SiteImageAsset.objects.create(**scope, uploaded_by=self.manager, default_alt='Existing fictional hero', **data)
+        self.site.hero_asset = asset; self.site.hero_alt = 'Existing fictional hero'
+        self.site.hero_fit = 'contain'; self.site.hero_position = 'top'
+        self.site.save(update_fields=['hero_asset','hero_alt','hero_fit','hero_position'])
+        run, _ = self.start()
+        before = (self.site.revision, self.site.hero_asset_id, self.site.hero_alt, self.site.hero_fit, self.site.hero_position)
+        page = self.client.get(self.route('site_preview', run))
+        self.assertContains(page, self.route('image', run))
+        self.assertContains(page, 'alt="A fictional landscape with circles"')
+        self.site.refresh_from_db()
+        self.assertEqual((self.site.revision, self.site.hero_asset_id, self.site.hero_alt, self.site.hero_fit, self.site.hero_position), before)
+
+    def test_saved_candidate_can_preview_current_draft_until_removed(self):
+        run, _ = self.start()
+        self.assertEqual(self.client.post(self.route('accept',run), {'confirm':'yes'}).status_code, 302)
+        run.refresh_from_db(); self.site.headline = 'A newer fictional draft'; self.site.revision += 1
+        self.site.save(update_fields=['headline','revision'])
+        page = self.client.get(self.route('site_preview', run))
+        self.assertContains(page, 'A newer fictional draft')
+        self.assertContains(page, self.route('image', run))
+        run.accepted_asset.delete()
+        self.assertEqual(self.client.get(self.route('site_preview', run)).status_code, 404)
+        self.assertNotContains(self.client.get(self.route('result', run)), self.route('site_preview', run))
+
+    def test_discarded_or_damaged_candidate_cannot_be_previewed(self):
+        run, _ = self.start()
+        run.width = None; run.save(update_fields=['width'])
+        self.assertEqual(self.client.get(self.route('site_preview', run)).status_code, 404)
+        self.assertNotContains(self.client.get(self.route('result', run)), self.route('site_preview', run))
+        run.status = 'discarded'; run.image_data = None; run.save(update_fields=['status','image_data'])
+        self.assertEqual(self.client.get(self.route('site_preview', run)).status_code, 404)
 
     def test_idempotency_and_shared_daily_limit(self):
         data=self.payload();run,send=self.start(data)

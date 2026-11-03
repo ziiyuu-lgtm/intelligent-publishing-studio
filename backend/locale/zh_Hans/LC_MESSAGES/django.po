@@ -6613,3 +6613,24 @@ msgstr "打开图片请求"
 
 msgid "Back to AI design workspace"
 msgstr "返回 AI 设计工作台"
+
+msgid "PRIVATE IMAGE PREVIEW"
+msgstr "私人图片预览"
+
+msgid "See this image on your website"
+msgstr "查看图片在网站上的效果"
+
+msgid "This is a temporary view of the saved site draft. Nothing is applied, saved or published by previewing. Set the display options again when adding the image to a draft."
+msgstr "这是已保存网站草稿的临时预览。预览不会应用、保存或发布任何更改；将图片添加到草稿时需重新设置显示方式。"
+
+msgid "Back to image review"
+msgstr "返回图片审核"
+
+msgid "Update preview"
+msgstr "更新预览"
+
+msgid "Preview on website"
+msgstr "在网站中预览"
+
+msgid "Invalid image display settings."
+msgstr "图片显示设置无效。"

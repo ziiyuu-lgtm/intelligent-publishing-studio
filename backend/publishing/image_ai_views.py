@@ -21,9 +21,9 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from . import ai_views, image_ai_provider, portal_policy_views, portal_views, site_image_views, site_views
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since, portal_requests_since
 from .image_ai_forms import ImageGenerationForm
-from .models import SiteImageAsset, SiteImageGenerationRun
+from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES, SiteImageAsset, SiteImageGenerationRun
 from .production_views import _enabled, _no_index
-from .site_images import MAX_SITE_IMAGES, asset_is_intact
+from .site_images import MAX_SITE_IMAGES, asset_is_intact, valid_display
 
 
 def _site(user, slug, kind, locked=False):
@@ -81,6 +81,15 @@ def _intact(candidate):
         return bool(candidate and candidate.image_data and asset_is_intact(candidate))
     except (TypeError, ValueError, AttributeError):
         return False
+
+
+def _candidate(site, run):
+    candidate = run.accepted_asset if run.accepted_at else run
+    if run.status != run.Status.COMPLETED or not _intact(candidate):
+        return None
+    if run.accepted_at and not site.images.filter(pk=candidate.pk).exists():
+        return None
+    return candidate
 
 
 def _event(site, actor, kind, action):
@@ -194,9 +203,11 @@ def result(request, slug, run_id, kind):
     _enabled()
     owner, site = _site(request.user, slug, kind)
     run = _run(site, request.user, run_id, kind)
+    current = _current(site, run, kind)
     return _no_index(render(request, 'publishing/image_ai_result.html', {
-        'owner':owner, 'site':site, 'run':run, 'current':_current(site, run, kind),
+        'owner':owner, 'site':site, 'run':run, 'current':current,
         'image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
+        'site_preview_url':reverse(_route(kind, 'site_preview'), args=[slug, run.pk]) if _candidate(site, run) and (current or run.accepted_at) else None,
         'accept_url':reverse(_route(kind, 'accept'), args=[slug, run.pk]),
         'discard_url':reverse(_route(kind, 'discard'), args=[slug, run.pk]),
         'create_url':reverse(_route(kind, 'create'), args=[slug]),
@@ -212,12 +223,35 @@ def image(request, slug, run_id, kind):
     _enabled()
     _, site = _site(request.user, slug, kind)
     run = _run(site, request.user, run_id, kind)
-    candidate = run.accepted_asset if run.accepted_at else run
-    if run.status != run.Status.COMPLETED or not _intact(candidate):
-        raise Http404
-    if run.accepted_at and not site.images.filter(pk=candidate.pk).exists():
+    candidate = _candidate(site, run)
+    if candidate is None:
         raise Http404
     return site_image_views._image_response(candidate)
+
+
+@login_required
+@never_cache
+@require_GET
+def site_preview(request, slug, run_id, kind):
+    """Preview one private candidate on the saved site without editing it."""
+    _enabled()
+    owner, site = _site(request.user, slug, kind)
+    run = _run(site, request.user, run_id, kind)
+    if _candidate(site, run) is None:
+        raise Http404
+    if not run.accepted_at and not _current(site, run, kind):
+        return HttpResponse(_('The site draft changed; request a new image.'), status=409)
+    fit, position = request.GET.get('fit', 'cover'), request.GET.get('position', 'center')
+    if not valid_display(fit, position):
+        return HttpResponse(_('Invalid image display settings.'), status=400)
+    context = {'preview':True, 'image_candidate_preview':True,
+               'candidate_image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
+               'candidate_back_url':reverse(_route(kind, 'result'), args=[slug, run.pk]),
+               'candidate_alt':run.image_description, 'candidate_fit':fit, 'candidate_position':position,
+               'hero_fit_choices':HERO_FIT_CHOICES, 'hero_position_choices':HERO_POSITION_CHOICES}
+    if kind == 'journal':
+        return site_views._render_site(request, owner, site, **context)
+    return portal_views._render(request, owner, site, portal_views._draft_journals(site), **context)
 
 
 @login_required
