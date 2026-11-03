@@ -6983,3 +6983,13 @@ msgstr "若图片尚未入库，系统会将其加入素材库。草稿中仅所
 
 msgid "The image placement is unavailable; update the preview."
 msgstr "图片位置不可用，请更新预览。"
+
+msgid "Homepage main image"
+msgstr "首页主视觉图片"
+
+#, python-format
+msgid "Module %(number)s: %(heading)s"
+msgstr "模块 %(number)s：%(heading)s"
+
+msgid "Applying will create the default homepage modules in the draft and may change its layout, as shown below."
+msgstr "应用后将在草稿中创建默认首页模块，页面布局可能随之改变，效果如下方预览所示。"

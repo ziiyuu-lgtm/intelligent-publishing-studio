@@ -20,7 +20,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from . import ai_views, image_ai_provider, portal_policy_views, portal_views, site_image_views, site_page_views, site_views
+from . import ai_views, image_ai_provider, portal_policy_views, portal_sections, portal_views, site_image_views, site_page_views, site_sections, site_views
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since, portal_requests_since
 from .image_ai_forms import ImageGenerationForm
 from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES, JournalSiteEvent, SiteImageAsset, SiteImageGenerationRun
@@ -31,6 +31,7 @@ from .site_images import MAX_SITE_IMAGES, asset_is_intact, valid_display
 IMAGE_PREVIEW_SALT = 'ips.image-ai.site-preview.v1'
 IMAGE_PREVIEW_MAX_AGE = 3600
 IMAGE_PAGE_PREVIEW_SALT = 'ips.image-ai.page-preview.v1'
+IMAGE_SECTION_PREVIEW_SALT = 'ips.image-ai.section-preview.v1'
 
 
 def _site(user, slug, kind, locked=False):
@@ -135,6 +136,40 @@ def _page_image_target(value, page):
     if index >= len(blocks) or not blocks[index]['visible']:
         raise ValueError('unavailable target')
     return index
+
+
+def _homepage_sections(site, kind):
+    module = site_sections if kind == 'journal' else portal_sections
+    sections = module.validate_sections(site.sections_config) if site.sections_config else module.default_sections(site)
+    return module, sections
+
+
+def _homepage_image_target(value, sections):
+    if value == 'hero':
+        return None
+    if not isinstance(value, str) or not re.fullmatch(r'section-(0|[1-9][0-9]?)', value):
+        raise ValueError('invalid target')
+    index = int(value[8:])
+    if index >= len(sections) or not sections[index]['visible']:
+        raise ValueError('unavailable target')
+    return index
+
+
+def _homepage_review(raw):
+    """Accept legacy hero reviews or a signed, snapshot-bound module review."""
+    try:
+        return _read_review(raw), 'hero'
+    except (TypeError, ValueError):
+        pass
+    if not isinstance(raw, str) or len(raw) > 8192:
+        raise ValueError('invalid review')
+    try:
+        data = signing.loads(raw, salt=IMAGE_SECTION_PREVIEW_SALT, max_age=IMAGE_PREVIEW_MAX_AGE)
+        if not isinstance(data, dict) or set(data) != {'target', 'image'} or not isinstance(data['target'], str):
+            raise ValueError('invalid review')
+        return _read_review(data['image']), data['target']
+    except signing.BadSignature as exc:
+        raise ValueError('invalid review') from exc
 
 
 def _event(site, actor, kind, action):
@@ -291,13 +326,34 @@ def site_preview(request, slug, run_id, kind):
     fit, position = request.GET.get('fit', 'cover'), request.GET.get('position', 'center')
     if not valid_display(fit, position):
         return HttpResponse(_('Invalid image display settings.'), status=400)
+    if site_page_views._valid_design(site, site, kind, site) is None:
+        raise Http404
+    try:
+        module, sections = _homepage_sections(site, kind)
+        target = request.GET.get('target', 'hero')
+        target_index = _homepage_image_target(target, sections)
+    except (ValueError, TypeError):
+        return HttpResponse(_('The image placement is unavailable; update the preview.'), status=400)
+    targets = [{'value':'hero', 'label':_('Homepage main image')}]
+    for index, section in enumerate(sections):
+        if section['visible']:
+            heading = section['heading'] or dict(module.SECTION_CHOICES)[section['kind']]
+            targets.append({'value':f'section-{index}', 'label':_('Module %(number)s: %(heading)s') % {
+                'number':index + 1, 'heading':heading}})
+    reviewed = _review_token(request.user, site, run, kind, candidate, fit, position)
+    if target_index is not None:
+        reviewed = signing.dumps({'target':target, 'image':reviewed}, salt=IMAGE_SECTION_PREVIEW_SALT, compress=True)
     context = {'preview':True, 'image_candidate_preview':True,
+               'image_candidate_hero':target_index is None, 'candidate_target':target,
+               'candidate_section_index':target_index, 'candidate_targets':targets,
+               'candidate_target_label':next(item['label'] for item in targets if item['value'] == target),
+               'candidate_materializes_sections':target_index is not None and not site.sections_config,
                'candidate_image_url':reverse(_route(kind, 'image'), args=[slug, run.pk]),
                'candidate_back_url':reverse(_route(kind, 'result'), args=[slug, run.pk]),
                'candidate_alt':run.image_description, 'candidate_fit':fit, 'candidate_position':position,
                'candidate_fit_label':dict(HERO_FIT_CHOICES)[fit],
                'candidate_position_label':dict(HERO_POSITION_CHOICES)[position],
-               'candidate_reviewed':_review_token(request.user, site, run, kind, candidate, fit, position),
+               'candidate_reviewed':reviewed,
                'candidate_apply_url':reverse(_route(kind, 'apply_preview'), args=[slug, run.pk]),
                'hero_fit_choices':HERO_FIT_CHOICES, 'hero_position_choices':HERO_POSITION_CHOICES}
     if kind == 'journal':
@@ -452,7 +508,7 @@ def apply_preview(request, slug, run_id, kind):
     if request.POST.get('confirm') != 'yes':
         return HttpResponse(_('Confirm applying the reviewed image to the draft.'), status=400)
     try:
-        reviewed = _read_review(request.POST.get('reviewed_image', ''))
+        reviewed, target = _homepage_review(request.POST.get('reviewed_image', ''))
     except (ValueError, TypeError):
         return HttpResponse(_('The image preview is invalid or expired.'), status=400)
     with transaction.atomic():
@@ -473,6 +529,16 @@ def apply_preview(request, slug, run_id, kind):
                          'fingerprint','sha256','description','asset_id','accepted'))
         if received != expected or (not run.accepted_at and not _current(site, run, kind)):
             return HttpResponse(_('The image or site draft changed; preview it again.'), status=409)
+        if target != 'hero':
+            if site_page_views._valid_design(site, site, kind, site) is None:
+                return HttpResponse(_('The site draft or its images are invalid.'), status=409)
+            try:
+                section_module, sections = _homepage_sections(site, kind)
+                target_index = _homepage_image_target(target, sections)
+                if target_index is None:
+                    raise ValueError('invalid target')
+            except (ValueError, TypeError):
+                return HttpResponse(_('The image placement is unavailable; update the preview.'), status=409)
         if not run.accepted_at:
             if site.images.count() >= MAX_SITE_IMAGES:
                 return HttpResponse(_('This site has reached its local image-library limit.'), status=409)
@@ -482,7 +548,17 @@ def apply_preview(request, slug, run_id, kind):
             run.accepted_asset, run.accepted_at, run.image_data = candidate, timezone.now(), None
             run.save(update_fields=['accepted_asset','accepted_at','image_data'])
             _event(site, request.user, kind, 'image_ai_saved_to_library')
-        if (site.hero_asset_id != candidate.pk or site.hero_alt != reviewed['description'] or
+        if target != 'hero':
+            updated = [{**section, 'image_asset_id':str(candidate.pk), 'image_alt':reviewed['description'],
+                        'image_fit':reviewed['fit'], 'image_position':reviewed['position']}
+                       if index == target_index else section for index, section in enumerate(sections)]
+            if site.sections_config != updated:
+                sync_image_references(site, site, updated, pages=site.pages_config)
+                site.sections_config = updated
+                site.revision += 1
+                site.save(update_fields=['sections_config','revision'])
+                _event(site, request.user, kind, 'site_sections_updated' if kind == 'journal' else 'portal_sections_updated')
+        elif (site.hero_asset_id != candidate.pk or site.hero_alt != reviewed['description'] or
                 site.hero_fit != reviewed['fit'] or site.hero_position != reviewed['position']):
             site.hero_asset, site.hero_alt = candidate, reviewed['description']
             site.hero_fit, site.hero_position = reviewed['fit'], reviewed['position']

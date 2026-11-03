@@ -11,6 +11,21 @@ from .site_images import asset_is_intact
 IMAGE_FIELDS = {"image_asset_id", "image_alt", "image_fit", "image_position"}
 
 
+def overlay_private_candidate(visible_sections, all_sections, context):
+    """Overlay one already-validated visible module for a private preview."""
+    index = context.get("candidate_section_index")
+    if (type(index) is not int or index < 0 or index >= len(all_sections) or
+            not all_sections[index]["visible"]):
+        raise ValueError("invalid candidate module")
+    visible_index = sum(1 for section in all_sections[:index] if section["visible"])
+    if visible_index >= len(visible_sections):
+        raise ValueError("invalid candidate module")
+    result = [dict(section) for section in visible_sections]
+    result[visible_index].update(image_url=context["candidate_image_url"], image_alt=context["candidate_alt"],
+        image_fit=context["candidate_fit"], image_position=context["candidate_position"], candidate_preview=True)
+    return result
+
+
 def validate_image_fields(item):
     """Accept either no image fields, or the complete, strictly typed set."""
     present = IMAGE_FIELDS.intersection(item)

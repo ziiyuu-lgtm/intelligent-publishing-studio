@@ -113,6 +113,128 @@ class ImageWorkflowChecks:
         ]
         self.site.save(update_fields=['pages_config'])
 
+    def homepage_modules(self):
+        scope = {'journal_site':self.site} if self.kind == 'journal' else {'portal_site':self.site}
+        data = normalise_image(SimpleUploadedFile('existing.png', image_helpers.image_bytes(), content_type='image/png'))
+        asset = SiteImageAsset.objects.create(**scope, uploaded_by=self.manager, default_alt='Existing image', **data)
+        image = {'image_asset_id':str(asset.pk),'image_alt':'Existing module image','image_fit':'cover','image_position':'top'}
+        self.site.hero_asset = asset;self.site.hero_alt = 'Existing hero';self.site.hero_fit = 'contain';self.site.hero_position = 'bottom'
+        self.site.sections_config = [
+            {'kind':'about','heading':'About research','body':'Fictional content.','visible':True,**image},
+            {'kind':'custom','heading':'Hidden module','body':'Private content.','visible':False},
+            {'kind':'custom','heading':'Research highlights','body':'A fictional feature.','visible':True,**image},
+        ]
+        from publishing.module_images import sync_image_references
+        sync_image_references(self.site, self.site, self.site.sections_config)
+        self.site.save(update_fields=['hero_asset','hero_alt','hero_fit','hero_position','sections_config'])
+        return asset
+
+    def home_review(self, run, **options):
+        page = self.client.get(self.route('site_preview',run),options)
+        self.assertEqual(page.status_code,200)
+        return page.context['candidate_reviewed']
+
+    def test_home_module_preview_is_scoped_and_does_not_replace_hero(self):
+        asset=self.homepage_modules();run,_=self.start();url=self.route('site_preview',run)
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            page=self.client.get(url,{'target':'section-2','fit':'contain','position':'bottom'})
+        provider.assert_not_called()
+        self.assertContains(page,'Module 3: Research highlights')
+        self.assertContains(page,'image-candidate-target')
+        self.assertContains(page,'alt="Existing hero"')
+        self.assertContains(page,'alt="A fictional landscape with circles"')
+        self.assertContains(page,'object-fit:contain;object-position:bottom')
+        self.assertNotContains(page,'Hidden module')
+        self.assertEqual(page.context['sections'][1]['candidate_preview'],True)
+        self.site.refresh_from_db();run.refresh_from_db()
+        self.assertEqual(self.site.sections_config[2]['image_asset_id'],str(asset.pk))
+        self.assertEqual(self.site.hero_asset_id,asset.pk)
+        self.assertIsNone(run.accepted_at);self.assertEqual(self.site.images.count(),1)
+        for target in ('section-1','section-20','section--1','section-00','bad'):
+            self.assertEqual(self.client.get(url,{'target':target}).status_code,400)
+        self.client.force_login(self.second_user())
+        self.assertEqual(self.client.get(url,{'target':'section-2'}).status_code,404)
+
+    def test_apply_home_module_changes_only_the_signed_placement(self):
+        asset=self.homepage_modules();original=self.site.sections_config
+        run,_=self.start();token=self.home_review(run,target='section-2',fit='contain',position='bottom')
+        before_revision=self.site.revision
+        with patch('publishing.image_ai_provider._send_request') as provider:
+            result=self.client.post(self.route('apply_preview',run),{'confirm':'yes','reviewed_image':token,'target':'hero'})
+        provider.assert_not_called();self.assertEqual(result.status_code,302)
+        self.site.refresh_from_db();run.refresh_from_db()
+        self.assertEqual(self.site.sections_config[:2],original[:2])
+        self.assertEqual(self.site.sections_config[2],{**original[2],'image_asset_id':str(run.accepted_asset_id),
+            'image_alt':'A fictional landscape with circles','image_fit':'contain','image_position':'bottom'})
+        self.assertEqual((self.site.hero_asset_id,self.site.hero_alt,self.site.hero_fit,self.site.hero_position),
+                         (asset.pk,'Existing hero','contain','bottom'))
+        self.assertEqual(self.site.revision,before_revision+1)
+        self.assertEqual(self.site.module_image_references.count(),2)
+        self.assertEqual(self.client.post(self.route('apply_preview',run),{'confirm':'yes','reviewed_image':token}).status_code,409)
+
+    def test_home_module_review_checks_expiry_changes_and_csrf(self):
+        self.homepage_modules();run,_=self.start();url=self.route('apply_preview',run)
+        token=self.home_review(run,target='section-2')
+        self.assertEqual(self.client.post(url,{'reviewed_image':token}).status_code,400)
+        self.assertEqual(self.client.post(url,{'confirm':'yes','reviewed_image':token+'x'}).status_code,400)
+        with patch('django.core.signing.time.time',return_value=9999999999):
+            self.assertEqual(self.client.post(url,{'confirm':'yes','reviewed_image':token}).status_code,400)
+        csrf=Client(enforce_csrf_checks=True);csrf.force_login(self.manager)
+        self.assertEqual(csrf.post(url,{'confirm':'yes','reviewed_image':token}).status_code,403)
+        self.site.sections_config.reverse();self.site.save(update_fields=['sections_config'])
+        self.assertEqual(self.client.post(url,{'confirm':'yes','reviewed_image':token}).status_code,409)
+        self.assertEqual(self.site.images.count(),1)
+
+    def test_saved_image_can_be_reused_in_a_home_module_without_duplicate_asset(self):
+        self.homepage_modules();run,_=self.start()
+        self.assertEqual(self.client.post(self.route('accept',run),{'confirm':'yes'}).status_code,302)
+        run.refresh_from_db();token=self.home_review(run,target='section-2')
+        with patch('publishing.image_ai_views.MAX_SITE_IMAGES',0):
+            self.assertEqual(self.client.post(self.route('apply_preview',run),{'confirm':'yes','reviewed_image':token}).status_code,302)
+        self.site.refresh_from_db();revision=self.site.revision
+        token=self.home_review(run,target='section-2')
+        self.assertEqual(self.client.post(self.route('apply_preview',run),{'confirm':'yes','reviewed_image':token}).status_code,302)
+        self.site.refresh_from_db()
+        self.assertEqual(self.site.revision,revision)
+        self.assertEqual(self.site.images.count(),2)
+
+    def test_home_module_apply_respects_revoked_role_and_rolls_back_failure(self):
+        self.homepage_modules();run,_=self.start();token=self.home_review(run,target='section-2')
+        with patch.object(type(self.site),'save',side_effect=RuntimeError('simulated failure')):
+            with self.assertRaises(RuntimeError):
+                self.client.post(self.route('apply_preview',run),{'confirm':'yes','reviewed_image':token})
+        run.refresh_from_db();self.site.refresh_from_db()
+        self.assertIsNone(run.accepted_at);self.assertEqual(self.site.images.count(),1)
+        self.assertEqual(self.site.module_image_references.count(),1)
+        if self.kind=='journal':
+            Membership.objects.filter(journal=self.journal,user=self.manager,role=Membership.Role.SITE_MANAGER).update(active=False)
+        else:
+            OrganisationMembership.objects.filter(organisation=self.org,user=self.manager,role=OrganisationMembership.Role.PORTAL_MANAGER).update(active=False)
+        self.assertEqual(self.client.post(self.route('apply_preview',run),{'confirm':'yes','reviewed_image':token}).status_code,404)
+
+    def test_legacy_homepage_module_preview_matches_draft_and_preserves_release(self):
+        self.site.sections_config=[];self.site.save(update_fields=['sections_config'])
+        manage='manage_journal_site' if self.kind=='journal' else 'manage_publisher_portal'
+        publish='publish_journal_site' if self.kind=='journal' else 'publish_publisher_portal'
+        data=self.client.get(reverse(manage,args=[self.slug()])).context
+        self.assertEqual(self.client.post(reverse(publish,args=[self.slug()]),{'revision':str(data['site'].revision),
+            'fingerprint':data['fingerprint'],'confirm':'yes','synthetic':'yes'}).status_code,302)
+        self.site.refresh_from_db();release_id=self.site.current_release_id
+        run,_=self.start();page=self.client.get(self.route('site_preview',run),{'target':'section-0'})
+        self.assertEqual(page.status_code,200)
+        self.assertTrue(page.context['candidate_materializes_sections'])
+        self.assertContains(page,'Applying will create the default homepage modules')
+        self.assertEqual(len(page.context['sections']),2)
+        self.assertEqual(self.client.post(self.route('apply_preview',run),{
+            'confirm':'yes','reviewed_image':page.context['candidate_reviewed']}).status_code,302)
+        self.site.refresh_from_db();run.refresh_from_db()
+        self.assertEqual(len(self.site.sections_config),2)
+        self.assertEqual(self.site.sections_config[0]['image_asset_id'],str(run.accepted_asset_id))
+        self.assertEqual(self.site.current_release_id,release_id)
+        self.assertEqual(self.site.current_release.sections_config,[])
+        public='public_journal_image' if self.kind=='journal' else 'public_portal_image'
+        self.assertEqual(Client().get(reverse(public,args=[self.slug(),run.accepted_asset_id])).status_code,404)
+
     def page_review(self, run, **options):
         response = self.client.get(self.route('page_preview', run), options)
         self.assertEqual(response.status_code, 200)

@@ -26,7 +26,7 @@ from .site_design import InvalidDesign, SAMPLES, appearance_for, sample_by_id, v
 from .site_sections import InvalidSections as InvalidJournalSections, visible_sections as visible_journal_sections
 from .site_pages import InvalidPages, page_navigation, validate_pages
 from .site_images import hero_reference_valid
-from .module_images import image_choices, images_valid, sync_image_references
+from .module_images import image_choices, images_valid, overlay_private_candidate, sync_image_references
 
 CONTENT_FIELDS = ("brand_name", "headline", "tagline", "introduction")
 
@@ -159,10 +159,24 @@ def _render(request, organisation, design, journals, **extra):
     owner = site if extra.get("preview") else design
     if not images_valid(site, design.sections_config, owner):
         raise Http404
+    candidate_module = extra.get("image_candidate_preview") and not extra.get("image_candidate_hero")
+    if candidate_module:
+        if not extra.get("preview"):
+            raise Http404
+        try:
+            all_sections = validate_sections(design.sections_config) if design.sections_config else default_sections(design)
+            sections = visible_sections(all_sections)
+        except (InvalidPortalSections, ValueError) as exc:
+            raise Http404 from exc
     for section in sections:
         if section.get("image_asset_id"):
             route = "private_portal_image" if extra.get("preview") else "public_portal_image"
             section["image_url"] = reverse(route, args=[organisation.slug, section["image_asset_id"]])
+    if candidate_module:
+        try:
+            sections = overlay_private_candidate(sections, all_sections, extra)
+        except (ValueError, KeyError) as exc:
+            raise Http404 from exc
     hero_image_url = ""
     if design.hero_asset_id or design.hero_alt or design.hero_fit != "cover" or design.hero_position != "center":
         site = get_object_or_404(OrganisationPortalDraft, organisation=organisation)
@@ -171,7 +185,7 @@ def _render(request, organisation, design, journals, **extra):
         if design.hero_asset_id:
             route = "private_portal_image" if extra.get("preview") else "public_portal_image"
             hero_image_url = reverse(route, args=[organisation.slug, design.hero_asset_id])
-    if extra.get("image_candidate_preview"):
+    if extra.get("image_candidate_preview") and extra.get("image_candidate_hero"):
         if not extra.get("preview"):
             raise Http404
         hero_image_url = extra["candidate_image_url"]

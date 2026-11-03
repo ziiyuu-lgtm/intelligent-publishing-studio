@@ -23,7 +23,7 @@ from .site_design import InvalidDesign, SAMPLES, appearance_for, legacy_to_bluep
 from .site_sections import InvalidSections, default_sections, validate_sections, visible_sections
 from .site_pages import InvalidPages, page_navigation, validate_pages
 from .site_images import hero_reference_valid
-from .module_images import image_choices, images_valid, sync_image_references
+from .module_images import image_choices, images_valid, overlay_private_candidate, sync_image_references
 from .views import _has_role
 
 TEXT_FIELDS = ("brand_name", "headline", "tagline", "introduction", "theme", "layout")
@@ -77,10 +77,24 @@ def _render_site(request, journal, design, **context):
     owner = site if context.get("preview") else design
     if not images_valid(site, design.sections_config, owner):
         raise Http404
+    candidate_module = context.get("image_candidate_preview") and not context.get("image_candidate_hero")
+    if candidate_module:
+        if not context.get("preview"):
+            raise Http404
+        try:
+            all_sections = validate_sections(design.sections_config) if design.sections_config else default_sections(design)
+            sections = visible_sections(all_sections)
+        except (InvalidSections, ValueError) as exc:
+            raise Http404 from exc
     for section in sections:
         if section.get("image_asset_id"):
             route = "private_journal_image" if context.get("preview") else "public_journal_image"
             section["image_url"] = reverse(route, args=[journal.slug, section["image_asset_id"]])
+    if candidate_module:
+        try:
+            sections = overlay_private_candidate(sections, all_sections, context)
+        except (ValueError, KeyError) as exc:
+            raise Http404 from exc
     hero_image_url = ""
     if design.hero_asset_id or design.hero_alt or design.hero_fit != "cover" or design.hero_position != "center":
         site = get_object_or_404(JournalSiteDraft, journal=journal)
@@ -89,7 +103,7 @@ def _render_site(request, journal, design, **context):
         if design.hero_asset_id:
             route = "private_journal_image" if context.get("preview") else "public_journal_image"
             hero_image_url = reverse(route, args=[journal.slug, design.hero_asset_id])
-    if context.get("image_candidate_preview"):
+    if context.get("image_candidate_preview") and context.get("image_candidate_hero"):
         if not context.get("preview"):
             raise Http404
         hero_image_url = context["candidate_image_url"]
