@@ -857,12 +857,44 @@ class RevisionResponseDraft(models.Model):
         constraints = [models.UniqueConstraint(fields=["decision", "author"], name="one_response_draft_per_author_decision")]
 
 
+class EditorComparisonPermissionRequest(models.Model):
+    """One in-app request for an author's specific current-revision permission."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Awaiting author")
+        GRANTED = "granted", _("Allowed by author")
+        DECLINED = "declined", _("Declined by author")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="editor_ai_permission_requests")
+    review_round = models.ForeignKey(ReviewRound, on_delete=models.PROTECT, related_name="editor_ai_permission_requests")
+    decision = models.ForeignKey(EditorialDecision, on_delete=models.PROTECT, related_name="editor_ai_permission_requests")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="editor_ai_permission_requests")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="editor_ai_permission_requests_made")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="editor_ai_permission_requests_received")
+    provider = models.CharField(max_length=20)
+    purpose = models.CharField(max_length=60)
+    source_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["submission", "review_round", "decision", "version", "recipient",
+                                             "provider", "purpose", "source_fingerprint"], name="one_editor_ai_permission_request_source"),
+            models.CheckConstraint(condition=(models.Q(status="pending", responded_at__isnull=True) |
+                models.Q(status__in=["granted", "declined"], responded_at__isnull=False)), name="editor_ai_permission_response_consistent"),
+        ]
+
+
 class AuthorNotice(models.Model):
     """Private local notice for the submitting author, pinned to the original account."""
     class Kind(models.TextChoices):
         SUBMITTED = "submitted", _("Submission received")
         DECISION = "decision", _("Editorial decision recorded")
         AUTHOR_CHANGE = "author_change", _("Author change reviewed")
+        AI_PERMISSION = "ai_permission", _("AI permission requested")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="author_notices")
@@ -870,6 +902,8 @@ class AuthorNotice(models.Model):
     kind = models.CharField(max_length=16, choices=Kind.choices)
     decision = models.ForeignKey(EditorialDecision, on_delete=models.PROTECT, null=True, blank=True, related_name="author_notices")
     author_change = models.ForeignKey(ContributorChangeRequest, on_delete=models.PROTECT, null=True, blank=True, related_name="author_notices")
+    ai_permission_request = models.OneToOneField(EditorComparisonPermissionRequest, on_delete=models.PROTECT,
+        null=True, blank=True, related_name="author_notice")
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
 
@@ -880,9 +914,10 @@ class AuthorNotice(models.Model):
             models.UniqueConstraint(fields=["decision"], condition=models.Q(kind="decision"), name="one_author_decision_notice"),
             models.UniqueConstraint(fields=["author_change"], condition=models.Q(kind="author_change"), name="one_author_change_notice"),
             models.CheckConstraint(condition=(
-                models.Q(kind="submitted", decision__isnull=True, author_change__isnull=True) |
-                models.Q(kind="decision", decision__isnull=False, author_change__isnull=True) |
-                models.Q(kind="author_change", decision__isnull=True, author_change__isnull=False)),
+                models.Q(kind="submitted", decision__isnull=True, author_change__isnull=True, ai_permission_request__isnull=True) |
+                models.Q(kind="decision", decision__isnull=False, author_change__isnull=True, ai_permission_request__isnull=True) |
+                models.Q(kind="author_change", decision__isnull=True, author_change__isnull=False, ai_permission_request__isnull=True) |
+                models.Q(kind="ai_permission", decision__isnull=True, author_change__isnull=True, ai_permission_request__isnull=False)),
                 name="valid_author_notice_source"),
         ]
 

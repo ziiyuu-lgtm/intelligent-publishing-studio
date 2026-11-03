@@ -75,7 +75,9 @@ class EditorComparisonConsentTests(TestCase):
         self.assertContains(page, self.sub.title)
         self.assertContains(page, self.journal.name)
         self.assertContains(page, 'Not allowed')
-        self.assertContains(self.client.get(self.consent_url(), HTTP_ACCEPT_LANGUAGE='zh-hans'), '控制编辑 AI 内容分享')
+        zh_page = self.client.get(self.consent_url(), HTTP_ACCEPT_LANGUAGE='zh-hans')
+        self.assertContains(zh_page, '控制编辑 AI 内容分享')
+        self.assertContains(zh_page, '稿件:')
         for user in (self.editor, self.other):
             self.client.force_login(user)
             self.assertEqual(self.client.get(self.consent_url()).status_code, 404)

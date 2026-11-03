@@ -20,6 +20,7 @@ from .ai_gateway import EDITOR_REVISION_COMPARISON, OPENAI, run_ai_task
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since
 from .ai_views import _policy, _provider_configured
 from .editor_comparison_consent import active_consent, source_fingerprint as _source_fingerprint
+from .editor_comparison_requests import current_permission_request
 from .editor_revision_comparison_provider import MAX_EXCERPT, PROMPT_VERSION, fingerprint
 from .editor_revision_views import current_revision_package
 from .models import EditorRevisionComparisonRun, Journal, Submission
@@ -62,6 +63,7 @@ def _context(request, current, decision, policy, form=None):
             "policy_revision": policy.revision if policy else 0, "policy_enabled": _enabled(policy),
             "provider_configured": _provider_configured(), "model_name": settings.IPS_OPENAI_MODEL,
             "author_consent": active_consent(current, decision),
+            "permission_request": current_permission_request(current, decision),
             "source_fingerprint": _source_fingerprint(current, decision), "request_id": uuid.uuid4(), "runs": runs}
 
 

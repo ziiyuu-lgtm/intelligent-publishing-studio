@@ -5704,3 +5704,180 @@ msgstr "已记录本次修回的授权。"
 
 msgid "Superseded"
 msgstr "已被新授权替代"
+
+msgid "Awaiting author"
+msgstr "等待作者选择"
+
+msgid "Allowed by author"
+msgstr "作者已允许"
+
+msgid "Declined by author"
+msgstr "作者已拒绝"
+
+msgid "AI permission requested"
+msgstr "编辑请求 AI 使用授权"
+
+msgid "The author controls whether this AI use is allowed."
+msgstr "此项 AI 使用由作者决定是否允许。"
+
+msgid "View permission request"
+msgstr "查看授权请求"
+
+msgid "Request author permission"
+msgstr "请求作者授权"
+
+msgid "The editorial office requested your choice"
+msgstr "编辑部请求您作出选择"
+
+msgid "Review the scope below. You may allow or decline; either choice remains yours."
+msgstr "请查看下方授权范围。您可以允许或拒绝，决定权始终在您手中。"
+
+msgid "Decline this request"
+msgstr "拒绝此请求"
+
+msgid "The editorial office requested an AI sharing choice for a revision. Open the request to review it."
+msgstr "编辑部请求您就一份修回稿的 AI 内容分享作出选择。请打开请求查看。"
+
+msgid "Review request"
+msgstr "查看请求"
+
+msgid "Request author AI permission"
+msgstr "请求作者 AI 授权"
+
+msgid "AUTHOR CHOICE"
+msgstr "作者选择"
+
+msgid "Invite the submitting author to review a specific AI sharing choice."
+msgstr "邀请投稿作者查看一项具体的 AI 内容分享选择。"
+
+msgid "Fictional test content only. This is an in-app request; no email or AI request is sent."
+msgstr "仅限虚构测试内容。这是站内请求，不发送邮件，也不会发起 AI 请求。"
+
+msgid "REQUEST DETAILS"
+msgstr "请求详情"
+
+msgid "What the author will be asked"
+msgstr "作者将看到的请求"
+
+msgid "The author can allow or decline editorial AI comparison of selected excerpts from the prior author-facing decision and the current author response."
+msgstr "作者可允许或拒绝编辑使用 AI，对照此前发送给作者的决定与当前作者回复中的选定片段。"
+
+msgid "Recipient"
+msgstr "接收对象"
+
+msgid "Submitting author"
+msgstr "投稿作者"
+
+msgid "The author controls the choice and may withdraw permission later. Requesting permission does not grant it."
+msgstr "选择由作者决定，作者之后也可撤回。发出请求不代表已获得授权。"
+
+msgid "Only one request is recorded for the same author, revision and source text."
+msgstr "对同一作者、修回版本和原文只记录一次请求。"
+
+msgid "REQUEST STATUS"
+msgstr "请求状态"
+
+msgid "In-app request"
+msgstr "站内请求"
+
+msgid "No request is needed for the current revision."
+msgstr "当前修回已无需再次请求。"
+
+msgid "Request recorded"
+msgstr "请求记录时间"
+
+msgid "A request has already been recorded for this source. The author can update their choice in their own workspace."
+msgstr "已为此原文记录请求。作者可在自己的工作区更新选择。"
+
+msgid "Journal AI task disabled"
+msgstr "期刊 AI 功能未启用"
+
+msgid "A journal AI manager must enable this task before a request can be created."
+msgstr "期刊 AI 管理员须先启用此功能，才能创建请求。"
+
+msgid "Author account unavailable"
+msgstr "作者账户不可用"
+
+msgid "The request cannot be created while the submitting account is inactive."
+msgstr "投稿账户停用期间不能创建请求。"
+
+msgid "I want to record this in-app request for the submitting author."
+msgstr "我希望为投稿作者记录此站内请求。"
+
+msgid "Create in-app request"
+msgstr "创建站内请求"
+
+msgid "The notice contains no reviewer identities, reports, manuscript text or decision text."
+msgstr "通知不包含审稿人身份、审稿报告、稿件正文或决定原文。"
+
+msgid "AI sharing request"
+msgstr "AI 内容分享请求"
+
+msgid "Back to submission notifications"
+msgstr "返回投稿通知"
+
+msgid "Fictional test data only. Opening this request does not send any content to an AI provider."
+msgstr "仅限虚构测试数据。打开此请求不会向 AI 服务商发送内容。"
+
+msgid "THE REQUEST"
+msgstr "请求内容"
+
+msgid "The editorial office would like your choice"
+msgstr "编辑部希望了解您的选择"
+
+msgid "The editorial office requested permission to compare selected excerpts from your revision with AI. You may allow or decline."
+msgstr "编辑部请求使用 AI 对照您修回稿中的选定片段。您可以允许或拒绝。"
+
+msgid "Your choice does not change the editorial decision. No message or AI request is sent when you review this page."
+msgstr "您的选择不会改变编辑决定。查看此页面不会发送消息或发起 AI 请求。"
+
+msgid "YOUR NEXT STEP"
+msgstr "您的下一步"
+
+msgid "Review your options"
+msgstr "查看您的选择"
+
+msgid "This request refers to the current revision."
+msgstr "此请求对应当前修回版本。"
+
+msgid "This request is no longer current"
+msgstr "此请求已不适用于当前版本"
+
+msgid "The revision or source text changed after it was requested."
+msgstr "请求发出后，修回版本或原文已发生变化。"
+
+msgid "Open your AI sharing page to see the current scope, permission and available choices."
+msgstr "打开 AI 内容分享页面，查看当前范围、授权状态和可选操作。"
+
+msgid "Open AI sharing choices"
+msgstr "打开 AI 分享选择"
+
+msgid "A previously declined request does not prevent you from granting permission later."
+msgstr "之前拒绝请求不影响您之后主动授予授权。"
+
+msgid "The request form expired or changed; reload the page."
+msgstr "请求表单已过期或被更改，请重新加载页面。"
+
+msgid "The revision or AI policy changed; reload the page."
+msgstr "修回内容或 AI 策略已变更，请重新加载页面。"
+
+msgid "The journal policy or author account does not permit a request."
+msgstr "期刊策略或作者账户当前不允许创建请求。"
+
+msgid "The author has already allowed this use for the current revision."
+msgstr "作者已允许在当前修回中使用此功能。"
+
+msgid "An in-app request was recorded for the submitting author. No email was sent."
+msgstr "已为投稿作者记录站内请求，未发送邮件。"
+
+msgid "The permission request changed; reload the page."
+msgstr "授权请求已变更，请重新加载页面。"
+
+msgid "The in-app request was declined. No AI request was made."
+msgstr "已拒绝站内请求，未发起 AI 请求。"
+
+msgid "The submitting author can manage this permission in their submission workspace. An in-app request can be created separately; no email is sent."
+msgstr "投稿作者可在自己的投稿工作区管理此权限。可以另外创建站内请求；系统不会发送邮件。"
+
+msgid "Submission"
+msgstr "稿件"
