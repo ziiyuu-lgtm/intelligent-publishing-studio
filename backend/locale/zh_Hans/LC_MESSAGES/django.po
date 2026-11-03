@@ -6070,3 +6070,81 @@ msgstr "打开 AI 设计工作台"
 
 msgid "Open design request"
 msgstr "打开设计请求"
+
+msgid "Visual layout designer"
+msgstr "可视化布局设计器"
+
+msgid "Open visual layout designer"
+msgstr "打开可视化布局设计器"
+
+msgid "Arrange your page blocks and review the design before applying it to the draft."
+msgstr "排列页面区块，并在应用到草稿前查看设计。"
+
+msgid "Fictional test data only. Your layout stays private until you apply it to the draft; publishing is separate."
+msgstr "仅使用虚构测试数据。布局在应用到草稿前保持私有；发布是单独的操作。"
+
+msgid "Start with a content block"
+msgstr "先添加内容区块"
+
+msgid "Add at least one block to this page before arranging its layout."
+msgstr "请先为页面添加至少一个区块，再设计布局。"
+
+msgid "Add page content"
+msgstr "添加页面内容"
+
+msgid "LAYOUT CANVAS"
+msgstr "布局画布"
+
+msgid "Drag visible blocks to rearrange them, or use the controls on the right."
+msgstr "拖动可见区块调整顺序，或使用右侧控件。"
+
+msgid "Canvas width"
+msgstr "画布宽度"
+
+msgid "PAGE PREVIEW"
+msgstr "页面预览"
+
+msgid "A structural sketch using your saved blocks"
+msgstr "基于已保存区块的结构草图"
+
+msgid "This is a responsive 12-column grid. Blocks stack on narrow screens; hidden blocks stay in the draft and are not shown on the canvas."
+msgstr "这是响应式 12 列网格。窄屏中区块纵向排列；隐藏区块保留在草稿中，但不会显示在画布上。"
+
+msgid "Applying a layout will enable the grid for this page."
+msgstr "应用布局后将为此页面启用网格。"
+
+msgid "BLOCK CONTROLS"
+msgstr "区块控件"
+
+msgid "Arrange and resize"
+msgstr "排列并调整宽度"
+
+msgid "Set a width from 1 to 12 columns. Use the order field or move buttons for precise placement."
+msgstr "设置 1 至 12 列宽度。可使用顺序字段或移动按钮精确排列。"
+
+msgid "Ready to review?"
+msgstr "准备好预览了吗？"
+
+msgid "Preview the page with its content before applying this layout to the draft."
+msgstr "将布局应用到草稿前，请先预览包含内容的页面。"
+
+msgid "Preview page layout"
+msgstr "预览页面布局"
+
+msgid "Without JavaScript, enter order and width numbers, then preview the page."
+msgstr "未启用 JavaScript 时，请输入顺序和宽度数字，然后预览页面。"
+
+msgid "The site draft changed; reload the layout designer."
+msgstr "网站草稿已更改，请重新加载布局设计器。"
+
+msgid "Add a content block before designing the layout."
+msgstr "请先添加内容区块，再设计布局。"
+
+msgid "Private layout preview. This arrangement is not applied or published; hidden blocks remain hidden."
+msgstr "私人布局预览。此排列尚未应用或发布；隐藏区块仍保持隐藏。"
+
+msgid "Desktop"
+msgstr "桌面"
+
+msgid "Mobile"
+msgstr "移动端"

@@ -133,7 +133,7 @@ def _save(request, slug, kind):
 
 def _page(request, slug, page_slug, kind, preview, page_override=None, expected=None, ai_apply_url="", ai_revision=None,
           block_suggestion=None, block_apply_url="", block_edit_url="", block_reviewed="",
-          layout_suggestion=None, layout_apply_url="", layout_edit_url="", layout_reviewed=""):
+          layout_suggestion=None, layout_apply_url="", layout_edit_url="", layout_reviewed="", manual_layout_preview=False):
     _enabled()
     if preview:
         owner, site = _managed(request.user, slug, kind)
@@ -204,7 +204,8 @@ def _page(request, slug, page_slug, kind, preview, page_override=None, expected=
         "owner":owner, "design":design, "page":page, "preview":preview, "kind":kind,
         "ai_page_preview":page_override is not None,
         "ai_block_preview":block_suggestion is not None,
-        "ai_layout_preview":layout_suggestion is not None,
+        "ai_layout_preview":layout_suggestion is not None and not manual_layout_preview,
+        "manual_layout_preview":layout_suggestion is not None and manual_layout_preview,
         "ai_apply_url":ai_apply_url, "ai_revision":ai_revision,
         "block_apply_url":block_apply_url, "block_edit_url":block_edit_url, "block_reviewed":block_reviewed,
         "layout_apply_url":layout_apply_url, "layout_edit_url":layout_edit_url, "layout_reviewed":layout_reviewed,

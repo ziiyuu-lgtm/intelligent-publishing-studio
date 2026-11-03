@@ -51,6 +51,7 @@ def _editor(request, slug, page_slug, kind, formset=None, layout_form=None, stat
         "save_route":"save_journal_page_blocks" if kind == "journal" else "save_publisher_page_blocks",
         "pages_route":"manage_journal_pages" if kind == "journal" else "manage_publisher_pages",
         "preview_route":"preview_journal_page" if kind == "journal" else "preview_publisher_page",
+        "manual_layout_route":"journal_manual_layout" if kind == "journal" else "publisher_manual_layout",
         "ai_enabled":enabled, "ai_provider_configured":_provider_configured(),
         "ai_policy_revision":policy.revision if policy else 0, "ai_model_name":settings.IPS_OPENAI_MODEL,
         "ai_request_id":uuid.uuid4(), "available_slots":MAX_PAGE_BLOCKS - len(page.get("blocks", [])),
