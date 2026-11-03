@@ -351,6 +351,7 @@ class JournalAIPolicy(models.Model):
     site_page_blocks_enabled = models.BooleanField(_("Enable AI page-block suggestions"), default=False)
     site_page_layout_enabled = models.BooleanField(_("Enable AI page-layout suggestions"), default=False)
     site_image_enabled = models.BooleanField(_("Enable AI image generation"), default=False)
+    keyword_suggestions_enabled = models.BooleanField(_("Enable author AI keyword suggestions"), default=False)
     revision_plan_enabled = models.BooleanField(_("Enable author AI revision planning"), default=False)
     editor_revision_comparison_enabled = models.BooleanField(_("Enable editor AI revision comparison"), default=False)
     review_synthesis_enabled = models.BooleanField(_("Enable AI review report comparison"), default=False)
@@ -1027,6 +1028,33 @@ class RevisionPlanRun(models.Model):
     class Meta:
         ordering = ["-created_at", "-pk"]
 
+
+
+class KeywordSuggestionRun(models.Model):
+    """One expressly confirmed, author-only keyword request for a fictional draft."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Unavailable")
+        CANCELLED = "cancelled", _("Cancelled")
+
+    id = models.UUIDField(primary_key=True, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="keyword_suggestion_runs")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="keyword_suggestion_runs")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    model_name = models.CharField(max_length=100)
+    prompt_version = models.CharField(max_length=60)
+    policy_revision = models.PositiveIntegerField()
+    input_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    result = models.JSONField(default=list, blank=True)
+    error_code = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
 
 class EditorRevisionComparisonConsent(models.Model):
     """A submitting author's source-bound permission for one editorial AI task."""

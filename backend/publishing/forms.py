@@ -318,7 +318,7 @@ JournalSectionFormSet = formset_factory(JournalSectionForm, formset=BaseJournalS
 class JournalAIPolicyForm(forms.ModelForm):
     class Meta:
         model = JournalAIPolicy
-        fields = ["metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "site_modules_enabled", "site_pages_enabled", "site_page_blocks_enabled", "site_page_layout_enabled", "site_image_enabled", "revision_plan_enabled", "editor_revision_comparison_enabled", "review_synthesis_enabled", "journal_daily_limit"]
+        fields = ["metadata_enabled", "allow_author", "allow_editor", "site_design_enabled", "site_modules_enabled", "site_pages_enabled", "site_page_blocks_enabled", "site_page_layout_enabled", "site_image_enabled", "keyword_suggestions_enabled", "revision_plan_enabled", "editor_revision_comparison_enabled", "review_synthesis_enabled", "journal_daily_limit"]
 
     def clean(self):
         data = super().clean()

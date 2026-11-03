@@ -8292,3 +8292,186 @@ msgstr "请人工检查独立 PDF、文件元数据、题目、摘要和关键�
 
 msgid "Upload a separate reviewer file and manually check the file, its metadata, title, abstract and keywords for identifying information. This system does not anonymise them automatically."
 msgstr "请上传独立审稿文件，并人工检查文件、元数据、题目、摘要和关键词中的身份信息。系统不会自动匿名化。"
+
+msgid "Enable author AI keyword suggestions"
+msgstr "启用作者 AI 关键词建议"
+
+msgid "Explore AI keyword suggestions"
+msgstr "探索 AI 关键词建议"
+
+msgid "Save changes first: suggestions use the saved title and abstract."
+msgstr "请先保存更改：建议使用已保存的题目和摘要。"
+
+msgid "Author keyword suggestions have a separate switch and require confirmation for each request."
+msgstr "作者关键词建议具有独立开关，每次请求均需确认。"
+
+msgid "Keyword suggestions"
+msgstr "关键词建议"
+
+msgid "AI keyword suggestions"
+msgstr "AI 关键词建议"
+
+msgid "Back to draft editor"
+msgstr "返回草稿编辑器"
+
+msgid "Find the right keywords"
+msgstr "找到合适的关键词"
+
+msgid "Explore suggestions grounded in your title and abstract. You remain in control of every keyword."
+msgstr "根据您的题目和摘要探索建议。每个关键词均由您决定。"
+
+msgid "Your manuscript, your choice"
+msgstr "您的稿件，由您决定"
+
+msgid "Only the saved title and abstract are sent. Files, separate author profiles and existing keywords are not included; the text itself may contain identifying information."
+msgstr "仅发送已保存的题目和摘要；不包含文件、单独的作者资料和现有关键词。文字本身可能包含身份信息。"
+
+msgid "SOURCE FOR SUGGESTIONS"
+msgstr "建议来源"
+
+msgid "Review your source"
+msgstr "检查内容来源"
+
+msgid "Saved draft"
+msgstr "已保存草稿"
+
+msgid "The assistant will use the following saved details. Save any edits to your draft first."
+msgstr "助手将使用以下已保存的信息。请先保存对草稿的修改。"
+
+msgid "Request suggestions"
+msgstr "请求建议"
+
+msgid "Suggestions are optional and may be inaccurate. Review each suggestion before adding it to your draft."
+msgstr "建议为可选内容，可能不准确。加入草稿前请逐项检查。"
+
+msgid "The provider may charge fees and retain data under its own terms. A sent request cannot be recalled."
+msgstr "服务提供方可能依其条款收费和保留数据。已发送的请求无法撤回。"
+
+msgid "I agree to send the saved title and abstract to the configured AI provider for keyword suggestions."
+msgstr "我同意将已保存的题目和摘要发送给已配置的 AI 服务提供方以获取关键词建议。"
+
+msgid "I confirm this is fictional test data."
+msgstr "我确认这是虚构测试数据。"
+
+msgid "Generate suggestions"
+msgstr "生成建议"
+
+msgid "Keyword suggestions are currently unavailable. The journal must enable this task and the local test provider must be configured."
+msgstr "目前无法获取关键词建议。期刊须启用此功能并配置本地测试服务。"
+
+msgid "Recent requests"
+msgstr "最近的请求"
+
+msgid "Thoughtful discovery"
+msgstr "有依据的探索"
+
+msgid "Review the source"
+msgstr "检查内容来源"
+
+msgid "Check the saved title and abstract above."
+msgstr "检查上方已保存的题目和摘要。"
+
+msgid "Choose what fits"
+msgstr "选择合适的建议"
+
+msgid "Compare suggestions and their supporting excerpts."
+msgstr "对照建议及其支持性摘录。"
+
+msgid "Keep the final say"
+msgstr "保留最终决定权"
+
+msgid "Selected keywords are added to the draft only after your confirmation."
+msgstr "只有您确认后才会将所选关键词加入草稿。"
+
+msgid "Built for careful use"
+msgstr "谨慎使用"
+
+msgid "This local test is limited to fictional data. Suggestions do not verify accuracy or scientific quality."
+msgstr "本地测试仅限虚构数据。建议不验证准确性或科学质量。"
+
+msgid "Review keyword suggestions"
+msgstr "检查关键词建议"
+
+msgid "Back to keyword assistant"
+msgstr "返回关键词助手"
+
+msgid "Choose your keywords"
+msgstr "选择您的关键词"
+
+msgid "Select only the suggestions that accurately describe your research."
+msgstr "仅选择准确描述您研究内容的建议。"
+
+msgid "Human review comes first"
+msgstr "人工审查优先"
+
+msgid "Suggestions may be inaccurate or incomplete. Excerpts show their source, not proof of accuracy."
+msgstr "建议可能不准确或不完整。摘录仅显示来源，不证明准确性。"
+
+msgid "YOUR SUGGESTIONS"
+msgstr "您的建议"
+
+msgid "Review each idea"
+msgstr "逐项检查建议"
+
+msgid "Select suggestions to add alongside your existing keywords. You can keep up to ten in total."
+msgstr "选择要添加至现有关键词的建议。总计最多保留十个。"
+
+msgid "Source excerpt"
+msgstr "来源摘录"
+
+msgid "I reviewed my selection and want to add it to this draft."
+msgstr "我已检查所选内容，并希望将其加入此草稿。"
+
+msgid "Add selected to draft"
+msgstr "将所选内容加入草稿"
+
+msgid "This selection has already been applied."
+msgstr "所选内容已应用。"
+
+msgid "The draft or AI policy changed. Request fresh suggestions before making a selection."
+msgstr "草稿或 AI 政策已更改。请重新请求建议后再选择。"
+
+msgid "No suggestions were returned. You can add keywords manually in your draft."
+msgstr "没有返回建议。您可以在草稿中手动添加关键词。"
+
+msgid "This request did not produce suggestions. Please review the configuration and try again."
+msgstr "此次请求未生成建议。请检查配置后重试。"
+
+msgid "YOUR DRAFT"
+msgstr "您的草稿"
+
+msgid "Always editable"
+msgstr "始终可以编辑"
+
+msgid "Existing keywords are preserved. Adding a suggestion does not submit your manuscript."
+msgstr "现有关键词会被保留。添加建议不会提交稿件。"
+
+msgid "Open draft editor"
+msgstr "打开草稿编辑器"
+
+msgid "A useful starting point"
+msgstr "有用的起点"
+
+msgid "Choose precise terms readers might use to discover your work, and check that each term is accurate."
+msgstr "选择读者可能用来发现您研究成果的准确术语，并逐一核实。"
+
+msgid "A consistent saved draft with a title and abstract is required."
+msgstr "需要一份题目和摘要一致的已保存草稿。"
+
+msgid "The draft or AI configuration changed; review the current details."
+msgstr "草稿或 AI 配置已更改；请检查当前信息。"
+
+msgid "Please confirm your selection."
+msgstr "请确认您的选择。"
+
+msgid "Choose at least one keyword."
+msgstr "请至少选择一个关键词。"
+
+msgid "The draft or AI policy changed; request fresh suggestions."
+msgstr "草稿或 AI 政策已更改；请重新请求建议。"
+
+msgid "Select valid suggestions and keep the total at ten keywords or fewer."
+msgstr "请选择有效建议，确保关键词总数不超过十个。"
+
+msgid "Selected keywords were added to your draft. Review them before submitting."
+msgstr "所选关键词已加入草稿。提交前请检查。"
