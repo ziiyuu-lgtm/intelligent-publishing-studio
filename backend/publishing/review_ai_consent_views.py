@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
-from .models import Journal, ReviewAIConsent, ReviewAIPermissionRequest, ReviewAssignment, ReviewRound, Submission
+from .models import Journal, ReviewAIConsent, ReviewAIPermissionRequest, ReviewAIReplyNotice, ReviewAssignment, ReviewRound, Submission
 from .review_ai_consent import (PROVIDER, PURPOSE, author_active, eligible_reports, existing_author,
     existing_reviewer, report_fingerprint, reviewer_active, round_fingerprint)
 from .views import _author_can_view, _event, _review, _submission
@@ -68,6 +68,15 @@ def _reviewer_may_grant(actor, assignment):
 def _end(consent, reason):
     consent.ended_at, consent.end_reason = timezone.now(), reason
     consent.save(update_fields=['ended_at', 'end_reason'])
+
+
+def _record_reply(permission_request, outcome):
+    """Record the response and notice together inside the caller's transaction."""
+    permission_request.status = outcome
+    permission_request.responded_at = timezone.now()
+    permission_request.save(update_fields=['status', 'responded_at'])
+    ReviewAIReplyNotice.objects.create(permission_request=permission_request,
+        recipient_id=permission_request.requested_by_id, outcome=outcome)
 
 
 def _form_token(request):
@@ -135,9 +144,7 @@ def author_permission(request, pk):
             if (not _author_can_view(actor, submission) or not permission_request or
                     permission_request.status != ReviewAIPermissionRequest.Status.PENDING or author_active(existing, selected)):
                 return _invalid()
-            permission_request.status = ReviewAIPermissionRequest.Status.DECLINED
-            permission_request.responded_at = timezone.now()
-            permission_request.save(update_fields=['status', 'responded_at'])
+            _record_reply(permission_request, ReviewAIPermissionRequest.Status.DECLINED)
             _event(submission, actor, 'review_ai_author_declined')
         else:
             if not _author_can_view(actor, submission) or submission.status == Submission.Status.DRAFT or not fingerprint:
@@ -151,9 +158,7 @@ def author_permission(request, pk):
                     purpose=PURPOSE, source_fingerprint=fingerprint)
                 _event(submission, actor, 'review_ai_author_granted')
             if permission_request and permission_request.status == ReviewAIPermissionRequest.Status.PENDING:
-                permission_request.status = ReviewAIPermissionRequest.Status.GRANTED
-                permission_request.responded_at = timezone.now()
-                permission_request.save(update_fields=['status', 'responded_at'])
+                _record_reply(permission_request, ReviewAIPermissionRequest.Status.GRANTED)
     messages.success(request, _('Your choice was recorded. No AI request was made.'))
     return redirect(request.path + '?round=' + str(selected.number))
 
@@ -205,9 +210,7 @@ def reviewer_permission(request, pk):
             if (not _reviewer_may_grant(actor, assignment) or not permission_request or
                     permission_request.status != ReviewAIPermissionRequest.Status.PENDING or reviewer_active(existing, assignment)):
                 return _invalid()
-            permission_request.status = ReviewAIPermissionRequest.Status.DECLINED
-            permission_request.responded_at = timezone.now()
-            permission_request.save(update_fields=['status', 'responded_at'])
+            _record_reply(permission_request, ReviewAIPermissionRequest.Status.DECLINED)
             _event(submission, actor, 'review_ai_reviewer_declined')
         else:
             if not _reviewer_may_grant(actor, assignment):
@@ -221,8 +224,6 @@ def reviewer_permission(request, pk):
                     subject=ReviewAIConsent.Subject.REVIEWER, provider=PROVIDER, purpose=PURPOSE, source_fingerprint=fingerprint)
                 _event(submission, actor, 'review_ai_reviewer_granted')
             if permission_request and permission_request.status == ReviewAIPermissionRequest.Status.PENDING:
-                permission_request.status = ReviewAIPermissionRequest.Status.GRANTED
-                permission_request.responded_at = timezone.now()
-                permission_request.save(update_fields=['status', 'responded_at'])
+                _record_reply(permission_request, ReviewAIPermissionRequest.Status.GRANTED)
     messages.success(request, _('Your choice was recorded. No AI request was made.'))
     return redirect('reviewer_review_ai_permission', pk=pk)

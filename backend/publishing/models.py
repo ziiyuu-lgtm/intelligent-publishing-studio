@@ -763,6 +763,27 @@ class ReviewAIPermissionRequest(models.Model):
         ]
 
 
+class ReviewAIReplyNotice(models.Model):
+    """A historical in-app reply, private to the editor who asked."""
+    class Outcome(models.TextChoices):
+        GRANTED = "granted", _("Permission granted")
+        DECLINED = "declined", _("Permission declined")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    permission_request = models.OneToOneField(ReviewAIPermissionRequest, on_delete=models.PROTECT,
+                                               related_name="editor_reply_notice")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                  related_name="review_ai_reply_notices")
+    outcome = models.CharField(max_length=10, choices=Outcome.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [models.CheckConstraint(condition=models.Q(outcome__in=["granted", "declined"]),
+                                              name="review_ai_reply_valid_outcome")]
+
+
 class ReviewSynthesisRun(models.Model):
     """A private request bound to an editor, a round and current consents."""
     class Status(models.TextChoices):

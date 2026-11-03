@@ -3,6 +3,7 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'review_ai_requests.css' %}">{% endblock %}
 {% block content %}
 <a class="back" href="{% url 'review_synthesis_request' submission.pk current.number %}">← {% translate "Back to AI comparison" %}</a>
+<a class="req-inbox-link" href="{% url 'review_ai_reply_inbox' %}">{% translate "View review AI replies" %} →</a>
 <header class="req-heading"><div><span class="req-kicker">{% translate "EDITORIAL WORKSPACE" %} / {% translate "AI REVIEW ASSISTANT" %}</span><h1>{% translate "Request review AI permissions" %}</h1><p>{% translate "Invite the author and selected reviewers to make their own informed choices." %}</p></div><span class="req-private">● &nbsp;{% translate "PRIVATE TO ASSIGNED EDITORS" %}</span></header>
 <section class="req-manuscript"><div><span class="req-kicker">{% translate "MANUSCRIPT" %}</span><h2>{{ submission.title }}</h2><p>{{ submission.journal.name }} · {% translate "Version" %} {{ current.version.number }} · {% translate "Round" %} {{ current.number }}</p></div><div class="round-badge">{% translate "CURRENT SOURCE" %}<strong>{% translate "Round" %} {{ current.number }}</strong></div></section>
 <div class="req-notice"><span>i</span><p>{% translate "Fictional test data only. Requests appear in the recipient's platform inbox. No email is sent and no AI service is called." %}</p></div>

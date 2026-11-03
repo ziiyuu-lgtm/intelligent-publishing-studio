@@ -178,6 +178,25 @@ class ReviewSynthesisWorkflowTests(TestCase):
         self.assertEqual(self.client.post(self.url, data).status_code, 409)
         self.assertEqual(self.transport.call_count, 1)
 
+    def test_reviewer_access_is_rechecked_before_and_after_provider_request(self):
+        data = self.data()
+        membership = Membership.objects.get(user=self.second.reviewer, journal=self.journal, role='reviewer')
+        membership.active = False; membership.save(update_fields=['active'])
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.post(self.url, data).status_code, 409)
+        self.transport.assert_not_called()
+        membership.active = True; membership.save(update_fields=['active'])
+        data = self.data()
+        output = self.transport.return_value
+        def remove_access_during_request(_request):
+            Membership.objects.filter(pk=membership.pk).update(active=False)
+            return output
+        self.transport.side_effect = remove_access_during_request
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 409)
+        run = ReviewSynthesisRun.objects.get()
+        self.assertEqual((run.status, run.result), ('cancelled', []))
+
     def test_unverifiable_provider_output_and_errors_are_safe(self):
         data = self.data()
         self.transport.return_value = model_output(a='invented quotation')

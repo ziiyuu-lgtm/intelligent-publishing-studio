@@ -1,5 +1,5 @@
 from django.urls import path
-from . import image_ai_views, site_change_review_views, review_comparison_views, review_ai_consent_views, review_ai_request_views, review_synthesis_views
+from . import image_ai_views, site_change_review_views, review_comparison_views, review_ai_consent_views, review_ai_reply_views, review_ai_request_views, review_synthesis_views
 from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, design_history_views, editor_ai_reply_views, editor_comparison_consent_views, editor_comparison_request_views, editor_revision_comparison_views, editor_revision_views, issue_views, manual_layout_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, visual_ai_review_views, views
 
 urlpatterns = [
@@ -13,6 +13,9 @@ urlpatterns = [
     path("submissions/<uuid:pk>/review-ai-permission/", review_ai_consent_views.author_permission, name="author_review_ai_permission"),
     path("reviews/<uuid:pk>/ai-permission/", review_ai_consent_views.reviewer_permission, name="reviewer_review_ai_permission"),
     path("workspace/review-ai-permissions/", review_ai_request_views.permission_inbox, name="review_ai_permission_inbox"),
+    path("workspace/review-ai-replies/", review_ai_reply_views.reply_inbox, name="review_ai_reply_inbox"),
+    path("workspace/review-ai-replies/<uuid:pk>/", review_ai_reply_views.reply_detail, name="review_ai_reply_detail"),
+    path("workspace/review-ai-replies/<uuid:pk>/read/", review_ai_reply_views.mark_reply_read, name="read_review_ai_reply"),
     path("submissions/<uuid:pk>/review-comparison/<int:number>/permissions/", review_ai_request_views.request_permissions, name="review_ai_request_permissions"),
     path("submissions/<uuid:pk>/review-comparison/<int:number>/ai/", review_synthesis_views.request_synthesis, name="review_synthesis_request"),
     path("review-ai-runs/<uuid:pk>/", review_synthesis_views.synthesis_result, name="review_synthesis_result"),

@@ -7548,3 +7548,90 @@ msgstr "请选择一至五十位收件人。"
 
 msgid "The selected in-app requests are recorded. No email or AI request was sent."
 msgstr "已记录选定的站内请求；没有发送邮件或 AI 请求。"
+
+msgid "A person can withdraw permission or choose to grant it later. Source or access changes may also make it unavailable."
+msgstr "当事人可以撤回授权或稍后同意；材料或访问权限变化也可能使其失效。"
+
+msgid "Always check current author and reviewer permissions before using AI. The editor remains responsible for the decision."
+msgstr "使用 AI 前应检查作者与审稿人的当前授权；编辑负责最终决定。"
+
+msgid "Back to review AI replies"
+msgstr "返回审稿 AI 授权回复"
+
+msgid "CURRENT PERMISSION"
+msgstr "当前授权"
+
+msgid "Currently active"
+msgstr "当前有效"
+
+msgid "Fictional test data only. Each reply records a past choice; the current permission is checked separately. No email or AI request is sent here."
+msgstr "仅供虚构数据测试。每条回复记录过去的选择，当前授权需单独检查；此处不会发送邮件或 AI 请求。"
+
+msgid "Fictional test data only. This reply is a historical record; it does not itself authorise an AI request."
+msgstr "仅供虚构数据测试。此回复是历史记录，本身不会授权发起 AI 请求。"
+
+msgid "Follow the author and reviewer responses to your permission requests."
+msgstr "跟踪作者及审稿人对您发起的授权请求的回复。"
+
+msgid "New responses to your in-app requests will appear here."
+msgstr "您发起的站内请求收到新回复后，将显示在这里。"
+
+msgid "No replies in this view"
+msgstr "此视图中没有回复"
+
+msgid "Not currently active"
+msgstr "当前无效"
+
+msgid "Only replies to requests you sent appear here."
+msgstr "此处仅显示您发起的请求所收到的回复。"
+
+msgid "Open permission dashboard"
+msgstr "打开授权管理"
+
+msgid "PRIVATE TO REQUESTING EDITOR"
+msgstr "仅发起请求的编辑可见"
+
+msgid "Permission declined"
+msgstr "已拒绝授权"
+
+msgid "Permission granted"
+msgstr "已同意授权"
+
+msgid "Permission responses"
+msgstr "授权回复"
+
+msgid "REPLY"
+msgstr "回复"
+
+msgid "Recent replies"
+msgstr "最近回复"
+
+msgid "Review AI replies"
+msgstr "审稿 AI 授权回复"
+
+msgid "Review AI reply"
+msgstr "审稿 AI 授权回复详情"
+
+msgid "The reviewer responded to your in-app request."
+msgstr "审稿人已回复您的站内请求。"
+
+msgid "There is no active permission for this person and source, or their account no longer has the required access."
+msgstr "此人对该材料没有有效授权，或其账户已不具备所需权限。"
+
+msgid "This person's permission is active for this source. All other permissions and task checks still apply."
+msgstr "此人对该材料的授权当前有效；其他授权与任务检查仍然适用。"
+
+msgid "This response remains a historical record. Review the current source and permissions before continuing."
+msgstr "此回复保留为历史记录。继续前请检查当前材料及授权。"
+
+msgid "UNREAD REPLIES"
+msgstr "未读回复"
+
+msgid "YOUR INBOX"
+msgstr "您的收件箱"
+
+msgid "shown in this filter"
+msgstr "条符合当前筛选"
+
+msgid "View review AI replies"
+msgstr "查看审稿 AI 授权回复"

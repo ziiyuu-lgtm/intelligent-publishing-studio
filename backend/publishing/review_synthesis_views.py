@@ -22,7 +22,7 @@ from .models import Journal, ReviewAIConsent, ReviewAssignment, ReviewRound, Rev
 from .review_ai_consent import (_digest, author_active, eligible_reports, existing_author,
     report_fingerprint, reviewer_active, round_fingerprint)
 from .review_synthesis_provider import LABELS, MAX_EXCERPT, MAX_REPORTS, MIN_REPORTS, PROMPT_VERSION
-from .views import _editor_can_view, _event, _submission
+from .views import _author_can_view, _editor_can_view, _event, _review, _submission
 
 SALT = 'publishing.review-synthesis.request.v1'
 MAX_AGE = 60 * 60
@@ -42,11 +42,19 @@ def _state(actor, submission_id, number):
         submission=submission, number=number, version__submission=submission)
     reports = eligible_reports(round_)
     author = existing_author(round_, submission.author)
-    author = author if author_active(author, round_, reports) else None
+    author = author if _author_can_view(submission.author, submission) and author_active(author, round_, reports) else None
     consents = ReviewAIConsent.objects.filter(assignment__in=reports, subject=ReviewAIConsent.Subject.REVIEWER,
         provider='openai', purpose='review-report-synthesis-v1', ended_at__isnull=True)
     by_assignment = {c.assignment_id:c for c in consents}
-    reviewers = {r.pk:by_assignment.get(r.pk) for r in reports if reviewer_active(by_assignment.get(r.pk), r)}
+    reviewers = {}
+    for report in reports:
+        if not reviewer_active(by_assignment.get(report.pk), report):
+            continue
+        try:
+            _review(report.pk, report.reviewer)
+        except Http404:
+            continue
+        reviewers[report.pk] = by_assignment[report.pk]
     return {'submission':submission, 'round':round_, 'reports':reports, 'author':author,
             'reviewers':reviewers, 'policy':_policy(submission.journal),
             'source_fingerprint':round_fingerprint(round_, reports)}
