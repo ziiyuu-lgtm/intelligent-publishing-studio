@@ -5185,3 +5185,93 @@ msgstr "确认每条回复都反映实际完成的工作。"
 
 msgid "Review the copied text and upload the manuscript in the separate revision form."
 msgstr "在单独的修回表单中核对复制的文本并上传稿件。"
+
+msgid "The current revision decision is unavailable."
+msgstr "当前修回决定不可用。"
+
+msgid "ROUND"
+msgstr "轮次"
+
+msgid "Fictional test data only. A new version and review round are created only when you submit this form."
+msgstr "仅使用虚构测试数据。只有提交本表单后，系统才会创建新版本和新一轮审稿。"
+
+msgid "YOUR REVISION"
+msgstr "您的修回"
+
+msgid "Files and response"
+msgstr "文件与回复"
+
+msgid "Add the revised file and explain the changes you actually made."
+msgstr "添加修订文件，并说明您实际完成的修改。"
+
+msgid "PDF only, up to 10 MB."
+msgstr "仅支持 PDF，最大 10 MB。"
+
+msgid "Provide the separate reviewer PDF required by this journal."
+msgstr "请提供本期刊要求的独立审稿用 PDF。"
+
+msgid "The system does not anonymise files, metadata, titles or abstracts automatically."
+msgstr "系统不会自动匿名化文件、元数据、标题或摘要。"
+
+msgid "Check each response against the work you actually completed."
+msgstr "请逐条核对回复是否反映您实际完成的工作。"
+
+msgid "No email is sent by this local test workflow."
+msgstr "本地测试流程不会发送邮件。"
+
+msgid "REVISION DETAILS"
+msgstr "修回详情"
+
+msgid "Your current revision"
+msgstr "当前修回"
+
+msgid "Previous round"
+msgstr "上一轮"
+
+msgid "Next version"
+msgstr "下一版本"
+
+msgid "Next review round"
+msgstr "下一审稿轮次"
+
+msgid "Earlier versions and decisions remain available in the submission history."
+msgstr "先前版本和决定仍可在投稿记录中查看。"
+
+msgid "PREPARE YOUR RESPONSE"
+msgstr "准备回复"
+
+msgid "Need help getting ready?"
+msgstr "需要协助准备吗？"
+
+msgid "Organise your replies before returning to this form."
+msgstr "返回此表单前，先整理您的回复。"
+
+msgid "Point-by-point response"
+msgstr "逐条回复"
+
+msgid "Write and review your response draft"
+msgstr "撰写并检查回复草稿"
+
+msgid "AI revision planning"
+msgstr "AI 修回规划"
+
+msgid "Optional, author-initiated assistance"
+msgstr "可选的作者主动发起的辅助"
+
+msgid "Revision form needs refreshing"
+msgstr "修回表单需要刷新"
+
+msgid "The decision, version, account or form session changed. This attempt was not submitted."
+msgstr "决定、版本、账户或表单会话已改变。本次尝试未提交。"
+
+msgid "Your response text is shown below so you can copy it. You will need to select files again in a current form."
+msgstr "下方显示您输入的回复，您可以复制保存。打开当前表单后，需要重新选择文件。"
+
+msgid "Your response text"
+msgstr "您输入的回复"
+
+msgid "Check submission status"
+msgstr "查看投稿状态"
+
+msgid "Open current revision form"
+msgstr "打开当前修回表单"

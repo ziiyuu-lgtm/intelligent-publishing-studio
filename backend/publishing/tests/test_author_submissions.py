@@ -110,7 +110,10 @@ class AuthorSubmissionTrackingTests(TestCase):
         self.assertNotContains(page, 'Private report XYZ')
         self.assertNotContains(page, 'Decision letter ABC')
         self.assertEqual(self.client.post(url).status_code, 405)
-        response = self.client.post(reverse('submission_revision', args=[mine.pk]), {
+        revision_url = reverse('submission_revision', args=[mine.pk])
+        revision_token = self.client.get(revision_url).context['revision_token']
+        response = self.client.post(revision_url, {
+            'revision_token': revision_token,
             'manuscript': SimpleUploadedFile('revision.pdf', test_workflow.PDF, content_type='application/pdf'),
             'author_response': 'Fictional response to editor',
         })

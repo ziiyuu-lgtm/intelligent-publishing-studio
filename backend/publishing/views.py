@@ -940,11 +940,26 @@ def editorial_decision(request, pk):
 @never_cache
 @require_http_methods(["GET", "POST"])
 def submission_revision(request, pk):
+    from .revision_submission import current_revision_decision, matches_revision_form, sign_revision_form
+    def conflict(current):
+        return render(request, "publishing/revision_conflict.html", {
+            "submission": current, "response_text": request.POST.get("author_response", "")}, status=409)
+
     submission = _submission(pk)
     if not _author_can_view(request.user, submission):
         raise Http404
     if submission.status != Submission.Status.REVISION_REQUESTED:
+        if request.method == "POST":
+            return conflict(submission)
         return HttpResponse(_("A revision has not been requested."), status=409)
+    decision = current_revision_decision(submission)
+    if not decision:
+        if request.method == "POST":
+            return conflict(submission)
+        return HttpResponse(_("The current revision decision is unavailable."), status=409)
+    revision_token = sign_revision_form(submission, decision) if request.method == "GET" else request.POST.get("revision_token", "")
+    if request.method == "POST" and not matches_revision_form(revision_token, submission, decision):
+        return conflict(submission)
     prefilled_response = None
     if request.method == "GET":
         from .revision_response_views import response_prefill
@@ -961,12 +976,14 @@ def submission_revision(request, pk):
                 submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=pk)
                 if not _author_can_view(request.user, submission):
                     raise Http404
-                if submission.status != Submission.Status.REVISION_REQUESTED or submission.rounds.filter(status=ReviewRound.Status.OPEN).exists():
-                    return HttpResponse(_("A revision has already been submitted."), status=409)
+                decision = current_revision_decision(submission)
+                if not matches_revision_form(revision_token, submission, decision):
+                    return conflict(submission)
                 latest = submission.versions.order_by("-number").first()
                 previous_round = submission.rounds.order_by("-number").first()
-                if not latest or not previous_round or previous_round.status != ReviewRound.Status.CLOSED:
-                    return HttpResponse(_("The previous version is unavailable."), status=409)
+                if (not latest or not previous_round or previous_round.status != ReviewRound.Status.CLOSED or
+                        previous_round.pk != decision.round_id or latest.pk != decision.round.version_id):
+                    return conflict(submission)
                 version = SubmissionVersion(
                     submission=submission, number=latest.number + 1, uploaded_by=request.user,
                     manuscript=form.cleaned_data["manuscript"], author_response=form.cleaned_data["author_response"],
@@ -987,4 +1004,6 @@ def submission_revision(request, pk):
         messages.success(request, _("Revision submitted for a new review round."))
         return redirect("submission_detail", pk=pk)
     return render(request, "publishing/revision_form.html", {"submission": submission, "form": form,
-                                                              "prefilled_response": bool(prefilled_response)})
+        "decision": decision, "next_version": decision.round.version.number + 1,
+        "next_round": decision.round.number + 1, "revision_token": revision_token,
+        "prefilled_response": bool(prefilled_response)})

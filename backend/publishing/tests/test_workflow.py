@@ -234,7 +234,10 @@ class WorkflowTests(TestCase):
 
     def revise(self, submission, content=b"%PDF-1.4\n% revised fictional paper\n%%EOF\n", response="We addressed the editor's request."):
         self.client.force_login(self.author)
+        page = self.client.get(reverse("submission_revision", args=[submission.pk]))
+        token = page.context["revision_token"] if page.status_code == 200 else ""
         return self.client.post(reverse("submission_revision", args=[submission.pk]), {
+            "revision_token": token,
             "manuscript": SimpleUploadedFile("revision.pdf", content, content_type="application/pdf"),
             "author_response": response,
         })
@@ -490,7 +493,9 @@ class WorkflowTests(TestCase):
         self.assertEqual(self.revise(submission).status_code, 200)
         self.assertEqual(submission.versions.count(), 1)
         self.client.force_login(self.author)
+        token = self.client.get(reverse("submission_revision", args=[submission.pk])).context["revision_token"]
         response = self.client.post(reverse("submission_revision", args=[submission.pk]), {
+            "revision_token": token,
             "manuscript":SimpleUploadedFile("full2.pdf", b"%PDF-1.4\nFull v2\n%%EOF"),
             "review_copy":SimpleUploadedFile("review2.pdf", b"%PDF-1.4\nReviewer v2\n%%EOF"),
             "review_copy_confirmed":"on", "author_response":"Fictional response",
@@ -605,10 +610,12 @@ class WorkflowTests(TestCase):
         self.finish_review(assignment)
         self.decide(submission)
         self.client.force_login(self.author)
+        token = self.client.get(reverse("submission_revision", args=[submission.pk])).context["revision_token"]
         before = set(Path(self.media_dir).rglob("*.pdf"))
         with patch("publishing.views._event", side_effect=RuntimeError("synthetic failure")):
             with self.assertRaises(RuntimeError):
                 self.client.post(reverse("submission_revision", args=[submission.pk]), {
+                    "revision_token": token,
                     "manuscript":SimpleUploadedFile("full2.pdf", PDF), "review_copy":SimpleUploadedFile("review2.pdf", PDF),
                     "review_copy_confirmed":"on", "author_response":"fictional response",
                 })

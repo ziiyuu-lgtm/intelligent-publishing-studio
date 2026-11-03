@@ -101,7 +101,8 @@ class RevisionResponseTests(TestCase):
         edited=page.context['form'].initial['author_response']+'\n\nAuthor-reviewed addition.'
         with tempfile.TemporaryDirectory(prefix='ips-response-revision-') as media:
             with override_settings(MEDIA_ROOT=media):
-                result=self.client.post(url,{'manuscript':SimpleUploadedFile('revision.pdf',b'%PDF-1.4\n%%EOF\n'),
+                result=self.client.post(url,{'revision_token':page.context['revision_token'],
+                                             'manuscript':SimpleUploadedFile('revision.pdf',b'%PDF-1.4\n%%EOF\n'),
                                              'author_response':edited})
         self.assertEqual(result.status_code,302)
         latest=SubmissionVersion.objects.get(submission=self.submission,number=2)
