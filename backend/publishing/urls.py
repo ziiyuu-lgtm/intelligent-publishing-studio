@@ -1,5 +1,5 @@
 from django.urls import path
-from . import image_ai_views
+from . import image_ai_views, site_change_review_views
 from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, design_history_views, editor_ai_reply_views, editor_comparison_consent_views, editor_comparison_request_views, editor_revision_comparison_views, editor_revision_views, issue_views, manual_layout_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, visual_ai_review_views, views
 
 urlpatterns = [
@@ -31,6 +31,7 @@ urlpatterns = [
     path("publishers/<slug:slug>/site/start/", portal_views.start_portal, name="start_publisher_portal"),
     path("publishers/<slug:slug>/site/edit/", portal_views.edit_portal, name="edit_publisher_portal"),
     path("publishers/<slug:slug>/site/preview/", portal_views.preview_portal, name="preview_publisher_portal"),
+    path("publishers/<slug:slug>/site/change-review/", site_change_review_views.review, {"kind":"portal"}, name="publisher_site_change_review"),
     path("publishers/<slug:slug>/site/samples/<slug:sample_id>/preview/", portal_views.preview_sample, name="preview_publisher_sample"),
     path("publishers/<slug:slug>/site/samples/<slug:sample_id>/apply/", portal_views.apply_sample, name="apply_publisher_sample"),
     path("publishers/<slug:slug>/site/appearance/", portal_views.edit_appearance, name="edit_publisher_appearance"),
@@ -100,6 +101,7 @@ urlpatterns = [
     path("journals/<slug:slug>/site/start/", site_views.start_journal_site, name="start_journal_site"),
     path("journals/<slug:slug>/site/edit/", site_views.edit_journal_site, name="edit_journal_site"),
     path("journals/<slug:slug>/site/preview/", site_views.preview_journal_site, name="preview_journal_site"),
+    path("journals/<slug:slug>/site/change-review/", site_change_review_views.review, {"kind":"journal"}, name="journal_site_change_review"),
     path("journals/<slug:slug>/site/samples/<slug:sample_id>/preview/", site_views.preview_site_sample, name="preview_site_sample"),
     path("journals/<slug:slug>/site/samples/<slug:sample_id>/apply/", site_views.apply_site_sample, name="apply_site_sample"),
     path("journals/<slug:slug>/site/appearance/", site_views.edit_site_appearance, name="edit_site_appearance"),

@@ -6673,3 +6673,126 @@ msgstr "此图片已在当前草稿中选用，发布仍需单独操作。"
 
 msgid "This image is in the site library. Draft selection and publication are managed separately."
 msgstr "图片已加入本站素材库；草稿选用和发布需要分别操作。"
+
+msgid "Site name"
+msgstr "网站名称"
+
+msgid "Headline"
+msgstr "首页标题"
+
+msgid "Tagline"
+msgstr "首页标语"
+
+msgid "Introduction"
+msgstr "简介"
+
+msgid "Colours, typography or layout settings have changed."
+msgstr "颜色、字体或布局设置发生变化。"
+
+msgid "The image, description or display settings have changed."
+msgstr "图片、描述或显示设置发生变化。"
+
+msgid "modules"
+msgstr "个模块"
+
+msgid "pages"
+msgstr "个页面"
+
+msgid "Content, order or visibility may have changed."
+msgstr "内容、顺序或可见性可能发生变化。"
+
+msgid "Selected journals"
+msgstr "所选期刊"
+
+msgid "The visible journal list or link availability has changed."
+msgstr "可显示的期刊列表或链接状态发生变化。"
+
+msgid "Review draft changes"
+msgstr "查看草稿变更"
+
+msgid "Review website changes"
+msgstr "查看网站变更"
+
+msgid "PUBLICATION REVIEW"
+msgstr "发布前检查"
+
+msgid "Compare the saved draft with the current published test version."
+msgstr "比较已保存的草稿与当前已发布的测试版本。"
+
+msgid "PRIVATE REVIEW"
+msgstr "私人审核"
+
+msgid "Fictional test data only. This comparison is read-only and reflects the versions loaded on this page. Publishing remains a separate action."
+msgstr "仅限虚构测试数据。此比较为只读，反映页面加载时的版本；发布仍需另行操作。"
+
+msgid "SIDE-BY-SIDE OVERVIEW"
+msgstr "并排概览"
+
+msgid "From published to draft"
+msgstr "从已发布版本到草稿"
+
+msgid "These are simplified summaries. Open each full page to review its content and layout."
+msgstr "以下为简化概览，请打开完整页面检查内容与布局。"
+
+msgid "changed categories"
+msgstr "类变更"
+
+msgid "First test publication"
+msgstr "首次测试发布"
+
+msgid "CURRENT TEST VERSION"
+msgstr "当前测试版本"
+
+msgid "Published"
+msgstr "已发布"
+
+msgid "WEBSITE SUMMARY"
+msgstr "网站概览"
+
+msgid "Image unavailable"
+msgstr "图片不可用"
+
+msgid "Open published test site"
+msgstr "打开已发布测试网站"
+
+msgid "No published test version yet"
+msgstr "尚无已发布的测试版本"
+
+msgid "The current draft would be the first local test publication."
+msgstr "当前草稿将成为首次本地测试发布版本。"
+
+msgid "CURRENT SAVED VERSION"
+msgstr "当前已保存版本"
+
+msgid "Saved draft; not necessarily published."
+msgstr "已保存的草稿，不一定已发布。"
+
+msgid "Open full draft preview"
+msgstr "打开完整草稿预览"
+
+msgid "CHANGE SUMMARY"
+msgstr "变更概览"
+
+msgid "What changed"
+msgstr "有哪些变化"
+
+msgid "Text, visual settings, images, page content and selected journals are compared where applicable."
+msgstr "按适用情况比较文字、视觉设置、图片、页面内容和所选期刊。"
+
+msgid "There is no published baseline to compare yet. Review the full draft before the first test publication."
+msgstr "尚无可比较的已发布基准，请在首次测试发布前检查完整草稿。"
+
+msgid "No differences were found in the compared website settings and content."
+msgstr "在已比较的网站设置和内容中未发现差异。"
+
+msgid "not linked"
+msgstr "未链接"
+
+msgid "Review both full pages before publishing. If either version changes, refresh this comparison."
+msgstr "发布前请检查两个完整页面。如果任一版本发生变化，请刷新比较。"
+
+msgid "Return to site design"
+msgstr "返回网站设计"
+
+msgid "Some visual settings are unavailable or invalid; the full preview may need correction."
+msgstr "部分视觉设置不可用或无效，完整预览可能需要修正。"
