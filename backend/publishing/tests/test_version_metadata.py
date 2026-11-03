@@ -46,7 +46,7 @@ class VersionMetadataTests(TestCase):
         self.assertEqual((self.original.title_snapshot, self.original.abstract_snapshot),
                          ('An imaginary test manuscript', 'Fictional abstract.'))
         data = self.revision_data()
-        self.assertContains(self.client.get(self.revision_url), 'Title and abstract for this version')
+        self.assertContains(self.client.get(self.revision_url), 'Title, abstract and keywords for this version')
         self.assertEqual(self.client.post(self.revision_url, data).status_code, 302)
         self.original.refresh_from_db(); self.submission.refresh_from_db()
         revised = self.submission.versions.get(number=2)

@@ -20,7 +20,8 @@ def current_revision_decision(submission):
 
 
 def snapshot(submission, decision):
-    metadata = json.dumps([submission.title, submission.abstract], ensure_ascii=False, separators=(",", ":"))
+    metadata = json.dumps([submission.title, submission.abstract, submission.keywords_config,
+                           decision.round.version.keywords_snapshot], ensure_ascii=False, separators=(",", ":"))
     metadata_digest = salted_hmac("publishing.revision.metadata.v1", metadata, algorithm="sha256").hexdigest()
     return {"submission": str(submission.pk), "author": submission.author_id,
             "decision": decision.pk, "round": decision.round_id,

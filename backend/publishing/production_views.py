@@ -23,6 +23,7 @@ from .models import (ContributorResponseRequest, EditorialAssignment, EditorialD
                      PublicationApproval, PublicationDraft, PublicationProof, ReviewRound, Submission)
 from .views import _author_can_view, _can_coordinate, _download_version, _editor_can_view, _event, _has_role, _submission
 from .author_responses import is_response_participant
+from .keywords import keywords_text, validate_keywords, visible_keywords
 
 
 def _enabled():
@@ -69,6 +70,9 @@ def _latest_proof(draft):
 def _fingerprint(draft, proof):
     payload = {"draft": str(draft.pk), "revision": draft.revision, "title": draft.title,
                "authors": draft.authors, "abstract": draft.abstract, "proof": proof.pk, "sha256": proof.sha256}
+    # Legacy approvals did not include keywords. Preserve their fingerprints when unknown.
+    if draft.keywords_config is not None:
+        payload["keywords"] = draft.keywords_config
     # Keep pre-issue approvals valid for unchanged online-first drafts.
     if draft.issue_id:
         payload["issue"] = {"id": str(draft.issue_id), "volume": draft.issue.volume, "number": draft.issue.number,
@@ -107,6 +111,7 @@ def _context(request, draft, metadata_form=None, proof_form=None):
     issues = (JournalIssue.objects.filter(journal=draft.submission.journal, released_at__isnull=True)
               if producer_view and not draft.published_at else JournalIssue.objects.none())
     return {"draft": draft, "submission": draft.submission, "proof": proof, "fingerprint": fingerprint,
+            "public_keywords":visible_keywords(draft.keywords_config), "keywords_valid":_keywords_valid(draft),
             "approval": approval, "author_view": _author_can_view(request.user, draft.submission),
             "producer_view": producer_view, "my_production_assignment": assignment,
             "available_issues": issues,
@@ -117,6 +122,14 @@ def _context(request, draft, metadata_form=None, proof_form=None):
 
 def _stale(request, draft):
     return request.POST.get("revision") != str(draft.revision)
+
+
+def _keywords_valid(draft):
+    try:
+        validate_keywords(draft.keywords_config)
+        return True
+    except ValueError:
+        return False
 
 
 @login_required
@@ -133,8 +146,13 @@ def start_production(request, pk):
         decision = submission.decisions.select_related("round__version").order_by("-round__number").first()
         if not _source_valid(submission, decision):
             return HttpResponse(_("A valid acceptance for the latest version is required."), status=409)
+        try:
+            accepted_keywords = validate_keywords(decision.round.version.keywords_snapshot)
+        except ValueError:
+            return HttpResponse(_("The accepted version has invalid keywords."), status=409)
         draft, created = PublicationDraft.objects.get_or_create(submission=submission, defaults={"decision": decision,
-            "title": submission.title, "abstract": submission.abstract, "created_by": request.user})
+            "title": submission.title, "abstract": submission.abstract, "keywords_config":accepted_keywords,
+            "created_by": request.user})
         if created:
             _event(submission, request.user, "production_started")
     messages.success(request, _("Production started. A coordinator must assign a production editor.") if created
@@ -262,7 +280,14 @@ def edit_production_metadata(request, pk):
     draft = _draft(pk)
     if not _producer_can_manage(request.user, draft):
         raise Http404
-    form = PublicationMetadataForm(request.POST, instance=draft)
+    data = request.POST.copy()
+    keywords_supplied = 'keywords' in data
+    if not keywords_supplied:
+        try:
+            data['keywords'] = keywords_text(draft.keywords_config)
+        except ValueError:
+            return HttpResponse(_("The saved keywords are invalid; contact the local administrator."), status=409)
+    form = PublicationMetadataForm(data, instance=draft)
     if not form.is_valid():
         return render(request, "publishing/production_detail.html", _context(request, _draft(pk), metadata_form=form), status=400)
     with transaction.atomic():
@@ -271,12 +296,16 @@ def edit_production_metadata(request, pk):
             raise Http404
         if draft.published_at or _stale(request, draft) or not _source_valid(draft.submission, draft.decision):
             return HttpResponse(_("Production changed or is closed; reload the page."), status=409)
-        changed = any(getattr(draft, k) != form.cleaned_data[k] for k in ("title", "authors", "abstract"))
+        new_keywords = (draft.keywords_config if not keywords_supplied or
+            draft.keywords_config is None and not form.cleaned_data['keywords'] else form.cleaned_data['keywords'])
+        changed = (any(getattr(draft, k) != form.cleaned_data[k] for k in ("title", "authors", "abstract")) or
+                   draft.keywords_config != new_keywords)
         if changed:
             for key in ("title", "authors", "abstract"):
                 setattr(draft, key, form.cleaned_data[key])
+            draft.keywords_config = new_keywords
             draft.revision += 1
-            draft.save(update_fields=["title", "authors", "abstract", "revision"])
+            draft.save(update_fields=["title", "authors", "abstract", "keywords_config", "revision"])
             _event(draft.submission, request.user, "production_metadata_updated")
     return redirect("production_detail", pk=pk)
 
@@ -354,7 +383,7 @@ def approve_publication_proof(request, pk):
         proof = _latest_proof(draft)
         if (draft.published_at or _stale(request, draft) or not proof or request.POST.get("proof") != str(proof.pk) or
                 not _source_valid(draft.submission, draft.decision) or not _issue_valid_for_draft(draft) or
-                not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip()):
+                not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip() or not _keywords_valid(draft)):
             return HttpResponse(_("Production changed or is incomplete; reload the page."), status=409)
         fingerprint = _fingerprint(draft, proof)
         if request.POST.get("fingerprint") != fingerprint or not _proof_intact(proof):
@@ -382,7 +411,7 @@ def publish_test_article(request, pk):
         proof = _latest_proof(draft)
         if (draft.published_at or _stale(request, draft) or not proof or request.POST.get("proof") != str(proof.pk) or
                 not _source_valid(draft.submission, draft.decision) or not _issue_valid_for_draft(draft) or
-                not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip()):
+                not draft.title.strip() or not draft.authors.strip() or not draft.abstract.strip() or not _keywords_valid(draft)):
             return HttpResponse(_("Production changed or is incomplete; reload the page."), status=409)
         fingerprint = _fingerprint(draft, proof)
         if (request.POST.get("fingerprint") != fingerprint or not _proof_intact(proof) or
@@ -426,7 +455,8 @@ def journal_test_articles(request, slug):
 def test_article(request, slug, pk):
     _enabled()
     draft = _public_article(slug, pk)
-    return _no_index(render(request, "publishing/test_article.html", {"draft": draft, "journal": draft.submission.journal}))
+    return _no_index(render(request, "publishing/test_article.html", {"draft": draft, "journal": draft.submission.journal,
+        "public_keywords":visible_keywords(draft.keywords_config)}))
 
 
 @require_GET

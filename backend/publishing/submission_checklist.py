@@ -11,6 +11,7 @@ from django.utils.crypto import constant_time_compare
 from .contributors import ready_to_submit, validate_contributors
 from .forms import MAX_MANUSCRIPT_BYTES, MAX_SUPPORTING_FILES, MAX_SUPPORTING_TOTAL_BYTES
 from .models import Journal, SupportingFile
+from .keywords import validate_keywords
 from .supporting_files import verified_bytes
 
 SALT = 'publishing.draft-checklist.v1'
@@ -49,6 +50,15 @@ def review_draft(submission):
         errors.append('metadata_missing')
     if version and version.metadata_recorded and (version.title_snapshot != submission.title or version.abstract_snapshot != submission.abstract):
         errors.append('metadata_changed')
+    try:
+        keywords = validate_keywords(submission.keywords_config)
+        version_keywords = validate_keywords(version.keywords_snapshot) if version else None
+    except ValueError:
+        keywords, version_keywords = None, None
+        errors.append('keywords_invalid')
+    else:
+        if version and keywords != version_keywords:
+            errors.append('keywords_changed')
     manuscript = _fingerprint(version.manuscript) if version else None
     if not manuscript:
         errors.append('manuscript_unavailable')
@@ -77,7 +87,8 @@ def review_draft(submission):
                     errors.append('supporting_unavailable')
                 attachments.append(item)
     payload = {'submission': str(submission.pk), 'author': submission.author_id, 'journal': submission.journal_id,
-        'title': submission.title, 'abstract': submission.abstract, 'contributors_revision': submission.contributors_revision,
+        'title': submission.title, 'abstract': submission.abstract, 'keywords':keywords, 'version_keywords':version_keywords,
+        'contributors_revision': submission.contributors_revision,
         'contributors': contributors, 'version': version.pk if version else None,
         'review_mode': submission.review_mode, 'review_confirmed': version.review_copy_confirmed if version else None,
         'manuscript': manuscript, 'review_copy': review_copy,
@@ -85,7 +96,7 @@ def review_draft(submission):
             'visibility':item.visibility, 'size':item.size_bytes, 'sha256':item.sha256} for item in attachments]}
     digest = hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     return {'version':version, 'contributors':contributors, 'attachments':attachments,
-        'errors':list(dict.fromkeys(errors)), 'ready':not errors, 'digest':digest,
+        'errors':list(dict.fromkeys(errors)), 'ready':not errors, 'digest':digest, 'keywords':keywords,
         'manuscript_available':bool(manuscript), 'review_copy_available':bool(review_copy),
         'supporting_enabled':settings.DEBUG}
 

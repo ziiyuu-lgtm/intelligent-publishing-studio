@@ -337,12 +337,14 @@ def submission_create(request, slug):
     if request.method == "POST" and form.is_valid():
         submission = form.save(commit=False)
         submission.journal, submission.author, submission.review_mode = journal, request.user, journal.review_mode
+        submission.keywords_config = form.cleaned_data["keywords"]
         version = None
         try:
             with transaction.atomic():
                 submission.save()
                 version = SubmissionVersion(submission=submission, number=1, manuscript=submission.manuscript.name,
                     title_snapshot=submission.title, abstract_snapshot=submission.abstract,
+                    keywords_snapshot=submission.keywords_config,
                     review_copy=form.cleaned_data.get("review_copy") or "",
                     review_copy_confirmed=form.cleaned_data.get("review_copy_confirmed", False), uploaded_by=request.user)
                 version.save()
@@ -368,8 +370,10 @@ def submission_detail(request, pk):
     editor_view = _editor_can_view(request.user, submission)
     if not (author_view or editor_view):
         raise Http404
+    from .keywords import visible_keywords
     review_round = _open_round(submission)
     context = {"submission": submission, "author_view": author_view, "editor_view": editor_view,
+               "author_keywords":visible_keywords(submission.keywords_config),
                "versions": submission.versions.all(), "decisions": submission.decisions.select_related("round"),
                "open_round": review_round, "review_copy_ready": bool(review_round and _review_copy_ready(submission, review_round.version)),
                "review_ai_permissions_available": settings.DEBUG and submission.status != Submission.Status.DRAFT,
@@ -832,6 +836,8 @@ def review_invite(request, pk):
 @require_GET
 def review_detail(request, pk):
     assignment = _review(pk, request.user)
+    from .keywords import visible_keywords
+    reviewer_keywords = visible_keywords(assignment.round.version.keywords_snapshot)
     form = ReportForm() if (assignment.status == ReviewAssignment.Status.ACCEPTED and
                             assignment.conflict == ReviewAssignment.Conflict.NONE and
                             assignment.round.status == ReviewRound.Status.OPEN) else None
@@ -846,7 +852,7 @@ def review_detail(request, pk):
             files = [item for item in candidates if checked_and_current(item) and verified_bytes(item) is not None]
     return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
         "review_ai_permissions_available": settings.DEBUG,
-        "supporting_files": files, "review_copy_ready": copy_ready})
+        "supporting_files": files, "review_copy_ready": copy_ready, "reviewer_keywords": reviewer_keywords})
 
 
 @login_required
@@ -927,7 +933,9 @@ def review_report(request, pk):
         if (assignment.status != ReviewAssignment.Status.ACCEPTED or assignment.round.status != ReviewRound.Status.OPEN or
                 assignment.conflict != ReviewAssignment.Conflict.NONE):
             return HttpResponse(_("A report can only be sent after accepting an invitation."), status=409)
+        from .keywords import visible_keywords
         return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
+            "reviewer_keywords":visible_keywords(assignment.round.version.keywords_snapshot),
             "review_copy_ready": _review_copy_ready(assignment.submission, assignment.round.version)}, status=400)
     with transaction.atomic():
         submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=assignment.submission_id)
@@ -1008,7 +1016,8 @@ def submission_revision(request, pk):
         return render(request, "publishing/revision_conflict.html", {
             "submission": current, "response_text": request.POST.get("author_response", ""),
             "revised_title": request.POST.get("revised_title", ""),
-            "revised_abstract": request.POST.get("revised_abstract", "")}, status=409)
+            "revised_abstract": request.POST.get("revised_abstract", ""),
+            "revised_keywords": request.POST.get("revised_keywords", "")[:1100]}, status=409)
 
     submission = _submission(pk)
     if not _author_can_view(request.user, submission):
@@ -1032,13 +1041,22 @@ def submission_revision(request, pk):
             prefilled_response = response_prefill(request, submission)
         except ValueError:
             return HttpResponse(_("The response draft is incomplete or has changed; review it before continuing."), status=409)
-    initial = {"revised_title": submission.title, "revised_abstract": submission.abstract}
+    from .keywords import keywords_text
+    try:
+        current_keywords_text = keywords_text(submission.keywords_config)
+    except ValueError:
+        return HttpResponse(_("The saved keywords are invalid; contact the local administrator."), status=409)
+    initial = {"revised_title": submission.title, "revised_abstract": submission.abstract,
+               "revised_keywords": submission.keywords_config}
     if prefilled_response:
         initial["author_response"] = prefilled_response
     form_data = request.POST.copy() if request.method == "POST" else None
     # Older direct test clients did not send metadata; preserve the current values.
     if form_data is not None and "revised_title" not in form_data and "revised_abstract" not in form_data:
         form_data["revised_title"], form_data["revised_abstract"] = submission.title, submission.abstract
+    keywords_supplied = form_data is not None and "revised_keywords" in form_data
+    if form_data is not None and not keywords_supplied:
+        form_data["revised_keywords"] = current_keywords_text
     form = RevisionForm(form_data, request.FILES or None, review_mode=submission.review_mode, initial=initial)
     if request.method == "POST" and form.is_valid():
         version = None
@@ -1060,6 +1078,9 @@ def submission_revision(request, pk):
                     submission=submission, number=latest.number + 1, uploaded_by=request.user,
                     manuscript=form.cleaned_data["manuscript"], author_response=form.cleaned_data["author_response"],
                     title_snapshot=form.cleaned_data["revised_title"], abstract_snapshot=form.cleaned_data["revised_abstract"],
+                    keywords_snapshot=(submission.keywords_config if not keywords_supplied or
+                        submission.keywords_config is None and not form.cleaned_data["revised_keywords"]
+                        else form.cleaned_data["revised_keywords"]),
                     review_copy=form.cleaned_data.get("review_copy") or "",
                     review_copy_confirmed=form.cleaned_data.get("review_copy_confirmed", False),
                 )
@@ -1069,7 +1090,8 @@ def submission_revision(request, pk):
                 ReviewRound.objects.create(submission=submission, version=version, number=previous_round.number + 1)
                 submission.status = Submission.Status.SUBMITTED
                 submission.title, submission.abstract = version.title_snapshot, version.abstract_snapshot
-                submission.save(update_fields=["status", "title", "abstract"])
+                submission.keywords_config = version.keywords_snapshot
+                submission.save(update_fields=["status", "title", "abstract", "keywords_config"])
                 _event(submission, request.user, "revision_submitted")
         except Exception:
             for storage, name in saved_supporting:

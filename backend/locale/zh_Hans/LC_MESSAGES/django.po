@@ -8220,3 +8220,75 @@ msgstr "必需文件或审稿政策不可用，请编辑草稿或联系本地管
 
 msgid "Records of replaced files are kept privately; an already missing file cannot be recovered. Older files cannot be downloaded here. Limit: 20 records per draft."
 msgstr "替换记录会私密保留；已经缺失的文件无法恢复。不能从此页面下载旧文件。每份草稿最多保留 20 条记录。"
+
+msgid "Keywords"
+msgstr "关键词"
+
+msgid "Public keywords"
+msgstr "公开关键词"
+
+msgid "Keywords for this version"
+msgstr "本版本关键词"
+
+msgid "Optional: one keyword per line, up to 10; each may contain up to 100 characters."
+msgstr "可选：每行一个关键词，最多 10 个；每个不超过 100 个字符。"
+
+msgid "One keyword per line"
+msgstr "每行一个关键词"
+
+msgid "Use at most 10 distinct keywords, each no longer than 100 characters."
+msgstr "最多填写 10 个不重复的关键词，每个不超过 100 个字符。"
+
+msgid "The saved keywords are invalid; contact the local administrator."
+msgstr "已保存的关键词无效，请联系本地管理员。"
+
+msgid "The accepted version has invalid keywords."
+msgstr "已接收版本的关键词无效。"
+
+msgid "The saved keywords are invalid. Enter a corrected list before saving."
+msgstr "已保存的关键词无效，请在保存前输入正确列表。"
+
+msgid "Reviewers can see the title, abstract and keywords before accepting an invitation."
+msgstr "审稿人接受邀请前即可看到题目、摘要和关键词。"
+
+msgid "Title, abstract and keywords for this version"
+msgstr "本版本的题目、摘要和关键词"
+
+msgid "Your revised keywords"
+msgstr "您修订的关键词"
+
+msgid "Not recorded or unavailable"
+msgstr "未记录或不可用"
+
+msgid "None supplied"
+msgstr "未填写"
+
+msgid "Keywords are invalid or differ from this version. Edit the draft before submitting."
+msgstr "关键词无效或与本版本不一致，请在提交前编辑草稿。"
+
+msgid "Review the title, abstract and keywords recorded with each manuscript version."
+msgstr "核对各稿件版本记录的题目、摘要和关键词。"
+
+msgid "KEYWORDS"
+msgstr "关键词"
+
+msgid "List changed"
+msgstr "列表已更改"
+
+msgid "No list change"
+msgstr "列表未更改"
+
+msgid "Test publication makes the title, authors, abstract, keywords and final PDF available to anyone who can access this local server."
+msgstr "测试发表会向可访问本地服务器的用户展示题目、作者、摘要、关键词及最终 PDF。"
+
+msgid "The saved keywords are invalid; correct them before confirmation."
+msgstr "已保存的关键词无效，请在确认前更正。"
+
+msgid "I checked the reviewer PDF, title, abstract and keywords for identifying information."
+msgstr "我已检查审稿 PDF、题目、摘要和关键词中的身份信息。"
+
+msgid "Check the separate PDF, document metadata, title, abstract and keywords manually. This does not guarantee anonymity."
+msgstr "请人工检查独立 PDF、文件元数据、题目、摘要和关键词；这不保证完全匿名。"
+
+msgid "Upload a separate reviewer file and manually check the file, its metadata, title, abstract and keywords for identifying information. This system does not anonymise them automatically."
+msgstr "请上传独立审稿文件，并人工检查文件、元数据、题目、摘要和关键词中的身份信息。系统不会自动匿名化。"

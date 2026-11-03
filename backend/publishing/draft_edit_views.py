@@ -12,6 +12,7 @@ from django.views.decorators.http import require_http_methods
 
 from .draft_edit import MAX_REPLACED_DRAFT_FILES, matches_edit, sign_edit
 from .forms import DraftEditForm
+from .keywords import keywords_text
 from .models import Journal, ReplacedDraftFile, Submission, SubmissionVersion
 from .submission_checklist import _fingerprint
 from .views import _author_can_view, _event, _submission
@@ -32,11 +33,18 @@ def _version(submission, *, locked=False):
 def _conflict(request, submission):
     return render(request, 'publishing/draft_edit_conflict.html', {'submission':submission,
         'entered_title':request.POST.get('title', '')[:250],
-        'entered_abstract':request.POST.get('abstract', '')[:10000]}, status=409)
+        'entered_abstract':request.POST.get('abstract', '')[:10000],
+        'entered_keywords':request.POST.get('keywords', '')[:1100]}, status=409)
 
 
 def _context(submission, version, form, token):
+    try:
+        keywords_text(submission.keywords_config)
+        keywords_invalid = False
+    except ValueError:
+        keywords_invalid = True
     return {'submission':submission, 'version':version, 'form':form, 'edit_token':token,
+        'keywords_invalid':keywords_invalid,
         'manuscript_available':bool(_fingerprint(version.manuscript)),
         'review_copy_available':bool(_fingerprint(version.review_copy)),
         'remaining_files':max(0, MAX_REPLACED_DRAFT_FILES - submission.replaced_draft_files.count())}
@@ -58,10 +66,20 @@ def edit_draft(request, pk):
     if request.method == 'POST' and not matches_edit(token, submission, version):
         return _conflict(request, submission)
     available = bool(_fingerprint(version.review_copy))
-    form = DraftEditForm(request.POST if request.method == 'POST' else None,
+    try:
+        current_keywords = keywords_text(submission.keywords_config)
+    except ValueError:
+        current_keywords = None
+    form_data = request.POST.copy() if request.method == 'POST' else None
+    keywords_supplied = form_data is not None and 'keywords' in form_data
+    if form_data is not None and not keywords_supplied:
+        if current_keywords is None:
+            return HttpResponse(_('The saved keywords are invalid; contact the local administrator.'), status=409)
+        form_data['keywords'] = current_keywords
+    form = DraftEditForm(form_data,
         request.FILES if request.method == 'POST' else None,
         review_mode=submission.review_mode, existing_review_copy_available=available,
-        initial={'title':submission.title, 'abstract':submission.abstract})
+        initial={'title':submission.title, 'abstract':submission.abstract, 'keywords':current_keywords})
     if request.method != 'POST' or not form.is_valid():
         return render(request, 'publishing/draft_edit.html', _context(submission, version, form, token))
     saved_files = []
@@ -77,6 +95,8 @@ def edit_draft(request, pk):
                 return _conflict(request, submission)
             manuscript = form.cleaned_data.get('manuscript')
             reviewer = form.cleaned_data.get('review_copy')
+            new_keywords = (submission.keywords_config if not keywords_supplied or
+                submission.keywords_config is None and not form.cleaned_data['keywords'] else form.cleaned_data['keywords'])
             new_confirmed = (bool(form.cleaned_data.get('review_copy_confirmed')) and
                 bool(reviewer or _fingerprint(version.review_copy))) if submission.review_mode == Journal.ReviewMode.SEPARATE else False
             if submission.review_mode not in Journal.ReviewMode.values:
@@ -87,7 +107,8 @@ def edit_draft(request, pk):
                 return render(request, 'publishing/draft_edit.html', _context(submission, version, form, token), status=409)
             changed = bool(manuscript or reviewer or submission.title != form.cleaned_data['title'] or
                 submission.abstract != form.cleaned_data['abstract'] or version.title_snapshot != form.cleaned_data['title'] or
-                version.abstract_snapshot != form.cleaned_data['abstract'] or version.review_copy_confirmed != new_confirmed)
+                version.abstract_snapshot != form.cleaned_data['abstract'] or version.review_copy_confirmed != new_confirmed or
+                submission.keywords_config != new_keywords or version.keywords_snapshot != new_keywords)
             if changed:
                 if manuscript:
                     old_name = version.manuscript.name
@@ -105,10 +126,12 @@ def edit_draft(request, pk):
                         ReplacedDraftFile.objects.create(submission=submission, version=version,
                             replaced_by=actor, kind=ReplacedDraftFile.Kind.REVIEW_COPY, file=old_name)
                 submission.title, submission.abstract = form.cleaned_data['title'], form.cleaned_data['abstract']
+                submission.keywords_config = new_keywords
                 version.title_snapshot, version.abstract_snapshot = submission.title, submission.abstract
+                version.keywords_snapshot = new_keywords
                 version.review_copy_confirmed = new_confirmed
-                version.save(update_fields=['manuscript', 'review_copy', 'review_copy_confirmed', 'title_snapshot', 'abstract_snapshot'])
-                submission.save(update_fields=['manuscript', 'title', 'abstract'])
+                version.save(update_fields=['manuscript', 'review_copy', 'review_copy_confirmed', 'title_snapshot', 'abstract_snapshot', 'keywords_snapshot'])
+                submission.save(update_fields=['manuscript', 'title', 'abstract', 'keywords_config'])
                 _event(submission, actor, 'draft_content_updated')
     except Exception:
         for storage, name in saved_files:

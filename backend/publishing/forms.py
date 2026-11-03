@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.forms import BaseFormSet, formset_factory
 from django.utils.translation import gettext_lazy as _
+from .keywords import KeywordListField, keywords_text
 from .models import ContributorResponseRequest, EditorialDecision, Journal, JournalAIPolicy, JournalSiteDraft, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment, Submission
 from .site_design import ALIGNMENTS, COMPOSITIONS, CORNERS, DENSITIES, FONTS, HERO_STYLES, SECTION_ORDERS
 from .module_images import SectionImageForm, form_image_fields
@@ -25,12 +26,13 @@ def validate_pdf(document):
 
 
 class SubmissionForm(forms.ModelForm):
+    keywords = KeywordListField()
     review_copy = forms.FileField(label=_("Separate reviewer PDF"), widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
-    review_copy_confirmed = forms.BooleanField(label=_("I checked the reviewer PDF, title and abstract for identifying information."))
+    review_copy_confirmed = forms.BooleanField(label=_("I checked the reviewer PDF, title, abstract and keywords for identifying information."))
 
     class Meta:
         model = Submission
-        fields = ["title", "abstract", "manuscript"]
+        fields = ["title", "abstract", "keywords", "manuscript"]
         widgets = {"abstract": forms.Textarea(attrs={"rows": 6}), "manuscript": forms.FileInput(attrs={"accept": ".pdf,application/pdf"})}
 
     def __init__(self, *args, review_mode, **kwargs):
@@ -47,6 +49,7 @@ class SubmissionForm(forms.ModelForm):
 
 
 class DraftEditForm(forms.Form):
+    keywords = KeywordListField()
     title = forms.CharField(label=_("Manuscript title"), max_length=250)
     abstract = forms.CharField(label=_("Manuscript abstract"), max_length=10000,
         widget=forms.Textarea(attrs={"rows": 7}))
@@ -55,7 +58,7 @@ class DraftEditForm(forms.Form):
     review_copy = forms.FileField(required=False, label=_("Replace reviewer PDF"),
         widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
     review_copy_confirmed = forms.BooleanField(required=False,
-        label=_("I checked the reviewer PDF, title and abstract for identifying information."))
+        label=_("I checked the reviewer PDF, title, abstract and keywords for identifying information."))
 
     def __init__(self, *args, review_mode, existing_review_copy_available=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -127,12 +130,13 @@ class SupportingUploadForm(forms.Form):
 
 
 class RevisionForm(SupportingUploadForm):
+    revised_keywords = KeywordListField(label=_("Keywords for this version"))
     revised_title = forms.CharField(label=_("Manuscript title"), max_length=250)
     revised_abstract = forms.CharField(label=_("Manuscript abstract"), max_length=10000,
         widget=forms.Textarea(attrs={"rows": 6}))
     manuscript = forms.FileField(label=_("Revised manuscript PDF"), widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
     review_copy = forms.FileField(label=_("Separate reviewer PDF"), widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
-    review_copy_confirmed = forms.BooleanField(label=_("I checked the reviewer PDF, title and abstract for identifying information."))
+    review_copy_confirmed = forms.BooleanField(label=_("I checked the reviewer PDF, title, abstract and keywords for identifying information."))
     author_response = forms.CharField(label=_("Response to the editor"), max_length=20000, widget=forms.Textarea(attrs={"rows": 8}))
 
     def __init__(self, *args, review_mode, **kwargs):
@@ -206,9 +210,19 @@ class ReportForm(forms.ModelForm):
 
 
 class PublicationMetadataForm(forms.ModelForm):
+    keywords = KeywordListField(label=_("Public keywords"))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            try:
+                self.initial["keywords"] = keywords_text(self.instance.keywords_config)
+            except ValueError:
+                self.initial["keywords"] = ""
+
     class Meta:
         model = PublicationDraft
-        fields = ["title", "authors", "abstract"]
+        fields = ["title", "authors", "abstract", "keywords"]
         widgets = {"authors": forms.Textarea(attrs={"rows": 3}), "abstract": forms.Textarea(attrs={"rows": 6})}
 
     def clean_authors(self):

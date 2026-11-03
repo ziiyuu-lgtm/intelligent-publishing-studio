@@ -16,8 +16,9 @@ def snapshot(submission, version):
     """Bind editable fields, file bytes and the version association, without exposing text."""
     payload = {'id':str(submission.pk), 'author':submission.author_id, 'journal':submission.journal_id,
         'status':submission.status, 'review_mode':submission.review_mode, 'title':submission.title,
-        'abstract':submission.abstract, 'submission_file':submission.manuscript.name,
+        'abstract':submission.abstract, 'keywords':submission.keywords_config, 'submission_file':submission.manuscript.name,
         'version':version.pk, 'version_title':version.title_snapshot, 'version_abstract':version.abstract_snapshot,
+        'version_keywords':version.keywords_snapshot,
         'manuscript_name':version.manuscript.name, 'manuscript':_fingerprint(version.manuscript),
         'review_name':version.review_copy.name, 'review_copy':_fingerprint(version.review_copy),
         'review_confirmed':version.review_copy_confirmed,

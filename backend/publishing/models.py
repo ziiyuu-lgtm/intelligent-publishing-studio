@@ -433,6 +433,8 @@ class Submission(models.Model):
     review_mode = models.CharField(max_length=16, choices=Journal.ReviewMode.choices, default=Journal.ReviewMode.DIRECT)
     title = models.CharField(_("Title"), max_length=250)
     abstract = models.TextField(_("Abstract"), max_length=10000)
+    # NULL is unknown for legacy data; [] is an explicitly empty list.
+    keywords_config = models.JSONField(null=True, blank=True, default=None)
     # Contributor metadata is private; after submission only a reviewed request may change it.
     contributors_config = models.JSONField(default=list, blank=True)
     contributors_revision = models.PositiveIntegerField(default=0)
@@ -610,6 +612,7 @@ class SubmissionVersion(models.Model):
     # Older records have no trustworthy version-specific metadata; NULL means unknown.
     title_snapshot = models.CharField(_("Version title"), max_length=250, null=True, blank=True)
     abstract_snapshot = models.TextField(_("Version abstract"), max_length=10000, null=True, blank=True)
+    keywords_snapshot = models.JSONField(null=True, blank=True, default=None)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -1222,6 +1225,7 @@ class PublicationDraft(models.Model):
     title = models.CharField(_("Public title"), max_length=250)
     authors = models.TextField(_("Public author names"), max_length=2000, blank=True)
     abstract = models.TextField(_("Public abstract"), max_length=10000)
+    keywords_config = models.JSONField(null=True, blank=True, default=None)
     revision = models.PositiveIntegerField(default=1)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="publication_drafts_created")
     created_at = models.DateTimeField(auto_now_add=True)
