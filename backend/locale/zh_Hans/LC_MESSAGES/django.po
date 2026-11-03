@@ -5416,3 +5416,153 @@ msgstr "打开稿件工作区"
 
 msgid "Reviewer invitations and editorial decisions remain in the manuscript workspace."
 msgstr "审稿人邀请和编辑决定仍在稿件工作区处理。"
+
+msgid "Enable editor AI revision comparison"
+msgstr "启用编辑 AI 修回对照"
+
+msgid "Editor revision comparison has its own switch and requires explicit confirmation for each request."
+msgstr "编辑修回对照有独立开关，每次请求都需要明确确认。"
+
+msgid "Editor revision comparison"
+msgstr "编辑修回对照"
+
+msgid "OPTIONAL AI ASSISTANT"
+msgstr "可选 AI 助手"
+
+msgid "Compare comments with the response"
+msgstr "对照编辑意见与作者回复"
+
+msgid "Select excerpts and review suggestions yourself."
+msgstr "选择片段并自行核查建议。"
+
+msgid "Open comparison assistant"
+msgstr "打开对照助手"
+
+msgid "Selected decision excerpt"
+msgstr "选定的编辑决定片段"
+
+msgid "Selected author response excerpt"
+msgstr "选定的作者回复片段"
+
+msgid "Copy an exact, non-empty excerpt from the displayed source."
+msgstr "请从所显示的原文中复制完全一致且非空的片段。"
+
+msgid "The revision package changed; reload the page."
+msgstr "修回资料已变更，请重新加载页面。"
+
+msgid "AI revision comparison is not enabled for this journal and test environment."
+msgstr "本期刊及测试环境尚未启用 AI 修回对照。"
+
+msgid "The revision package or AI configuration changed; review the current details."
+msgstr "修回资料或 AI 设置已变更，请重新核对当前信息。"
+
+msgid "AI revision comparison"
+msgstr "AI 修回对照"
+
+msgid "Back to revision package"
+msgstr "返回修回资料"
+
+msgid "Compare a revision with AI"
+msgstr "使用 AI 对照修回内容"
+
+msgid "Choose the passages you want to compare, then review every suggestion yourself."
+msgstr "选择需要对照的片段，再自行核查每条建议。"
+
+msgid "EDITOR-INITIATED"
+msgstr "由编辑发起"
+
+msgid "Fictional test content only. AI cannot verify manuscript changes or make editorial decisions."
+msgstr "仅限虚构测试内容。AI 无法核实稿件修改，也不能作出编辑决定。"
+
+msgid "Editorial comment"
+msgstr "编辑意见"
+
+msgid "Copy the part of the author-facing decision you want to check."
+msgstr "复制发送给作者的决定中需要核查的部分。"
+
+msgid "Original decision text"
+msgstr "编辑决定原文"
+
+msgid "Response to compare"
+msgstr "待对照的回复"
+
+msgid "Copy the corresponding part of the submitted author response."
+msgstr "复制已提交作者回复中的对应部分。"
+
+msgid "Original author response"
+msgstr "作者回复原文"
+
+msgid "REVIEW AND CONFIRM"
+msgstr "核查并确认"
+
+msgid "Before you request suggestions"
+msgstr "请求建议之前"
+
+msgid "Only the two selected excerpts are sent to OpenAI. Manuscript PDFs, titles, reviewer reports and identities are not added automatically. Provider charges and retention may apply."
+msgstr "仅向 OpenAI 发送选定的两段文字，不自动附加稿件 PDF、题目、审稿报告和身份信息。服务商可能收费并保留数据。"
+
+msgid "Suggestions and their quoted excerpts are saved for your account in this test workspace; the inputs are not saved separately."
+msgstr "建议及其引用片段会保存在本测试工作区的您的账户下；输入不单独保存。"
+
+msgid "I agree to send these selected excerpts for this request."
+msgstr "我同意本次发送这些选定片段。"
+
+msgid "Generate comparison suggestions"
+msgstr "生成对照建议"
+
+msgid "HUMAN REVIEW"
+msgstr "人工核查"
+
+msgid "Compare each suggestion with the source text and the actual manuscript. An apparent match does not prove a revision was made."
+msgstr "请将每条建议与原文及实际稿件核对。表面上的对应不证明已完成修改。"
+
+msgid "The assistant does not invite reviewers, send messages or change the editorial decision."
+msgstr "助手不会邀请审稿人、发送消息或更改编辑决定。"
+
+msgid "Your comparisons"
+msgstr "您的对照记录"
+
+msgid "No comparisons requested yet."
+msgstr "尚未请求对照建议。"
+
+msgid "Comparison suggestions"
+msgstr "对照建议"
+
+msgid "Back to comparison assistant"
+msgstr "返回对照助手"
+
+msgid "Review comparison suggestions"
+msgstr "核查对照建议"
+
+msgid "AI output is unverified. A matching quote does not prove the manuscript was changed. The editor must review the source and manuscript."
+msgstr "AI 输出未经核实。引用匹配不证明稿件已修改，编辑须核查原文和稿件。"
+
+msgid "POSSIBLE CORRESPONDENCES"
+msgstr "可能的对应关系"
+
+msgid "Questions for your review"
+msgstr "供您核查的问题"
+
+msgid "No editorial decision has been made."
+msgstr "尚未作出编辑决定。"
+
+msgid "DECISION EXCERPT"
+msgstr "决定原文片段"
+
+msgid "AUTHOR RESPONSE EXCERPT"
+msgstr "作者回复片段"
+
+msgid "Question to check"
+msgstr "需要核查的问题"
+
+msgid "No possible correspondences were returned. Review the excerpts yourself."
+msgstr "未返回可能的对应关系，请自行核查片段。"
+
+msgid "The request was cancelled because its authorisation or revision package changed."
+msgstr "授权或修回资料发生变化，请求已取消。"
+
+msgid "Return to revision package"
+msgstr "返回修回资料"
+
+msgid "Compare other excerpts"
+msgstr "对照其他片段"

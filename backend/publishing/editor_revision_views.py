@@ -56,19 +56,25 @@ def returned_revisions(request):
     return render(request, "publishing/returned_revisions.html", {"counts": counts, "selected": selected, "query": query, "page": page})
 
 
-@login_required
-@never_cache
-@require_GET
-def returned_revision(request, pk):
-    current = get_object_or_404(_returned_rounds(request.user), submission_id=pk)
+def current_revision_package(user, pk):
+    current = get_object_or_404(_returned_rounds(user), submission_id=pk)
     submission = current.submission
-    if not _editor_can_view(request.user, submission):
+    if not _editor_can_view(user, submission):
         raise Http404
     decision = get_object_or_404(EditorialDecision.objects.select_related("round__version"), pk=current.prior_decision_id,
         submission=submission, round__submission=submission, round__status=ReviewRound.Status.CLOSED,
         round__number=current.number - 1, round__version__submission=submission,
         round__version__number=current.version.number - 1,
         outcome__in=(EditorialDecision.Outcome.MINOR, EditorialDecision.Outcome.MAJOR))
+    return current, decision
+
+
+@login_required
+@never_cache
+@require_GET
+def returned_revision(request, pk):
+    current, decision = current_revision_package(request.user, pk)
+    submission = current.submission
     if submission.review_mode == Journal.ReviewMode.DIRECT:
         review_copy_state = "direct" if _file_exists(current.version.manuscript) else "unavailable"
     elif _review_copy_ready(submission, current.version):

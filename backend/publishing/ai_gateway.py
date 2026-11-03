@@ -17,9 +17,11 @@ from .page_layout_ai_provider import (MAX_OPTIONS as MAX_LAYOUT_OPTIONS, request
                                       validate_descriptors as validate_layout_descriptors)
 from .page_blocks import MAX_PAGE_BLOCKS
 from .revision_plan_provider import request_revision_plan
+from .editor_revision_comparison_provider import request_editor_revision_comparison
 
 METADATA_WRITING = "metadata_writing"
 REVISION_PLAN = "revision_plan"
+EDITOR_REVISION_COMPARISON = "editor_revision_comparison"
 SITE_DESIGN = "site_design"
 SITE_MODULES = "site_modules"
 PUBLISHER_DESIGN = "publisher_design"
@@ -38,8 +40,13 @@ class GatewayRejected(ValueError):
 
 
 def run_ai_task(*, task, provider, model, api_key, payload):
-    if provider != OPENAI or task not in (METADATA_WRITING, REVISION_PLAN, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES, SITE_PAGE, PUBLISHER_PAGE, SITE_PAGE_BLOCKS, PUBLISHER_PAGE_BLOCKS, SITE_PAGE_LAYOUT, PUBLISHER_PAGE_LAYOUT):
+    if provider != OPENAI or task not in (METADATA_WRITING, REVISION_PLAN, EDITOR_REVISION_COMPARISON, SITE_DESIGN, SITE_MODULES, PUBLISHER_DESIGN, PUBLISHER_MODULES, SITE_PAGE, PUBLISHER_PAGE, SITE_PAGE_BLOCKS, PUBLISHER_PAGE_BLOCKS, SITE_PAGE_LAYOUT, PUBLISHER_PAGE_LAYOUT):
         raise GatewayRejected("unsupported_task_or_provider")
+    if task == EDITOR_REVISION_COMPARISON:
+        if (not isinstance(payload, dict) or set(payload) != {"decision_excerpt", "response_excerpt"} or
+                not all(isinstance(payload[key], str) for key in ("decision_excerpt", "response_excerpt"))):
+            raise GatewayRejected("unsupported_input_fields")
+        return request_editor_revision_comparison(api_key=api_key, model=model, **payload)
     if task == REVISION_PLAN:
         if (not isinstance(payload, dict) or set(payload) != {"comment", "notes"} or
                 not all(isinstance(payload[key], str) for key in ("comment", "notes"))):
