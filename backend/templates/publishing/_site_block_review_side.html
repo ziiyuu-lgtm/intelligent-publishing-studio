@@ -1,0 +1,13 @@
+{% load i18n %}
+<section class="block-review-version"><div class="block-review-version-head"><div><span class="eyebrow">{{ label }}</span><h2>{% if side.state == 'present' %}{{ side.title }}{% else %}{{ label }}{% endif %}</h2></div>{% if revision %}<span class="site-review-pill">{% translate "Revision" %} {{ revision }}</span>{% endif %}</div>
+{% if side.state == 'unavailable' %}<div class="site-review-empty"><strong>{% translate "Page details unavailable" %}</strong><p>{% translate "This version contains invalid page data." %}</p></div>
+{% elif side.state == 'unpublished' %}<div class="site-review-empty"><strong>{% translate "No published test version yet" %}</strong></div>
+{% elif side.state == 'absent' %}<div class="site-review-empty"><strong>{% translate "Page not present in this version" %}</strong></div>
+{% else %}<p class="block-review-page-meta">/{{ side.slug }} · {% if side.visible %}{% translate "Visible page" %}{% else %}{% translate "Hidden page" %}{% endif %} · {{ side.blocks|length }} {% translate "blocks" %}</p>
+{% if preview_url %}<a class="button secondary small" href="{{ preview_url }}">{% translate "Open full page" %} →</a>{% endif %}
+<ol class="block-review-list">{% for block in side.blocks %}<li class="block-review-item"><div class="block-review-item-head"><span class="site-review-position">{{ block.position }}</span><span class="block-review-type">{{ block.type }}</span><span class="block-review-visibility">{% if block.visible %}{% translate "Visible" %}{% else %}{% translate "Hidden" %}{% endif %}</span></div>
+{% if block.heading %}<h3>{{ block.heading }}</h3>{% endif %}{% if block.body %}<p class="block-review-body">{{ block.body }}</p>{% endif %}
+{% if block.link_url %}<div class="block-review-asset"><small>{% translate "Link" %}: {{ block.link_label }}</small><span>{{ block.link_url }}</span></div>{% endif %}
+{% if block.image_alt %}<div class="block-review-asset"><small>{% translate "Image description" %}</small><span>{{ block.image_alt }}</span><span>{{ block.image_fit }} · {{ block.image_position }}</span></div>{% endif %}
+<div class="block-review-item-foot">{% if block.custom_style %}{% translate "Custom style" %}{% else %}{% translate "Site style" %}{% endif %}{% if block.grid_span is not None %} · {% translate "Grid width" %}: {{ block.grid_span }}/12{% endif %}</div></li>{% empty %}<li class="block-review-empty">{% translate "No content blocks in this page." %}</li>{% endfor %}</ol>{% endif %}
+</section>

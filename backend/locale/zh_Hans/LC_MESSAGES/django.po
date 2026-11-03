@@ -6856,3 +6856,63 @@ msgstr "文字较长，完整显示但不高亮差异。"
 
 msgid "No page text"
 msgstr "没有页面文字"
+
+msgid "Compare page blocks"
+msgstr "比较页面内容块"
+
+msgid "Back to website changes"
+msgstr "返回网站变更"
+
+msgid "PAGE CONTENT REVIEW"
+msgstr "页面内容检查"
+
+msgid "Review the saved content and order in each version."
+msgstr "检查各版本保存的内容和顺序。"
+
+msgid "Fictional test data only. This is a read-only snapshot; refresh after changes. Publishing remains a separate action."
+msgstr "仅限虚构测试数据。这是只读快照；修改后请刷新。发布仍需单独操作。"
+
+msgid "INDEPENDENT PAGE"
+msgstr "独立页面"
+
+msgid "Blocks have no persistent identifiers, so the lists are shown separately and are not automatically matched. Hidden blocks are included."
+msgstr "内容块没有永久标识，因此分别列出，不自动匹配；隐藏内容块也会显示。"
+
+msgid "Text and settings are validated for display. Links are shown as text; use full-page previews to check images and visual design."
+msgstr "文字和设置经过验证后显示。链接仅以文字呈现；请通过完整页面预览检查图片和视觉设计。"
+
+msgid "Return to website changes"
+msgstr "返回网站变更"
+
+msgid "Page details unavailable"
+msgstr "无法显示页面详情"
+
+msgid "This version contains invalid page data."
+msgstr "此版本的页面数据无效。"
+
+msgid "Page not present in this version"
+msgstr "此版本没有该页面"
+
+msgid "Visible page"
+msgstr "页面可见"
+
+msgid "Hidden page"
+msgstr "页面隐藏"
+
+msgid "blocks"
+msgstr "个内容块"
+
+msgid "Open full page"
+msgstr "打开完整页面"
+
+msgid "Custom style"
+msgstr "自定义样式"
+
+msgid "Site style"
+msgstr "网站样式"
+
+msgid "Grid width"
+msgstr "网格宽度"
+
+msgid "No content blocks in this page."
+msgstr "此页面没有内容块。"

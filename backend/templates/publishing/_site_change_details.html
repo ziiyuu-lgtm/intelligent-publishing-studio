@@ -29,6 +29,7 @@
         <div class="site-review-text-grid"><section><h5>{% translate "Published" %}</h5>{% if not item.text_comparison.before_present %}<p class="site-review-no-text">{% translate "Not present" %}</p>{% elif item.text_comparison.before_empty %}<p class="site-review-no-text">{% translate "No page text" %}</p>{% else %}<p class="site-review-body-text">{% for part in item.text_comparison.before %}{% if part.changed %}<del>{{ part.text }}</del>{% else %}{{ part.text }}{% endif %}{% endfor %}</p>{% endif %}</section>
         <section><h5>{% translate "Draft" %}</h5>{% if not item.text_comparison.after_present %}<p class="site-review-no-text">{% translate "Not present" %}</p>{% elif item.text_comparison.after_empty %}<p class="site-review-no-text">{% translate "No page text" %}</p>{% else %}<p class="site-review-body-text">{% for part in item.text_comparison.after %}{% if part.changed %}<ins>{{ part.text }}</ins>{% else %}{{ part.text }}{% endif %}{% endfor %}</p>{% endif %}</section></div>
       </details>{% endif %}
+      {% if item.blocks_url %}<div class="site-review-block-link"><a class="button secondary small" href="{{ item.blocks_url }}">{% translate "Compare page blocks" %} →</a></div>{% endif %}
     </article>{% endfor %}</div>{% endif %}
 </details>
 {% endif %}

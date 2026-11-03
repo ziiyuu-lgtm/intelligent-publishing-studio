@@ -12,7 +12,9 @@ from .production_views import _enabled, _no_index
 from .site_design import InvalidDesign, appearance_for, legacy_to_blueprint
 from .site_images import hero_reference_valid
 from .module_images import IMAGE_FIELDS
+from .models import HERO_FIT_CHOICES, HERO_POSITION_CHOICES
 from .site_pages import validate_pages
+from .page_blocks import KINDS as BLOCK_KINDS
 from .site_text_diff import compare_page_text
 from . import site_sections, portal_sections
 from .site_page_views import _managed
@@ -111,9 +113,35 @@ def _page_changes(before, after):
         if text_comparison is not None:
             text_comparison.update(before_present=previous is not None, after_present=current is not None,
                                    before_empty=not old_text, after_empty=not new_text)
+        old_blocks = previous[1].get('blocks', []) if previous else []
+        new_blocks = current[1].get('blocks', []) if current else []
         result.append({'status':status, 'fields':fields, 'before':summary(previous), 'after':summary(current),
-                       'text_comparison':text_comparison})
+                       'text_comparison':text_comparison, 'blocks_changed':old_blocks != new_blocks})
     return result
+
+
+def _block_side(pages, page_slug):
+    """Describe one validated page without pairing blocks or exposing image bytes."""
+    try:
+        validated = validate_pages(pages)
+    except (ValueError, TypeError, AttributeError, KeyError):
+        return {'state':'unavailable'}
+    page = next((item for item in validated if item['slug'] == page_slug), None)
+    if page is None:
+        return {'state':'absent'}
+    kinds = dict(BLOCK_KINDS)
+    blocks = []
+    for index, block in enumerate(page.get('blocks', []), 1):
+        blocks.append({'position':index, 'type':kinds[block['kind']],
+                       'heading':block['heading'], 'body':block['body'], 'visible':block['visible'],
+                       'link_label':block['link_label'], 'link_url':block['link_url'],
+                       'image_alt':block.get('image_alt', ''),
+                       'image_fit':dict(HERO_FIT_CHOICES).get(block.get('image_fit'), ''),
+                       'image_position':dict(HERO_POSITION_CHOICES).get(block.get('image_position'), ''),
+                       'custom_style':bool(block.get('design')),
+                       'grid_span':block.get('grid_span', 12) if page.get('block_layout') else None})
+    return {'state':'present', 'title':page['title'], 'slug':page['slug'],
+            'visible':page['visible'], 'blocks':blocks}
 
 
 def _appearance(version, kind):
@@ -183,6 +211,12 @@ def review(request, slug, kind):
     if release is not None and release.site_id != site.pk:
         raise Http404
     changes = _changes(site, release, kind, owner)
+    block_route = 'journal_site_block_review' if kind == 'journal' else 'publisher_site_block_review'
+    for change in changes:
+        if change['kind'] == 'pages' and change['page_changes']:
+            for page in change['page_changes']:
+                if page['blocks_changed']:
+                    page['blocks_url'] = reverse(block_route, args=[slug, (page['after'] or page['before'])['slug']])
     draft_route = 'preview_journal_site' if kind == 'journal' else 'preview_publisher_portal'
     public_route = 'public_journal_site' if kind == 'journal' else 'public_publisher_portal'
     manage_route = 'manage_journal_site' if kind == 'journal' else 'manage_publisher_portal'
@@ -194,4 +228,28 @@ def review(request, slug, kind):
         'draft_url':reverse(draft_route,args=[slug]),
         'release_url':reverse(public_route,args=[slug]) if release else None,
         'manage_url':reverse(manage_route,args=[slug]),
+    }))
+
+
+@login_required
+@never_cache
+@require_GET
+def block_review(request, slug, page_slug, kind):
+    _enabled()
+    owner, site = _managed(request.user, slug, kind)
+    release = site.current_release
+    if release is not None and release.site_id != site.pk:
+        raise Http404
+    before = _block_side(release.pages_config, page_slug) if release else {'state':'unpublished'}
+    after = _block_side(site.pages_config, page_slug)
+    if before['state'] != 'present' and after['state'] != 'present':
+        raise Http404
+    draft_route = 'preview_journal_page' if kind == 'journal' else 'preview_publisher_page'
+    public_route = 'public_journal_page' if kind == 'journal' else 'public_publisher_page'
+    compare_route = 'journal_site_change_review' if kind == 'journal' else 'publisher_site_change_review'
+    return _no_index(render(request, 'publishing/site_block_review.html', {
+        'owner':owner, 'site':site, 'release':release, 'before':before, 'after':after,
+        'page_slug':page_slug, 'compare_url':reverse(compare_route,args=[slug]),
+        'draft_url':reverse(draft_route,args=[slug,page_slug]) if after['state']=='present' else None,
+        'release_url':reverse(public_route,args=[slug,page_slug]) if before['state']=='present' and before['visible'] else None,
     }))
