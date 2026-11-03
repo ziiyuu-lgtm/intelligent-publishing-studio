@@ -780,6 +780,36 @@ class RevisionPlanRun(models.Model):
         ordering = ["-created_at", "-pk"]
 
 
+class EditorRevisionComparisonConsent(models.Model):
+    """A submitting author's source-bound permission for one editorial AI task."""
+    class EndReason(models.TextChoices):
+        WITHDRAWN = "withdrawn", _("Withdrawn")
+        SUPERSEDED = "superseded", _("Superseded")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="editor_ai_consents")
+    review_round = models.ForeignKey(ReviewRound, on_delete=models.PROTECT, related_name="editor_ai_consents")
+    decision = models.ForeignKey(EditorialDecision, on_delete=models.PROTECT, related_name="editor_ai_consents")
+    version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="editor_ai_consents")
+    granted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="editor_ai_consents")
+    provider = models.CharField(max_length=20)
+    purpose = models.CharField(max_length=60)
+    source_fingerprint = models.CharField(max_length=64)
+    granted_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    end_reason = models.CharField(max_length=12, choices=EndReason.choices, blank=True)
+
+    class Meta:
+        ordering = ["-granted_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["submission", "granted_by", "provider", "purpose"],
+                condition=models.Q(ended_at__isnull=True), name="one_active_editor_ai_consent"),
+            models.CheckConstraint(condition=(models.Q(ended_at__isnull=True, end_reason="") |
+                models.Q(ended_at__isnull=False, end_reason__in=["withdrawn", "superseded"])),
+                name="editor_ai_consent_end_consistent"),
+        ]
+
+
 class EditorRevisionComparisonRun(models.Model):
     """A private, confirmed editor request bound to one current revision package."""
     class Status(models.TextChoices):
@@ -794,6 +824,8 @@ class EditorRevisionComparisonRun(models.Model):
     decision = models.ForeignKey(EditorialDecision, on_delete=models.PROTECT, related_name="editor_revision_runs")
     version = models.ForeignKey(SubmissionVersion, on_delete=models.PROTECT, related_name="editor_revision_runs")
     requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="editor_revision_runs")
+    author_consent = models.ForeignKey(EditorRevisionComparisonConsent, on_delete=models.PROTECT,
+                                       null=True, blank=True, related_name="comparison_runs")
     model_name = models.CharField(max_length=100)
     prompt_version = models.CharField(max_length=60)
     policy_revision = models.PositiveIntegerField()

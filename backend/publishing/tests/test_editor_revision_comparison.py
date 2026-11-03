@@ -12,7 +12,7 @@ from publishing.ai_gateway import EDITOR_REVISION_COMPARISON, GatewayRejected, O
 from publishing.ai_provider import ProviderError
 from publishing.editor_revision_comparison_provider import _parse_response
 from publishing.editor_revision_comparison_views import _source_fingerprint
-from publishing.models import (EditorialAssignment, EditorialDecision, EditorRevisionComparisonRun, Journal,
+from publishing.models import (EditorialAssignment, EditorialDecision, EditorRevisionComparisonConsent, EditorRevisionComparisonRun, Journal,
     JournalAIPolicy, Membership, Organisation, ReviewRound, Submission, SubmissionVersion)
 
 
@@ -67,6 +67,9 @@ class ComparisonWorkflowTests(TestCase):
             author_response='We clarified the method. PRIVATE RESPONSE SUFFIX')
         cls.round = ReviewRound.objects.create(submission=cls.submission, version=cls.version, number=2)
         cls.policy = JournalAIPolicy.objects.create(journal=cls.journal, editor_revision_comparison_enabled=True, journal_daily_limit=10)
+        cls.consent = EditorRevisionComparisonConsent.objects.create(submission=cls.submission, review_round=cls.round,
+            decision=cls.decision, version=cls.version, granted_by=cls.author, provider='openai',
+            purpose='editor-revision-comparison-v1', source_fingerprint=_source_fingerprint(cls.round, cls.decision))
 
     def setUp(self):
         env = patch.dict(os.environ, {'OPENAI_API_KEY': 'synthetic-test-key'})
@@ -81,7 +84,7 @@ class ComparisonWorkflowTests(TestCase):
         current = ReviewRound.objects.select_related('version').get(pk=self.round.pk)
         data = {'request_id': str(uuid.uuid4()), 'decision_id': str(self.decision.pk), 'round_id': str(self.round.pk),
                 'version_id': str(self.version.pk), 'policy_revision': str(self.policy.revision), 'model': 'test-model',
-                'source_fingerprint': _source_fingerprint(current, self.decision),
+                'source_fingerprint': _source_fingerprint(current, self.decision), 'author_consent_id': str(self.consent.pk),
                 'decision_excerpt': 'Please clarify the method.', 'response_excerpt': 'We clarified the method.',
                 'confirm': 'yes', 'synthetic': 'yes'}
         data.update(changes)
@@ -105,7 +108,7 @@ class ComparisonWorkflowTests(TestCase):
             self.assertEqual(self.client.post(self.url(), self.data(**{missing: ''})).status_code, 400)
         for field in ('decision_excerpt', 'response_excerpt'):
             self.assertEqual(self.client.post(self.url(), self.data(**{field: 'invented input'})).status_code, 400)
-        for field in ('policy_revision', 'decision_id', 'round_id', 'version_id', 'source_fingerprint', 'model'):
+        for field in ('policy_revision', 'decision_id', 'round_id', 'version_id', 'source_fingerprint', 'author_consent_id', 'model'):
             self.assertEqual(self.client.post(self.url(), self.data(**{field: 'changed'})).status_code, 409)
         self.assertFalse(EditorRevisionComparisonRun.objects.exists())
         self.mock_transport.assert_not_called()

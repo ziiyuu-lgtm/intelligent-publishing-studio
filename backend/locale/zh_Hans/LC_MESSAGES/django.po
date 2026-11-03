@@ -5566,3 +5566,141 @@ msgstr "返回修回资料"
 
 msgid "Compare other excerpts"
 msgstr "对照其他片段"
+
+msgid "Manage editor AI sharing permission"
+msgstr "管理编辑 AI 分享权限"
+
+msgid "Editor AI sharing permission"
+msgstr "编辑 AI 分享授权"
+
+msgid "YOUR CHOICE"
+msgstr "您的选择"
+
+msgid "Control editor AI sharing"
+msgstr "控制编辑 AI 内容分享"
+
+msgid "Choose whether the assigned editor may use AI to compare excerpts from your current revision."
+msgstr "选择是否允许负责编辑使用 AI 对照当前修回的文字片段。"
+
+msgid "Fictional test content only. Your choice does not send anything to an AI provider."
+msgstr "仅限虚构测试内容。您的选择不会向 AI 服务商发送任何内容。"
+
+msgid "WHAT THIS COVERS"
+msgstr "授权范围"
+
+msgid "A specific use of your revision"
+msgstr "对本次修回的一项特定用途"
+
+msgid "If you allow it, an assigned editor may select excerpts from the author-facing editorial decision and your submitted response, then separately confirm a request to OpenAI."
+msgstr "如果您允许，负责编辑可从发送给作者的决定和您提交的回复中选择片段，再单独确认向 OpenAI 发起请求。"
+
+msgid "Provider"
+msgstr "服务商"
+
+msgid "Purpose"
+msgstr "用途"
+
+msgid "No current returned revision"
+msgstr "当前没有已返回的修回稿"
+
+msgid "The editor chooses the excerpts. The system does not automatically attach manuscript PDFs, titles, reviewer reports or identities; selected text itself may contain identifying information."
+msgstr "编辑自行选择片段。系统不会自动附加稿件 PDF、题目、审稿报告或身份信息；所选文字本身可能包含身份信息。"
+
+msgid "The journal must also enable this AI task. Provider charges and retention may apply."
+msgstr "期刊还须启用此 AI 功能。服务商可能收费并保留数据。"
+
+msgid "SOURCE MATERIAL"
+msgstr "原始内容"
+
+msgid "Review the texts covered"
+msgstr "查看授权涉及的文字"
+
+msgid "Previous decision sent to you"
+msgstr "此前发送给您的编辑决定"
+
+msgid "Your response submitted with this revision"
+msgstr "您随本次修回提交的回复"
+
+msgid "Permission applies only while this round, version and source text remain current."
+msgstr "仅在当前轮次、版本和原文保持一致时，此授权才有效。"
+
+msgid "YOUR PERMISSION"
+msgstr "您的授权"
+
+msgid "Your current choice"
+msgstr "您当前的选择"
+
+msgid "Allowed for this revision"
+msgstr "已允许用于本次修回"
+
+msgid "Recorded"
+msgstr "记录时间"
+
+msgid "The editor still needs to confirm every AI request."
+msgstr "编辑仍须逐次确认 AI 请求。"
+
+msgid "Previous permission no longer applies"
+msgstr "之前的授权已不再适用"
+
+msgid "The revision or source text has changed."
+msgstr "修回版本或原文已发生变化。"
+
+msgid "Not allowed"
+msgstr "未允许"
+
+msgid "No permission has been recorded for this revision."
+msgstr "尚未记录对本次修回的授权。"
+
+msgid "I allow this specific editor AI comparison for the current revision."
+msgstr "我允许对此次修回进行上述特定的编辑 AI 对照。"
+
+msgid "Allow editor AI comparison"
+msgstr "允许编辑使用 AI 对照"
+
+msgid "A returned revision must be current before you can grant this permission."
+msgstr "需要先有当前有效的已返回修回稿，才能授予此权限。"
+
+msgid "Withdraw permission"
+msgstr "撤回授权"
+
+msgid "Withdrawal prevents future requests under this permission. Requests already sent cannot be recalled, and previously generated results remain stored in the test workspace."
+msgstr "撤回后不能再依据此授权发起新请求。已发送的请求无法撤回，之前生成的结果仍保存在测试工作区。"
+
+msgid "Allowing or withdrawing does not change the editorial decision or send a message."
+msgstr "允许或撤回不会更改编辑决定，也不会发送消息。"
+
+msgid "Author permission recorded"
+msgstr "已记录作者授权"
+
+msgid "Author permission required"
+msgstr "需要作者授权"
+
+msgid "The submitting author allowed this use for the current revision. You must still confirm each request."
+msgstr "投稿作者已允许在当前修回中使用此功能。您仍须逐次确认请求。"
+
+msgid "The submitting author can manage this permission in their submission workspace. No notice or email is sent."
+msgstr "投稿作者可在自己的投稿工作区管理此权限。系统不会发送通知或邮件。"
+
+msgid "The author's current authorisation is required; reload the page."
+msgstr "需要作者对当前内容的授权，请重新加载页面。"
+
+msgid "Invalid authorisation action."
+msgstr "无效的授权操作。"
+
+msgid "The authorisation form expired or changed; reload the page."
+msgstr "授权表单已过期或被更改，请重新加载页面。"
+
+msgid "The authorisation or revision changed; reload the page."
+msgstr "授权状态或修回内容已变更，请重新加载页面。"
+
+msgid "A current returned revision is required."
+msgstr "需要当前有效的已返回修回稿。"
+
+msgid "Authorisation withdrawn for future requests."
+msgstr "授权已撤回，后续请求将被阻止。"
+
+msgid "Authorisation recorded for this revision."
+msgstr "已记录本次修回的授权。"
+
+msgid "Superseded"
+msgstr "已被新授权替代"

@@ -8,13 +8,11 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
 from .models import EditorialDecision, Journal, ReviewRound, Submission, SubmissionVersion
-from .views import ACTIVE_REVIEW_STATUSES, _editor_can_view, _editorial_submissions, _file_exists, _review_copy_ready
+from .views import ACTIVE_REVIEW_STATUSES, _author_can_view, _editor_can_view, _editorial_submissions, _file_exists, _review_copy_ready, _submission
 
 
-def _returned_rounds(user):
+def _current_revision_rounds():
     """Only link a current round to its actual preceding revision decision."""
-    if not user.is_active:
-        return ReviewRound.objects.none()
     latest_version = SubmissionVersion.objects.filter(submission_id=OuterRef("submission_id")).order_by("-number").values("pk")[:1]
     prior = EditorialDecision.objects.filter(
         submission_id=OuterRef("submission_id"),
@@ -26,7 +24,6 @@ def _returned_rounds(user):
         outcome__in=(EditorialDecision.Outcome.MINOR, EditorialDecision.Outcome.MAJOR),
     ).order_by("pk")
     return ReviewRound.objects.filter(
-        submission__in=_editorial_submissions(user).values("pk"),
         submission__status__in=ACTIVE_REVIEW_STATUSES,
         status=ReviewRound.Status.OPEN, number__gt=1,
         version__submission_id=F("submission_id"), version__number__gt=1,
@@ -34,6 +31,12 @@ def _returned_rounds(user):
     ).annotate(prior_decision_id=Subquery(prior.values("pk")[:1])).filter(
         prior_decision_id__isnull=False,
     ).select_related("submission__journal", "submission__journal__organisation", "version").order_by("-version__created_at", "-pk")
+
+
+def _returned_rounds(user):
+    if not user.is_active:
+        return ReviewRound.objects.none()
+    return _current_revision_rounds().filter(submission__in=_editorial_submissions(user).values("pk"))
 
 
 @login_required
@@ -56,17 +59,28 @@ def returned_revisions(request):
     return render(request, "publishing/returned_revisions.html", {"counts": counts, "selected": selected, "query": query, "page": page})
 
 
-def current_revision_package(user, pk):
-    current = get_object_or_404(_returned_rounds(user), submission_id=pk)
+def _decision_for_current(current):
     submission = current.submission
-    if not _editor_can_view(user, submission):
-        raise Http404
-    decision = get_object_or_404(EditorialDecision.objects.select_related("round__version"), pk=current.prior_decision_id,
+    return get_object_or_404(EditorialDecision.objects.select_related("round__version"), pk=current.prior_decision_id,
         submission=submission, round__submission=submission, round__status=ReviewRound.Status.CLOSED,
         round__number=current.number - 1, round__version__submission=submission,
         round__version__number=current.version.number - 1,
         outcome__in=(EditorialDecision.Outcome.MINOR, EditorialDecision.Outcome.MAJOR))
-    return current, decision
+
+
+def current_revision_package(user, pk):
+    current = get_object_or_404(_returned_rounds(user), submission_id=pk)
+    if not _editor_can_view(user, current.submission):
+        raise Http404
+    return current, _decision_for_current(current)
+
+
+def author_current_revision_package(user, pk):
+    submission = _submission(pk)
+    if not _author_can_view(user, submission):
+        raise Http404
+    current = _current_revision_rounds().filter(submission=submission).first()
+    return (current, _decision_for_current(current)) if current else (None, None)
 
 
 @login_required

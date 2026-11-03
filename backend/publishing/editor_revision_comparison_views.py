@@ -19,6 +19,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from .ai_gateway import EDITOR_REVISION_COMPARISON, OPENAI, run_ai_task
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since
 from .ai_views import _policy, _provider_configured
+from .editor_comparison_consent import active_consent, source_fingerprint as _source_fingerprint
 from .editor_revision_comparison_provider import MAX_EXCERPT, PROMPT_VERSION, fingerprint
 from .editor_revision_views import current_revision_package
 from .models import EditorRevisionComparisonRun, Journal, Submission
@@ -51,11 +52,6 @@ def _enabled(policy):
     return bool(policy and policy.editor_revision_comparison_enabled and 1 <= policy.journal_daily_limit <= 100)
 
 
-def _source_fingerprint(current, decision):
-    return fingerprint(round_id=current.pk, version_id=current.version_id, decision_id=decision.pk,
-                       decision_text=decision.author_message, response_text=current.version.author_response)
-
-
 def _context(request, current, decision, policy, form=None):
     runs = EditorRevisionComparisonRun.objects.filter(submission=current.submission, review_round=current,
         version=current.version, decision=decision, requested_by=request.user,
@@ -65,6 +61,7 @@ def _context(request, current, decision, policy, form=None):
     return {"submission": current.submission, "current": current, "decision": decision, "form": form,
             "policy_revision": policy.revision if policy else 0, "policy_enabled": _enabled(policy),
             "provider_configured": _provider_configured(), "model_name": settings.IPS_OPENAI_MODEL,
+            "author_consent": active_consent(current, decision),
             "source_fingerprint": _source_fingerprint(current, decision), "request_id": uuid.uuid4(), "runs": runs}
 
 
@@ -101,6 +98,9 @@ def editor_revision_comparison(request, pk):
     selected = {key: form.cleaned_data[key] for key in ("decision_excerpt", "response_excerpt")}
     if not _provider_configured() or not _enabled(policy):
         return HttpResponse(_("AI revision comparison is not enabled for this journal and test environment."), status=409)
+    consent = active_consent(current, decision)
+    if not consent or request.POST.get("author_consent_id") != str(consent.pk):
+        return HttpResponse(_("The author's current authorisation is required; reload the page."), status=409)
     source_digest = _source_fingerprint(current, decision)
     if (request.POST.get("policy_revision") != str(policy.revision) or request.POST.get("decision_id") != str(decision.pk) or
             request.POST.get("round_id") != str(current.pk) or request.POST.get("version_id") != str(current.version_id) or
@@ -112,7 +112,9 @@ def editor_revision_comparison(request, pk):
         get_object_or_404(Submission.objects.select_for_update(), pk=pk)
         current, decision = current_revision_package(request.user, pk)
         policy = _policy(current.submission.journal, locked=True)
+        consent = active_consent(current, decision)
         if (not _provider_configured() or not _enabled(policy) or request.POST.get("policy_revision") != str(policy.revision) or
+                not consent or request.POST.get("author_consent_id") != str(consent.pk) or
                 request.POST.get("decision_id") != str(decision.pk) or request.POST.get("round_id") != str(current.pk) or
                 request.POST.get("version_id") != str(current.version_id) or request.POST.get("model") != settings.IPS_OPENAI_MODEL or
                 source_digest != _source_fingerprint(current, decision) or selected["decision_excerpt"] not in decision.author_message or
@@ -127,7 +129,7 @@ def editor_revision_comparison(request, pk):
         if account_requests_since(request.user, since) >= DAILY_REQUEST_LIMIT or journal_requests_since(current.submission.journal, since) >= policy.journal_daily_limit:
             return HttpResponse(_("The local test request limit has been reached."), status=429)
         run = EditorRevisionComparisonRun.objects.create(id=run_id, submission=current.submission, review_round=current,
-            version=current.version, decision=decision, requested_by=request.user, model_name=settings.IPS_OPENAI_MODEL,
+            version=current.version, decision=decision, requested_by=request.user, author_consent=consent, model_name=settings.IPS_OPENAI_MODEL,
             prompt_version=PROMPT_VERSION, policy_revision=policy.revision, source_fingerprint=source_digest,
             input_fingerprint=fingerprint(**selected))
         policy_snapshot = (policy.pk, policy.revision, policy.editor_revision_comparison_enabled, policy.journal_daily_limit)
@@ -142,7 +144,9 @@ def editor_revision_comparison(request, pk):
         fresh_current, fresh_decision, fresh_policy = None, None, None
     snapshot = ((fresh_policy.pk, fresh_policy.revision, fresh_policy.editor_revision_comparison_enabled,
                  fresh_policy.journal_daily_limit) if fresh_policy else None)
+    fresh_consent = active_consent(fresh_current, fresh_decision)
     if (not _provider_configured() or settings.IPS_OPENAI_MODEL != run.model_name or not fresh_current or
+            not fresh_consent or fresh_consent.pk != run.author_consent_id or
             not _matches(run, fresh_current, fresh_decision) or not _enabled(fresh_policy) or snapshot != policy_snapshot):
         run.status, run.error_code, run.finished_at = run.Status.CANCELLED, "authorization_changed", timezone.now()
         run.save(update_fields=["status", "error_code", "finished_at"])
