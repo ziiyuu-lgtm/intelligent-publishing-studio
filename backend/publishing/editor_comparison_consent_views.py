@@ -15,7 +15,7 @@ from django.views.decorators.http import require_http_methods
 from .editor_comparison_consent import PROVIDER, PURPOSE, active_consent, source_fingerprint
 from .editor_comparison_requests import current_permission_request
 from .editor_revision_views import author_current_revision_package
-from .models import EditorComparisonPermissionRequest, EditorRevisionComparisonConsent, Journal, Submission
+from .models import EditorAIPermissionReplyNotice, EditorComparisonPermissionRequest, EditorRevisionComparisonConsent, Journal, Submission
 from .views import _author_can_view, _event, _submission
 
 TOKEN_SALT = "publishing.editor-comparison-consent.v1"
@@ -89,6 +89,8 @@ def author_editor_ai_consent(request, pk):
                 return HttpResponse(_("The permission request changed; reload the page."), status=409)
             permission_request.status, permission_request.responded_at = EditorComparisonPermissionRequest.Status.DECLINED, timezone.now()
             permission_request.save(update_fields=["status", "responded_at"])
+            EditorAIPermissionReplyNotice.objects.create(permission_request=permission_request,
+                recipient_id=permission_request.requested_by_id, outcome=permission_request.status)
             _event(submission, author, "editor_ai_permission_declined")
         else:
             if not current or not decision:
@@ -106,6 +108,8 @@ def author_editor_ai_consent(request, pk):
             if permission_request and permission_request.status == EditorComparisonPermissionRequest.Status.PENDING:
                 permission_request.status, permission_request.responded_at = EditorComparisonPermissionRequest.Status.GRANTED, timezone.now()
                 permission_request.save(update_fields=["status", "responded_at"])
+                EditorAIPermissionReplyNotice.objects.create(permission_request=permission_request,
+                    recipient_id=permission_request.requested_by_id, outcome=permission_request.status)
     feedback = {"withdraw": _("Authorisation withdrawn for future requests."),
                 "decline": _("The in-app request was declined. No AI request was made."),
                 "grant": _("Authorisation recorded for this revision.")}

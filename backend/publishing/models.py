@@ -888,6 +888,27 @@ class EditorComparisonPermissionRequest(models.Model):
         ]
 
 
+class EditorAIPermissionReplyNotice(models.Model):
+    """Historical author response, visible only to the original requesting editor."""
+    class Outcome(models.TextChoices):
+        GRANTED = "granted", _("Author allowed this request")
+        DECLINED = "declined", _("Author declined this request")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    permission_request = models.OneToOneField(EditorComparisonPermissionRequest, on_delete=models.PROTECT,
+                                               related_name="editor_reply_notice")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                  related_name="editor_ai_permission_replies")
+    outcome = models.CharField(max_length=12, choices=Outcome.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [models.CheckConstraint(condition=models.Q(outcome__in=["granted", "declined"]),
+                                              name="editor_ai_reply_valid_outcome")]
+
+
 class AuthorNotice(models.Model):
     """Private local notice for the submitting author, pinned to the original account."""
     class Kind(models.TextChoices):

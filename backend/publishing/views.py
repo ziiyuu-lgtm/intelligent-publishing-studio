@@ -143,6 +143,7 @@ def _editorial_submissions(user):
 @never_cache
 @require_GET
 def workspace(request):
+    from .editor_ai_reply_notices import visible_editor_ai_reply_notices
     visible_journals = Journal.objects.filter(active=True, organisation__active=True)
     author_journals = visible_journals.filter(memberships__user=request.user, memberships__role=Membership.Role.AUTHOR, memberships__active=True).distinct()
     site_manager_journals = visible_journals.filter(memberships__user=request.user,
@@ -203,6 +204,8 @@ def workspace(request):
         "author_response_tasks": author_response_tasks,
         "unread_review_notice_count": visible_review_notices(request.user).filter(read_at__isnull=True).count(),
         "unread_author_notice_count": visible_author_notices(request.user).filter(read_at__isnull=True).count(),
+        "unread_editor_ai_reply_count": visible_editor_ai_reply_notices(request.user).filter(read_at__isnull=True).count() if settings.DEBUG else 0,
+        "editor_ai_reply_enabled": settings.DEBUG,
         "site_manager_journals": site_manager_journals,
         "ai_manager_journals": ai_manager_journals,
         "portal_organisations": portal_organisations,

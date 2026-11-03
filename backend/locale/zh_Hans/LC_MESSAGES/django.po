@@ -5881,3 +5881,93 @@ msgstr "投稿作者可在自己的投稿工作区管理此权限。可以另外
 
 msgid "Submission"
 msgstr "稿件"
+
+msgid "Author allowed this request"
+msgstr "作者已同意此请求"
+
+msgid "Author declined this request"
+msgstr "作者已拒绝此请求"
+
+msgid "Author AI replies"
+msgstr "作者 AI 授权回复"
+
+msgid "Follow responses to the AI permission requests you made."
+msgstr "查看您发起的 AI 授权请求的回复。"
+
+msgid "PRIVATE EDITOR WORKSPACE"
+msgstr "编辑私人工作区"
+
+msgid "Fictional test data only. Replies are private to the requesting editor; no email or external message is sent."
+msgstr "仅使用虚构测试数据。回复仅对发起请求的编辑可见；不发送邮件或外部消息。"
+
+msgid "YOUR REPLIES"
+msgstr "您的回复"
+
+msgid "Permission request responses"
+msgstr "授权请求回复"
+
+msgid "This records the author's response at the time. Open the reply to check whether permission is still current."
+msgstr "这里记录作者当时的回复。打开回复可查看授权当前是否仍然有效。"
+
+msgid "View reply"
+msgstr "查看回复"
+
+msgid "No author AI replies match this filter."
+msgstr "没有符合此筛选条件的作者 AI 授权回复。"
+
+msgid "Author AI reply"
+msgstr "作者 AI 授权回复"
+
+msgid "Back to author AI replies"
+msgstr "返回作者 AI 授权回复"
+
+msgid "AUTHOR REPLY"
+msgstr "作者回复"
+
+msgid "Fictional test data only. This reply records a past choice and does not itself authorise an AI request."
+msgstr "仅使用虚构测试数据。此回复记录过去的选择，本身不构成 AI 请求授权。"
+
+msgid "RECORDED RESPONSE"
+msgstr "已记录的回复"
+
+msgid "The submitting author responded to your in-app request."
+msgstr "投稿作者已回复您的站内请求。"
+
+msgid "CURRENT AUTHORISATION"
+msgstr "当前授权状态"
+
+msgid "Currently allowed"
+msgstr "当前已授权"
+
+msgid "The author currently allows this specific AI comparison. All other task checks and confirmations still apply."
+msgstr "作者当前允许此特定 AI 对照；其他任务检查和确认仍然适用。"
+
+msgid "Not currently allowed"
+msgstr "当前未授权"
+
+msgid "There is no active author permission for this specific AI comparison."
+msgstr "此特定 AI 对照当前没有有效的作者授权。"
+
+msgid "The revision, source text or workflow has changed. This reply remains a historical record."
+msgstr "修回版本、原文或工作流程已发生变化。此回复保留为历史记录。"
+
+msgid "Open AI comparison"
+msgstr "打开 AI 对照"
+
+msgid "GOOD TO KNOW"
+msgstr "提示"
+
+msgid "A choice can change"
+msgstr "授权选择可以更改"
+
+msgid "Authors can withdraw permission or grant it later. Always check the current authorisation before starting the comparison."
+msgstr "作者可以撤回授权，也可以之后再授权。启动对照前请始终检查当前授权状态。"
+
+msgid "No email or AI request is sent by viewing this reply."
+msgstr "查看此回复不会发送邮件或发起 AI 请求。"
+
+msgid "Reply marked as read in this local test account."
+msgstr "已在此本地测试账户中将回复标记为已读。"
+
+msgid "EDITOR WORKSPACE"
+msgstr "编辑工作区"
