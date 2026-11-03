@@ -44,6 +44,9 @@ class SubmissionForm(forms.ModelForm):
 
 
 class RevisionForm(forms.Form):
+    revised_title = forms.CharField(label=_("Manuscript title"), max_length=250)
+    revised_abstract = forms.CharField(label=_("Manuscript abstract"), max_length=10000,
+        widget=forms.Textarea(attrs={"rows": 6}))
     manuscript = forms.FileField(label=_("Revised manuscript PDF"), widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
     review_copy = forms.FileField(label=_("Separate reviewer PDF"), widget=forms.FileInput(attrs={"accept": ".pdf,application/pdf"}))
     review_copy_confirmed = forms.BooleanField(label=_("I checked the reviewer PDF, title and abstract for identifying information."))

@@ -1,5 +1,7 @@
 """Bind a revision form to one author, decision, round, version and file policy."""
+import json
 from django.core import signing
+from django.utils.crypto import salted_hmac
 
 from .revision_plan_views import _current_decision
 
@@ -18,9 +20,12 @@ def current_revision_decision(submission):
 
 
 def snapshot(submission, decision):
+    metadata = json.dumps([submission.title, submission.abstract], ensure_ascii=False, separators=(",", ":"))
+    metadata_digest = salted_hmac("publishing.revision.metadata.v1", metadata, algorithm="sha256").hexdigest()
     return {"submission": str(submission.pk), "author": submission.author_id,
             "decision": decision.pk, "round": decision.round_id,
-            "version": decision.round.version_id, "review_mode": submission.review_mode}
+            "version": decision.round.version_id, "review_mode": submission.review_mode,
+            "metadata": metadata_digest}
 
 
 def sign_revision_form(submission, decision):

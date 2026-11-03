@@ -66,7 +66,7 @@ def review_progress(request):
         submission__status__in=ACTIVE_REVIEW_STATUSES, status__in=OPEN_TASK_STATUSES,
         round__status=ReviewRound.Status.OPEN, round__submission_id=F("submission_id"),
         round__version__submission_id=F("submission_id"), round__version_id=Subquery(latest_version),
-    ).exclude(conflict=ReviewAssignment.Conflict.YES).select_related("submission__journal", "reviewer", "round").annotate(
+    ).exclude(conflict=ReviewAssignment.Conflict.YES).select_related("submission__journal", "reviewer", "round__version").annotate(
         reviewer_role_active=Exists(active_role)).order_by(F("due_on").asc(nulls_last=True), "created_at", "pk")
     counts = {"all":assignments.count(), "invited":assignments.filter(status=ReviewAssignment.Status.INVITED).count(),
               "accepted":assignments.filter(status=ReviewAssignment.Status.ACCEPTED).count(),

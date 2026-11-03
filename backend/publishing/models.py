@@ -607,6 +607,9 @@ class SubmissionVersion(models.Model):
     review_copy_checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="review_copies_checked")
     review_copy_checked_at = models.DateTimeField(null=True, blank=True)
     author_response = models.TextField(_("Response to the editor"), max_length=20000, blank=True)
+    # Older records have no trustworthy version-specific metadata; NULL means unknown.
+    title_snapshot = models.CharField(_("Version title"), max_length=250, null=True, blank=True)
+    abstract_snapshot = models.TextField(_("Version abstract"), max_length=10000, null=True, blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -614,8 +617,14 @@ class SubmissionVersion(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["submission", "number"], name="unique_submission_version"),
             models.CheckConstraint(condition=models.Q(number__gte=1), name="positive_version_number"),
+            models.CheckConstraint(condition=(models.Q(title_snapshot__isnull=True, abstract_snapshot__isnull=True) |
+                models.Q(title_snapshot__isnull=False, abstract_snapshot__isnull=False)), name="version_metadata_both_or_none"),
         ]
         ordering = ["number"]
+
+    @property
+    def metadata_recorded(self):
+        return self.title_snapshot is not None and self.abstract_snapshot is not None
 
 
 class ReviewRound(models.Model):

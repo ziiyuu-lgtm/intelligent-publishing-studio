@@ -7635,3 +7635,129 @@ msgstr "条符合当前筛选"
 
 msgid "View review AI replies"
 msgstr "查看审稿 AI 授权回复"
+
+msgid "Back to manuscript workspace"
+msgstr "返回稿件工作区"
+
+msgid "COMPARISON"
+msgstr "版本对照"
+
+msgid "Choose two recorded manuscript versions"
+msgstr "选择两个稿件版本进行比较"
+
+msgid "Compare version metadata"
+msgstr "比较版本标题与摘要"
+
+msgid "Compare with"
+msgstr "比较对象"
+
+msgid "Comparison unavailable"
+msgstr "无法比较"
+
+msgid "Earlier version"
+msgstr "较早版本"
+
+msgid "Fictional test data only. This read-only view compares recorded text; it does not verify the manuscript or call AI."
+msgstr "仅供虚构数据测试。此只读页面比较已记录的文字，不会核实稿件内容，也不会调用 AI。"
+
+msgid "Human verification needed"
+msgstr "需人工核对"
+
+msgid "MANUSCRIPT TITLE"
+msgstr "稿件标题"
+
+msgid "MANUSCRIPT WORKSPACE"
+msgstr "稿件工作区"
+
+msgid "No reliable title or abstract snapshot is available for this version."
+msgstr "此版本没有可核实的标题或摘要快照。"
+
+msgid "No text change"
+msgstr "文字未变化"
+
+msgid "Not recorded"
+msgstr "未记录"
+
+msgid "Older versions without a recorded snapshot are shown as unavailable; current text is not presented as historical text."
+msgstr "未保存快照的旧版本显示为不可用；不会将当前文字当作历史文字。"
+
+msgid "PRIVATE MANUSCRIPT RECORD"
+msgstr "稿件私人记录"
+
+msgid "Review the title and abstract recorded with each manuscript version."
+msgstr "核对各稿件版本记录的标题与摘要。"
+
+msgid "Snapshot available"
+msgstr "已有快照"
+
+msgid "Text changed"
+msgstr "文字已变化"
+
+msgid "VERSION HISTORY"
+msgstr "版本记录"
+
+msgid "Version metadata not recorded"
+msgstr "未记录该版本的标题和摘要"
+
+msgid "VERSION METADATA"
+msgstr "版本信息"
+
+msgid "Title and abstract for this version"
+msgstr "此版本的标题与摘要"
+
+msgid "Update these if your revision changes them. They will be saved with this version and shown to reviewers."
+msgstr "如修稿时更改标题或摘要，请在此更新；系统会随本版本保存，并向审稿人展示。"
+
+msgid "Manuscript title"
+msgstr "稿件标题"
+
+msgid "Manuscript abstract"
+msgstr "稿件摘要"
+
+msgid "Your revised title"
+msgstr "您填写的修订标题"
+
+msgid "Your revised abstract"
+msgstr "您填写的修订摘要"
+
+msgid "Compare titles and abstracts"
+msgstr "比较标题与摘要"
+
+msgid "Version-specific metadata was not recorded. The current submission title and abstract are shown."
+msgstr "未保存该版本的标题和摘要；此处显示的是当前稿件标题和摘要。"
+
+msgid "Current title; version metadata unavailable"
+msgstr "当前标题；该版本的标题记录不可用"
+
+msgid "Draft metadata changed after the version was captured; create a new draft."
+msgstr "草稿标题或摘要在版本记录后发生变化，请创建新草稿。"
+
+msgid "TITLE"
+msgstr "标题"
+
+msgid "ABSTRACT"
+msgstr "摘要"
+
+msgid "REVIEW"
+msgstr "核对"
+
+msgid "JOURNAL"
+msgstr "期刊"
+
+msgid "EARLIER VERSION"
+msgstr "较早版本"
+
+msgid "COMPARISON VERSION"
+msgstr "比较版本"
+
+msgid "Version title unavailable"
+msgstr "该版本标题不可用"
+
+msgid "The title and abstract were not recorded for this version."
+msgstr "未记录该版本的标题和摘要。"
+
+msgid "First version"
+msgstr "第一个版本"
+
+msgid "FIRST VERSION"
+msgstr "第一个版本"

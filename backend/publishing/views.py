@@ -163,11 +163,12 @@ def workspace(request):
         submission__journal__memberships__user=request.user,
         submission__journal__memberships__role=Membership.Role.REVIEWER,
         submission__journal__memberships__active=True,
+        round__submission_id=F("submission_id"), round__version__submission_id=F("submission_id"),
     ).exclude(submission__author=request.user).exclude(
         Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("submission_id"), recipient=request.user))
     ).exclude(
         Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("submission_id"), producer=request.user))
-    ).select_related("submission__journal", "round").distinct()
+    ).select_related("submission__journal", "round__version").distinct()
     production_enabled = settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED
     production = PublicationDraft.objects.none()
     if production_enabled:
@@ -341,6 +342,7 @@ def submission_create(request, slug):
             with transaction.atomic():
                 submission.save()
                 version = SubmissionVersion(submission=submission, number=1, manuscript=submission.manuscript.name,
+                    title_snapshot=submission.title, abstract_snapshot=submission.abstract,
                     review_copy=form.cleaned_data.get("review_copy") or "",
                     review_copy_confirmed=form.cleaned_data.get("review_copy_confirmed", False), uploaded_by=request.user)
                 version.save()
@@ -628,6 +630,12 @@ def submission_submit(request, pk):
             return HttpResponse(_("The review file policy is unavailable."), status=409)
         if submission.review_mode == Journal.ReviewMode.SEPARATE and not (version.review_copy_confirmed and _file_exists(version.review_copy)):
             return HttpResponse(_("A confirmed reviewer copy is required."), status=409)
+        if version.metadata_recorded and (version.title_snapshot != submission.title or version.abstract_snapshot != submission.abstract):
+            return HttpResponse(_("Draft metadata changed after the version was captured; create a new draft."), status=409)
+        if not version.metadata_recorded:
+            # An unsubmitted legacy draft has no prior submitted metadata to reconstruct.
+            version.title_snapshot, version.abstract_snapshot = submission.title, submission.abstract
+            version.save(update_fields=["title_snapshot", "abstract_snapshot"])
         ReviewRound.objects.create(submission=submission, version=version, number=1)
         submission.status = Submission.Status.SUBMITTED
         submission.submitted_at = timezone.now()
@@ -960,7 +968,9 @@ def submission_revision(request, pk):
     from .revision_submission import current_revision_decision, matches_revision_form, sign_revision_form
     def conflict(current):
         return render(request, "publishing/revision_conflict.html", {
-            "submission": current, "response_text": request.POST.get("author_response", "")}, status=409)
+            "submission": current, "response_text": request.POST.get("author_response", ""),
+            "revised_title": request.POST.get("revised_title", ""),
+            "revised_abstract": request.POST.get("revised_abstract", "")}, status=409)
 
     submission = _submission(pk)
     if not _author_can_view(request.user, submission):
@@ -984,8 +994,14 @@ def submission_revision(request, pk):
             prefilled_response = response_prefill(request, submission)
         except ValueError:
             return HttpResponse(_("The response draft is incomplete or has changed; review it before continuing."), status=409)
-    form = RevisionForm(request.POST or None, request.FILES or None, review_mode=submission.review_mode,
-                        initial={"author_response": prefilled_response} if prefilled_response else None)
+    initial = {"revised_title": submission.title, "revised_abstract": submission.abstract}
+    if prefilled_response:
+        initial["author_response"] = prefilled_response
+    form_data = request.POST.copy() if request.method == "POST" else None
+    # Older direct test clients did not send metadata; preserve the current values.
+    if form_data is not None and "revised_title" not in form_data and "revised_abstract" not in form_data:
+        form_data["revised_title"], form_data["revised_abstract"] = submission.title, submission.abstract
+    form = RevisionForm(form_data, request.FILES or None, review_mode=submission.review_mode, initial=initial)
     if request.method == "POST" and form.is_valid():
         version = None
         try:
@@ -1004,13 +1020,15 @@ def submission_revision(request, pk):
                 version = SubmissionVersion(
                     submission=submission, number=latest.number + 1, uploaded_by=request.user,
                     manuscript=form.cleaned_data["manuscript"], author_response=form.cleaned_data["author_response"],
+                    title_snapshot=form.cleaned_data["revised_title"], abstract_snapshot=form.cleaned_data["revised_abstract"],
                     review_copy=form.cleaned_data.get("review_copy") or "",
                     review_copy_confirmed=form.cleaned_data.get("review_copy_confirmed", False),
                 )
                 version.save()
                 ReviewRound.objects.create(submission=submission, version=version, number=previous_round.number + 1)
                 submission.status = Submission.Status.SUBMITTED
-                submission.save(update_fields=["status"])
+                submission.title, submission.abstract = version.title_snapshot, version.abstract_snapshot
+                submission.save(update_fields=["status", "title", "abstract"])
                 _event(submission, request.user, "revision_submitted")
         except Exception:
             if version and version.manuscript.name and version.manuscript._committed:
