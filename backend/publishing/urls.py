@@ -1,5 +1,5 @@
 from django.urls import path
-from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, design_history_views, editor_ai_reply_views, editor_comparison_consent_views, editor_comparison_request_views, editor_revision_comparison_views, editor_revision_views, issue_views, manual_layout_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, views
+from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, design_history_views, editor_ai_reply_views, editor_comparison_consent_views, editor_comparison_request_views, editor_revision_comparison_views, editor_revision_views, issue_views, manual_layout_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, visual_ai_review_views, views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -72,6 +72,10 @@ urlpatterns = [
     path("publishers/<slug:slug>/site/ai-design/", portal_ai_views.request_design, name="request_publisher_ai_design"),
     path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/", portal_ai_views.result, name="publisher_ai_result"),
     path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/preview/<int:index>/", portal_ai_views.preview_option, name="preview_publisher_ai_option"),
+    path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/customise/<int:index>/", visual_ai_review_views.customise, {"kind":"portal"}, name="publisher_visual_ai_customise"),
+    path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/custom-preview/<int:index>/", visual_ai_review_views.preview, {"kind":"portal"}, name="publisher_visual_ai_preview"),
+    path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/custom-edit/<int:index>/", visual_ai_review_views.edit, {"kind":"portal"}, name="publisher_visual_ai_edit"),
+    path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/custom-apply/<int:index>/", visual_ai_review_views.apply, {"kind":"portal"}, name="publisher_visual_ai_apply"),
     path("publishers/<slug:slug>/site/ai-design/<uuid:run_id>/apply/<int:index>/", portal_ai_views.apply_option, name="apply_publisher_ai_option"),
     path("publishers/<slug:slug>/site/publish/", portal_views.publish_portal, name="publish_publisher_portal"),
     path("publishers/<slug:slug>/site/restore/<int:release_id>/", portal_views.restore_portal, name="restore_publisher_portal"),
@@ -130,6 +134,10 @@ urlpatterns = [
     path("journals/<slug:slug>/site/ai-design/", site_ai_views.request_site_ai_design, name="request_site_ai_design"),
     path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/", site_ai_views.site_ai_result, name="site_ai_result"),
     path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/preview/<int:index>/", site_ai_views.preview_site_ai_option, name="preview_site_ai_option"),
+    path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/customise/<int:index>/", visual_ai_review_views.customise, {"kind":"journal"}, name="journal_visual_ai_customise"),
+    path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/custom-preview/<int:index>/", visual_ai_review_views.preview, {"kind":"journal"}, name="journal_visual_ai_preview"),
+    path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/custom-edit/<int:index>/", visual_ai_review_views.edit, {"kind":"journal"}, name="journal_visual_ai_edit"),
+    path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/custom-apply/<int:index>/", visual_ai_review_views.apply, {"kind":"journal"}, name="journal_visual_ai_apply"),
     path("journals/<slug:slug>/site/ai-design/<uuid:run_id>/apply/<int:index>/", site_ai_views.apply_site_ai_option, name="apply_site_ai_option"),
     path("journals/<slug:slug>/site/publish/", site_views.publish_journal_site, name="publish_journal_site"),
     path("journals/<slug:slug>/site/restore/<int:release_id>/", site_views.restore_journal_site, name="restore_journal_site"),

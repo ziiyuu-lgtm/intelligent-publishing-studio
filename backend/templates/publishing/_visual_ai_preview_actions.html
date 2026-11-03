@@ -1,0 +1,4 @@
+{% load i18n %}
+<div class="notice">{% translate "Private customised design preview. This design has not been applied or published." %}</div>
+<div class="card panel visual-preview-actions"><form method="post" action="{{ visual_apply_url }}" class="stack">{% csrf_token %}<input type="hidden" name="revision" value="{{ visual_revision }}"><input type="hidden" name="reviewed_design" value="{{ visual_reviewed }}"><label class="policy-check"><input type="checkbox" name="confirm" value="yes" required> {% translate "Apply this reviewed design to the draft." %}</label><button class="button" type="submit">{% translate "Apply design to draft" %}</button></form>
+<form method="post" action="{{ visual_edit_url }}">{% csrf_token %}<input type="hidden" name="revision" value="{{ visual_revision }}"><input type="hidden" name="reviewed_design" value="{{ visual_reviewed }}"><button class="button secondary" type="submit">{% translate "Return to customise" %}</button></form></div>

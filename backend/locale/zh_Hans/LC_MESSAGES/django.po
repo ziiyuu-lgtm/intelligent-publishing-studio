@@ -6238,3 +6238,63 @@ msgstr "请使用虚构信息描述目标读者、偏好的配色、字体和整
 
 msgid "AI visual design"
 msgstr "AI 视觉设计"
+
+msgid "Customise before applying"
+msgstr "应用前自定义"
+
+msgid "Customise AI design"
+msgstr "自定义 AI 设计"
+
+msgid "Back to AI design suggestions"
+msgstr "返回 AI 设计建议"
+
+msgid "Adjust this suggestion before applying it to the draft."
+msgstr "在应用到草稿前调整此设计建议。"
+
+msgid "Your changes remain private until you review the full preview and explicitly apply them to the draft. Publishing is separate."
+msgstr "更改在您查看完整预览并明确应用到草稿前保持私有；发布需要单独操作。"
+
+msgid "LIVE DESIGN SKETCH"
+msgstr "实时设计草图"
+
+msgid "Your visual direction"
+msgstr "您的视觉方向"
+
+msgid "A simplified sketch updates as you change colours and layout. Use the full preview to check all details."
+msgstr "调整配色和布局时，简化草图会同步更新。请在完整预览中核对所有细节。"
+
+msgid "This sketch does not show the site's full text or images."
+msgstr "草图不显示网站的完整文字或图片。"
+
+msgid "DESIGN SETTINGS"
+msgstr "设计设置"
+
+msgid "Make it your own"
+msgstr "打造您的专属设计"
+
+msgid "Choose any colours and adjust the available typography and composition."
+msgstr "选择您喜欢的颜色，并调整可用的字体和构图。"
+
+msgid "Open the complete site preview before applying your design to the draft."
+msgstr "将设计应用到草稿前，请先打开完整网站预览。"
+
+msgid "Preview customised design"
+msgstr "预览自定义设计"
+
+msgid "Private customised design preview. This design has not been applied or published."
+msgstr "私人自定义设计预览。此设计尚未应用或发布。"
+
+msgid "Apply this reviewed design to the draft."
+msgstr "将已审核的设计应用到草稿。"
+
+msgid "Apply design to draft"
+msgstr "将设计应用到草稿"
+
+msgid "Return to customise"
+msgstr "返回自定义"
+
+msgid "The reviewed design is invalid or expired."
+msgstr "已审核的设计无效或已过期。"
+
+msgid "The site draft changed or this suggestion was already applied."
+msgstr "网站草稿已变化，或该建议已被应用。"
