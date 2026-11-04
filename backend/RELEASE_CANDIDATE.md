@@ -58,8 +58,14 @@ who can also modify the database, validate the editor's confirmation, or verify
 PDF or metadata anonymity; independent review is still needed.
 The isolated probe runner's `review-copy` mode runs the relevant tests against
 two newly created, retained fictional PostgreSQL probe databases.
-The earlier five-test reviewer-PDF probe passed on the VPS on 2026-11-04;
-the newer metadata checks have not yet been verified there.
+The reviewer-PDF and metadata checks passed eight tests against the VPS probe's
+fictional PostgreSQL database on 2026-11-04.
+
+In the local publication simulation, private proof and published-PDF downloads
+return the exact bounded bytes whose PDF header and stored SHA-256 were checked.
+This closes a gap where a file could change between the check and a second
+open. It does not parse PDFs, scan them for malware, or protect against someone
+who can also change the database digest.
 
 This drill is not a backup of existing data or a production backup system. It
 uses one quiescent fictional file and no concurrent writers; a real service

@@ -3,12 +3,16 @@
 There is deliberately no DOI, notification, external submission or deployment.
 """
 import hashlib
+import hmac
+import io
 import json
+import re
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import SuspiciousFileOperation
 from django.db import transaction
 from django.db.models import F
 from django.http import FileResponse, Http404, HttpResponse
@@ -18,7 +22,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
-from .forms import PublicationMetadataForm, PublicationProofForm
+from .forms import MAX_MANUSCRIPT_BYTES, PublicationMetadataForm, PublicationProofForm
 from .models import (ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, ProductionAssignment,
                      PublicationApproval, PublicationDraft, PublicationProof, ReviewRound, Submission)
 from .views import _author_can_view, _can_coordinate, _download_version, _editor_can_view, _event, _has_role, _submission
@@ -84,20 +88,22 @@ def _issue_valid_for_draft(draft):
     return not draft.issue_id or (draft.issue.journal_id == draft.submission.journal_id and not draft.issue.released_at)
 
 
-def _proof_intact(proof):
-    if not proof or not proof.file:
-        return False
-    digest = hashlib.sha256()
+def _proof_bytes(proof):
+    """Read bounded proof bytes once; return None if unavailable or changed."""
+    if not proof or not proof.file or not re.fullmatch(r"[0-9a-f]{64}", proof.sha256 or ""):
+        return None
     try:
         with proof.file.open("rb") as stream:
-            while True:
-                chunk = stream.read(65536)
-                if not chunk:
-                    break
-                digest.update(chunk)
-    except (OSError, ValueError):
-        return False
-    return digest.hexdigest() == proof.sha256
+            data = stream.read(MAX_MANUSCRIPT_BYTES + 1)
+    except (OSError, ValueError, SuspiciousFileOperation):
+        return None
+    if not data.startswith(b"%PDF-") or len(data) > MAX_MANUSCRIPT_BYTES:
+        return None
+    return data if hmac.compare_digest(hashlib.sha256(data).hexdigest(), proof.sha256) else None
+
+
+def _proof_intact(proof):
+    return _proof_bytes(proof) is not None
 
 
 def _context(request, draft, metadata_form=None, proof_form=None):
@@ -357,13 +363,10 @@ def private_publication_proof(request, pk, proof_id):
     proof = get_object_or_404(PublicationProof, pk=proof_id, draft=draft)
     if not _producer_can_manage(request.user, draft) and proof.pk != getattr(_latest_proof(draft), "pk", None):
         raise Http404
-    if not _proof_intact(proof):
+    data = _proof_bytes(proof)
+    if data is None:
         raise Http404
-    try:
-        stream = proof.file.open("rb")
-    except (OSError, ValueError):
-        raise Http404
-    response = FileResponse(stream, as_attachment=True, filename="fictional-proof.pdf", content_type="application/octet-stream")
+    response = FileResponse(io.BytesIO(data), as_attachment=True, filename="fictional-proof.pdf", content_type="application/octet-stream")
     response["X-Content-Type-Options"] = "nosniff"
     response["Cache-Control"] = "private, no-store"
     return response
@@ -463,11 +466,8 @@ def test_article(request, slug, pk):
 def test_article_pdf(request, slug, pk):
     _enabled()
     draft = _public_article(slug, pk)
-    if not _proof_intact(draft.published_proof):
+    data = _proof_bytes(draft.published_proof)
+    if data is None:
         raise Http404
-    try:
-        stream = draft.published_proof.file.open("rb")
-    except (OSError, ValueError):
-        raise Http404
-    return _no_index(FileResponse(stream, as_attachment=True,
+    return _no_index(FileResponse(io.BytesIO(data), as_attachment=True,
                      filename="fictional-article.pdf", content_type="application/octet-stream"))

@@ -3,6 +3,7 @@ import tempfile
 import hashlib
 import json
 from datetime import timedelta
+from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -14,6 +15,7 @@ from django.urls import reverse
 from publishing.models import (EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, Organisation, ProductionAssignment,
                                PublicationApproval, PublicationDraft, PublicationProof, ReviewAssignment,
                                ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
+from publishing.production_views import _proof_bytes
 
 PDF = b"%PDF-1.4\nFictional publication proof\n%%EOF\n"
 
@@ -229,6 +231,50 @@ class ProductionTests(TestCase):
         with open(proof.file.path, "ab") as output:
             output.write(b"tampered")
         self.assertEqual(Client().get(reverse("test_article_pdf", args=[self.journal.slug, draft.pk])).status_code, 404)
+
+    def test_private_and_published_downloads_return_the_exact_verified_bytes(self):
+        draft = self.ready()
+        proof = PublicationProof.objects.get(draft=draft)
+        changed = b"%PDF-1.4\nUnchecked replacement\n%%EOF"
+
+        def change_after_read(current_proof):
+            data = _proof_bytes(current_proof)
+            Path(current_proof.file.path).write_bytes(changed)
+            return data
+
+        private_url = reverse("private_publication_proof", args=[draft.pk, proof.pk])
+        self.client.force_login(self.author)
+        with patch("publishing.production_views._proof_bytes", side_effect=change_after_read):
+            response = self.client.get(private_url)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(b"".join(response.streaming_content), PDF)
+        self.assertEqual(self.client.get(private_url).status_code, 404)
+
+        Path(proof.file.path).write_bytes(PDF)
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+        public_url = reverse("test_article_pdf", args=[self.journal.slug, draft.pk])
+        with patch("publishing.production_views._proof_bytes", side_effect=change_after_read):
+            response = Client().get(public_url)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(b"".join(response.streaming_content), PDF)
+            self.assertEqual(response["X-Robots-Tag"], "noindex, nofollow, noarchive")
+        self.assertEqual(Client().get(public_url).status_code, 404)
+
+    def test_invalid_or_oversized_proof_is_rejected_even_if_its_hash_matches(self):
+        from publishing.forms import MAX_MANUSCRIPT_BYTES
+
+        draft = self.ready()
+        proof = PublicationProof.objects.get(draft=draft)
+        private_url = reverse("private_publication_proof", args=[draft.pk, proof.pk])
+        self.client.force_login(self.author)
+        for data in (b"not a PDF", b"%PDF-" + b"x" * MAX_MANUSCRIPT_BYTES):
+            with self.subTest(size=len(data)):
+                Path(proof.file.path).write_bytes(data)
+                proof.sha256 = hashlib.sha256(data).hexdigest()
+                proof.save(update_fields=["sha256"])
+                self.assertEqual(self.client.get(private_url).status_code, 404)
+                self.assertEqual(self.approve(draft).status_code, 409)
 
     def test_public_metadata_is_escaped(self):
         draft = self.start()
