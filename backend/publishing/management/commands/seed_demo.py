@@ -15,9 +15,9 @@ class Command(BaseCommand):
         suffix = secrets.token_hex(4)
         credentials = []
         with transaction.atomic():
-            organisation = Organisation.objects.create(name="SCIENTARA-inspired test organisation", slug=f"test-organisation-{suffix}")
-            journal_a = Journal.objects.create(organisation=organisation, name="AIRES (fictional test)", slug=f"aires-test-{suffix}", description="Fictional test journal for the publishing workflow.")
-            journal_b = Journal.objects.create(organisation=organisation, name="VERSIONICS (fictional test)", slug=f"versionics-test-{suffix}", description="A second fictional journal for access isolation checks.")
+            organisation = Organisation.objects.create(name="Fictional Test Publisher", slug=f"test-organisation-{suffix}")
+            journal_a = Journal.objects.create(organisation=organisation, name="Sample Journal A (fictional test)", slug=f"sample-journal-a-test-{suffix}", description="Fictional test journal for the publishing workflow.")
+            journal_b = Journal.objects.create(organisation=organisation, name="Sample Journal B (fictional test)", slug=f"sample-journal-b-test-{suffix}", description="A second fictional journal for access isolation checks.")
             for role, journal, member_role in [
                 ("author", journal_a, Membership.Role.AUTHOR),
                 ("editor", journal_a, Membership.Role.EDITOR),

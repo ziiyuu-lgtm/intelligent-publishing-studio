@@ -1,6 +1,6 @@
 # Intelligent Publishing Studio
 
-Intelligent Publishing Studio is an open-source prototype for a multilingual, multi-journal scholarly publishing platform. SCIENTARA's journal group is the initial pilot scenario. This repository contains a static front-end prototype and a separate, local-development backend for testing submission, manuscript-specific editor and production assignments, editorial decisions, revisions, multiple review rounds, default-off local article, issue, journal website and publisher portal simulations with test image libraries, and separately scoped journal and publisher AI policies with synthetic data.
+Intelligent Publishing Studio is an open-source prototype for a multilingual, multi-journal scholarly publishing platform. This development branch contains an independent Altavien prototype with a static front end and a separate local-development backend for testing submissions, editorial and production assignments, decisions, revisions, review rounds, fictional local publication and site-design workflows, and separately scoped journal and publisher AI policies with synthetic data.
 
 > **Development only.** The static front end is simulated and is not connected to the backend. The backend stores test accounts, metadata, reviews and PDF files locally, but lacks controls required for real manuscripts or deployment. Optional OpenAI metadata, journal-site and publisher-portal design, module-arrangement, independent-page, page-block and page-layout suggestions are disabled by default, require explicit policy and user actions, and have only been tested with a mock provider. Neither component sends email or connects to a DOI registration service or a production database. Do not enter real manuscripts, personal information, production credentials or unpublished research. Neither component is suitable for production use.
 
@@ -18,9 +18,9 @@ Open `http://localhost:8080`. Serve the files over HTTP so that browsers can loa
 
 ## Static prototype
 
-- Four illustrative SCIENTARA journal pages: AIRES, INDUSTRICS, NOVAXIS, and VERSIONICS.
+- Four fictional sample journal pages, labelled Sample A through Sample D.
 - A simulated four-step submission flow and editorial queue with fictional examples.
-- A journal appearance preview, an illustrative AI check, and a VERSIONICS dual-track review example.
+- A journal appearance preview, an illustrative AI check, and a sample dual-track review example.
 - A twelve-language selector with partial translation notices and English fallback.
 
 These interfaces are demonstrations. They do not establish actual journal policies, indexing, article processing services, or third-party AI partnerships. Static prototype actions do not change backend records.
@@ -47,6 +47,6 @@ Possible future work includes secure accounts and access control, manuscript sto
 
 ## License, contributions, and security
 
-The source code is available under the [Apache License, Version 2.0](LICENSE). Subject to that license's terms, commercial use and closed-source derivatives are permitted. The code license does not automatically grant rights to SCIENTARA trademarks, journal names, logos, manuscripts, personal information, or other third-party materials.
+The source code is available under the [Apache License, Version 2.0](LICENSE). Subject to that license's terms, commercial use and closed-source derivatives are permitted. The code license does not automatically grant rights to trademarks, journal names, logos, manuscripts, personal information, or other third-party materials.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and translation instructions, and [SECURITY.md](SECURITY.md) for handling possible vulnerabilities. Do not post confidential information in public issues.

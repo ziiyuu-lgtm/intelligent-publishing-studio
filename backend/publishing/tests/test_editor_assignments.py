@@ -191,7 +191,7 @@ class EditorialAssignmentTests(TestCase):
     def test_seed_creates_a_coordinator_for_the_fictional_journal(self):
         output = StringIO()
         call_command("seed_demo", stdout=output)
-        journal = Journal.objects.get(name="AIRES (fictional test)")
+        journal = Journal.objects.get(name="Sample Journal A (fictional test)")
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.COORDINATOR, active=True).exists())
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.PRODUCER, active=True).exists())
         self.assertTrue(Membership.objects.filter(journal=journal, role=Membership.Role.SITE_MANAGER, active=True).exists())
