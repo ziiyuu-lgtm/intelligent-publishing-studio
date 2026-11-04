@@ -65,3 +65,11 @@ if IPS_LOCAL_LOGIN_THROTTLE_ENABLED and (
     len(IPS_LOCAL_LOGIN_THROTTLE_KEY) < 32 or any(c in IPS_LOCAL_LOGIN_THROTTLE_KEY for c in "\r\n\0")
 ):
     raise ImproperlyConfigured("IPS_LOCAL_LOGIN_THROTTLE_KEY must be a private key of at least 32 characters.")
+
+# Simulated messages to reserved .invalid addresses only; no SMTP is used.
+IPS_LOCAL_REVIEW_MAIL_ENABLED = DEBUG and os.environ.get("IPS_LOCAL_REVIEW_MAIL_ENABLED") == "1"
+IPS_LOCAL_REVIEW_MAIL_KEY = os.environ.get("IPS_LOCAL_REVIEW_MAIL_KEY", "")
+if IPS_LOCAL_REVIEW_MAIL_ENABLED and (
+    len(IPS_LOCAL_REVIEW_MAIL_KEY) < 32 or any(c in IPS_LOCAL_REVIEW_MAIL_KEY for c in "\r\n\0")
+):
+    raise ImproperlyConfigured("IPS_LOCAL_REVIEW_MAIL_KEY must be a private key of at least 32 characters.")

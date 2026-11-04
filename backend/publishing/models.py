@@ -1324,3 +1324,24 @@ class LocalLoginThrottleBucket(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["scope", "digest", "window_start"], name="unique_local_login_bucket")]
+
+
+class LocalReviewMailJob(models.Model):
+    """A simulated invitation only; no external delivery is permitted."""
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending simulation")
+        SIMULATED = "simulated", _("Simulated")
+        SUPPRESSED = "suppressed", _("Suppressed")
+
+    notice = models.OneToOneField(ReviewNotice, on_delete=models.PROTECT, related_name="local_mail_job")
+    recipient_digest = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(
+            condition=(models.Q(status="pending", processed_at__isnull=True) |
+                       models.Q(status__in=["simulated", "suppressed"], processed_at__isnull=False)),
+            name="local_mail_processing_state",
+        )]

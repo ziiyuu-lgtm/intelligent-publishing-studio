@@ -19,8 +19,10 @@ outside the checkout, and credentials for a PostgreSQL database on loopback.
 Missing or structurally invalid settings fail at startup, without printing
 secrets. Store real credentials through an appropriate secret-management
 mechanism; do not commit them or paste them into chat. Candidate dependencies
-are listed separately in `requirements.release-candidate.txt`. PostgreSQL and
-the driver have not yet been integration-tested as part of this change.
+are listed separately in `requirements.release-candidate.txt`. The fictional
+workflow and login-throttle tests ran against PostgreSQL on the VPS on
+2026-11-04 (95 tests passed). The blocked release profile, production role
+permissions and real-data workflows have not been validated by that test.
 
 The separate `config.settings_postgres_probe` profile and
 `scripts/run_altavien_postgres_probe.sh` are for a single isolated, fictional
@@ -38,13 +40,23 @@ fixed window and direct-IP assumption are not a complete production abuse
 defence; proxy trust, distributed attacks, account recovery, retention and
 operational monitoring must be designed and independently tested first.
 
+An optional review-invitation mail queue is limited to fictional `.invalid`
+addresses, is disabled by default and works only in DEBUG. Invitation creation
+and queue insertion share a transaction. A manual command processes pending
+items using Django's in-memory email backend directly; it never uses SMTP or
+delivers an actual email. The recipient is rechecked, and changed addresses,
+expired invitations or revoked access are suppressed. This local simulation
+is not a production email system: real delivery requires verified addresses,
+consent and privacy rules, crash and retry handling, provider configuration,
+retention, audit and independent security review.
+
 The profile sets HTTPS-only cookies and redirection, but does not install TLS,
 configure a reverse proxy or trust proxy-provided headers. HSTS subdomain and
 preload options remain disabled pending a scope and certificate review; Django
 may flag these as `security.W005` and `security.W021`. Email and AI are disabled,
-and attempted email delivery raises an error. Published test articles and
-other DEBUG-only features remain unavailable. No notification delivery, DOI,
-backup, restore or real-user account workflow has been added here.
+and attempted real email delivery raises an error. Published test articles
+and other DEBUG-only features remain unavailable. No real notification
+delivery, DOI, backup, restore or real-user account workflow has been added here.
 
 ## Release work still required
 

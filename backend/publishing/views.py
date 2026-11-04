@@ -821,8 +821,10 @@ def review_invite(request, pk):
             submission=submission, round=review_round, reviewer=reviewer, defaults={"invited_by": request.user},
         )
         if created:
-            ReviewNotice.objects.create(assignment=assignment, recipient_id=assignment.reviewer_id,
-                                        kind=ReviewNotice.Kind.INVITATION, revision=0)
+            notice = ReviewNotice.objects.create(assignment=assignment, recipient_id=assignment.reviewer_id,
+                                                 kind=ReviewNotice.Kind.INVITATION, revision=0)
+            from .local_review_mail import enqueue_invitation
+            enqueue_invitation(notice)
             if submission.status == Submission.Status.SUBMITTED:
                 submission.status = Submission.Status.UNDER_REVIEW
                 submission.save(update_fields=["status"])

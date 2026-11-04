@@ -107,6 +107,8 @@ IPS_OPENAI_IMAGE_MODEL = ""
 IPS_LOCAL_PUBLICATION_ENABLED = False
 IPS_LOCAL_LOGIN_THROTTLE_ENABLED = False
 IPS_LOCAL_LOGIN_THROTTLE_KEY = ""
+IPS_LOCAL_REVIEW_MAIL_ENABLED = False
+IPS_LOCAL_REVIEW_MAIL_KEY = ""
 
 # This is intentionally not controlled by an environment variable. Removing
 # the block requires a separate reviewed code change after release criteria.
