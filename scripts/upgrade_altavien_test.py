@@ -9,6 +9,7 @@ from contextlib import closing
 import os
 import pwd
 import select
+import shlex
 import shutil
 import signal
 import sqlite3
@@ -135,15 +136,19 @@ class SystemdService:
         self.username = username
         self.name = 'altavien-test-web.service'
 
-    def value(self, name):
-        return run('systemctl', 'show', '--value', '-p', name, self.name, capture=True).stdout.decode().strip()
+    def value(self, name, unit=None):
+        return run('systemctl', 'show', '--value', '-p', name, unit or self.name, capture=True).stdout.decode().strip()
 
-    def active(self):
-        return subprocess.run(['systemctl', 'is-active', '--quiet', self.name]).returncode == 0
+    def active(self, unit=None):
+        return subprocess.run(['systemctl', 'is-active', '--quiet', unit or self.name]).returncode == 0
 
     def validate(self):
         if not self.active() or self.value('CanStart') != 'yes' or self.value('CanStop') != 'yes':
             raise RuntimeError('The test service is not in the expected active state')
+        if (self.value('Transient') != 'yes' or self.value('User') != self.username or
+                self.value('WorkingDirectory') != str(self.site / 'backend') or
+                shlex.split(self.value('Environment')) != ['IPS_LOCAL_PUBLICATION_ENABLED=1']):
+            raise RuntimeError('The test service has an unexpected configuration')
         pid = int(self.value('MainPID'))
         proc = Path('/proc') / str(pid)
         if pid <= 0 or proc.stat().st_uid != pwd.getpwnam(self.username).pw_uid:
@@ -162,8 +167,52 @@ class SystemdService:
         if self.active():
             raise RuntimeError('The original test service did not stop')
 
+    def create(self, unit, command):
+        unit_name = unit.removesuffix('.service')
+        run('systemd-run', '--unit=' + unit_name, '--property=Type=exec',
+            '--property=User=' + self.username, '--property=WorkingDirectory=' + str(self.site / 'backend'),
+            '--setenv=IPS_LOCAL_PUBLICATION_ENABLED=1', *map(str, command))
+
+    def start_or_create(self, unit, command):
+        if self.active(unit):
+            raise RuntimeError('The service unexpectedly became active')
+        state = self.value('LoadState', unit)
+        if state == 'not-found':
+            self.create(unit, command)
+            return
+        if state != 'loaded':
+            raise RuntimeError('The service unit has an unexpected load state')
+        try:
+            run('systemctl', 'start', unit)
+        except subprocess.CalledProcessError:
+            # A transient unit can be collected between the state query and start.
+            if self.active(unit) or self.value('LoadState', unit) != 'not-found':
+                raise
+            self.create(unit, command)
+
     def start(self):
-        run('systemctl', 'start', self.name)
+        self.start_or_create(self.name, [self.site / '.venv/bin/python', self.site / 'backend/manage.py',
+                                        'runserver', '127.0.0.1:8000', '--noreload'])
+
+    def verify_restart_capability(self):
+        """Exercise a separate transient unit before stopping the test site."""
+        canary = 'altavien-review-canary-v2.service'
+        if self.active(canary) or self.value('LoadState', canary) != 'not-found':
+            raise RuntimeError('The separate service canary already exists')
+        try:
+            self.create(canary, ['/bin/sleep', '60'])
+            if not self.active(canary):
+                raise RuntimeError('The separate service canary did not start')
+            run('systemctl', 'stop', canary)
+            if self.active(canary):
+                raise RuntimeError('The separate service canary did not stop')
+            self.start_or_create(canary, ['/bin/sleep', '60'])
+            if not self.active(canary):
+                raise RuntimeError('The separate service canary did not restart')
+            print('TRANSIENT_SERVICE_RESTART_CANARY_PASSED', flush=True)
+        finally:
+            if self.active(canary):
+                run('systemctl', 'stop', canary)
 
     def healthy(self):
         for _ in range(10):
@@ -259,6 +308,7 @@ class Upgrade:
         database_check(database, upgraded=False)
         runtime_manifest(runtime)
         self.pid = self.service.validate()
+        self.service.verify_restart_capability()
         runtime_size = sum(p.stat().st_size for p in runtime.rglob('*') if p.is_file())
         if shutil.disk_usage(self.stage.parent).free < 2 * runtime_size + 64 * 1024 * 1024:
             raise RuntimeError('There is not enough free space for the isolated copy')
@@ -477,8 +527,8 @@ def main():
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
     site = Path('/srv/altavien-test')
-    upgrader = Upgrade(site, '/srv/altavien-pg-probe/source', '/srv/altavien-review-stage-a9fdf7',
-        '/srv/altavien-review-backup-a9fdf7', site / '.venv/bin/python', SystemdService(site, 'altavien-test'))
+    upgrader = Upgrade(site, '/srv/altavien-pg-probe/source', '/srv/altavien-review-stage-v2-a9fdf7',
+        '/srv/altavien-review-backup-v2-a9fdf7', site / '.venv/bin/python', SystemdService(site, 'altavien-test'))
     upgrader.execute()
 
 
