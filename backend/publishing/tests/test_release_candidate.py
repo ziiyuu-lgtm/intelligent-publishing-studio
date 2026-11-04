@@ -33,6 +33,12 @@ class BlockedCandidateTests(SimpleTestCase):
             "IPS_LOCAL_PUBLICATION_ENABLED": "1",
             "IPS_LOCAL_REGISTRATION_ENABLED": "1",
             "IPS_LOCAL_MAIL_VERIFICATION_ENABLED": "1",
+            "ALTAVIEN_SMTP_HOST": "smtp.example.invalid",
+            "ALTAVIEN_SMTP_PORT": "587",
+            "ALTAVIEN_SMTP_SECURITY": "starttls",
+            "ALTAVIEN_SMTP_USERNAME": "fictional-smtp-user",
+            "ALTAVIEN_SMTP_PASSWORD": "fictional-smtp-password",
+            "ALTAVIEN_SMTP_FROM": "no-reply@altavien.com",
         }
 
     def load_candidate(self, **changes):
@@ -57,6 +63,7 @@ class BlockedCandidateTests(SimpleTestCase):
         self.assertFalse(candidate.IPS_LOCAL_REVIEW_MAIL_ENABLED)
         self.assertFalse(candidate.IPS_LOCAL_REGISTRATION_ENABLED)
         self.assertFalse(candidate.IPS_LOCAL_MAIL_VERIFICATION_ENABLED)
+        self.assertEqual(candidate.EMAIL_BACKEND, "config.unavailable_email.EmailBackend")
         self.assertEqual(candidate.DATABASES["default"]["ENGINE"], "django.db.backends.postgresql")
         self.assertEqual(candidate.DATABASES["default"]["HOST"], "127.0.0.1")
         self.assertEqual(candidate.ALLOWED_HOSTS, ["altavien.example", "www.altavien.example"])

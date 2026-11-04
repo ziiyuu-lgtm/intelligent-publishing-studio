@@ -20,8 +20,9 @@ Missing or structurally invalid settings fail at startup, without printing
 secrets. Store real credentials through an appropriate secret-management
 mechanism; do not commit them or paste them into chat. Candidate dependencies
 are listed separately in `requirements.release-candidate.txt`. The fictional
-workflow, login-throttle, fictional invitation-mail and local registration
-tests ran against PostgreSQL on the VPS on 2026-11-04 (123 tests passed). The blocked release profile, production role
+workflow, login-throttle, fictional invitation-mail, local registration and
+simulated email-link tests ran against PostgreSQL on the VPS on 2026-11-04
+(138 tests passed). The blocked release profile, production role
 permissions and real-data workflows have not been validated by that test.
 
 The separate `config.settings_postgres_probe` profile and
@@ -73,13 +74,20 @@ durable delivery queue, resend or recovery workflow, provider integration,
 or production abuse/identity protections; successful synthetic tests do not
 establish those properties. The in-memory message is scheduled only after the
 database transaction commits, but it is not durable; a process interruption or
-callback failure can lose it. The link-validation tests for this experiment
-have not yet been run on the VPS PostgreSQL probe.
+callback failure can lose it. These checks do not exercise actual mail delivery.
 
 The test confirmation fingerprint now also depends on the password hash. A
 password change invalidates a pending test link. Pending links issued by the
 earlier test code are also invalid after upgrading; already active accounts
 are not changed.
+
+The optional `check_smtp_config` management command checks the format of a
+proposed SMTP host, port, TLS mode, authentication details, Altavien sender
+address and timeout. It does not connect, verify credentials or domain
+ownership, check DNS, send a message, or enable the SMTP backend. Supply any
+eventual credentials through an appropriate secret-management mechanism and
+never print or paste them into chat. Real delivery still needs a reviewed
+provider integration, durable processing and end-to-end testing.
 
 The profile sets HTTPS-only cookies and redirection, but does not install TLS,
 configure a reverse proxy or trust proxy-provided headers. HSTS subdomain and
