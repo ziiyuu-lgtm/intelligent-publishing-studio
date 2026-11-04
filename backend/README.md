@@ -2,6 +2,10 @@
 
 This separate Django application is an early backend for testing the publishing workflow with entirely fictional data. It does not serve or modify the static prototype in `dist/` and is not deployed to SCIENTARA. It must not be used for real manuscripts or exposed to the public internet.
 
+An isolated [blocked release-candidate configuration](RELEASE_CANDIDATE.md) is
+being prepared separately. It does not enable the prototype for real data or
+public use and intentionally rejects all HTTP requests.
+
 ## What works locally
 
 - An organisation can contain multiple journals. Test users can have author, editor, reviewer, editorial coordinator, production editor, journal site manager or journal AI manager roles in individual journals; the same user may have multiple roles.
