@@ -5,9 +5,15 @@ from django.http import HttpResponse
 from django.utils.translation import gettext as _
 
 from .local_login_throttle import consume_budget
+from .local_registration import enabled as registration_enabled
 
 
 class LocalThrottledLoginView(LoginView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["local_registration_enabled"] = registration_enabled()
+        return context
+
     def post(self, request, *args, **kwargs):
         if settings.DEBUG and getattr(settings, "IPS_LOCAL_LOGIN_THROTTLE_ENABLED", False):
             allowed, retry = consume_budget(request.META.get("REMOTE_ADDR"), request.POST.get("username", ""))

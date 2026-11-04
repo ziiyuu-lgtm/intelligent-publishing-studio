@@ -11,5 +11,8 @@
     {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     <button class="button" type="submit">{% translate "Sign in" %}</button>
   </form>
+  {% if local_registration_enabled %}
+    <p><a href="{% url 'test_registration' %}">{% translate "Create a fictional test account" %}</a></p>
+  {% endif %}
 </section>
 {% endblock %}

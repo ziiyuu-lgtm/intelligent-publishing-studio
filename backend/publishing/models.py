@@ -18,6 +18,19 @@ class Organisation(models.Model):
         return self.name
 
 
+class LocalTestRegistration(models.Model):
+    """A fictional registration attempt; this is not email verification."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="local_test_registration")
+    address_digest = models.CharField(max_length=64, unique=True)
+    token_digest = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
+    activated_at = models.DateTimeField(null=True, blank=True)
+
+
 class Journal(models.Model):
     class ReviewMode(models.TextChoices):
         DIRECT = "direct", _("Standard review copy")

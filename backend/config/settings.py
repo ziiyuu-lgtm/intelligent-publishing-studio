@@ -73,3 +73,11 @@ if IPS_LOCAL_REVIEW_MAIL_ENABLED and (
     len(IPS_LOCAL_REVIEW_MAIL_KEY) < 32 or any(c in IPS_LOCAL_REVIEW_MAIL_KEY for c in "\r\n\0")
 ):
     raise ImproperlyConfigured("IPS_LOCAL_REVIEW_MAIL_KEY must be a private key of at least 32 characters.")
+
+# Local fictional account demonstration only; it does not verify email.
+IPS_LOCAL_REGISTRATION_ENABLED = DEBUG and os.environ.get("IPS_LOCAL_REGISTRATION_ENABLED") == "1"
+IPS_LOCAL_REGISTRATION_KEY = os.environ.get("IPS_LOCAL_REGISTRATION_KEY", "")
+if IPS_LOCAL_REGISTRATION_ENABLED and (
+    len(IPS_LOCAL_REGISTRATION_KEY) < 32 or any(c in IPS_LOCAL_REGISTRATION_KEY for c in "\r\n\0")
+):
+    raise ImproperlyConfigured("IPS_LOCAL_REGISTRATION_KEY must be a private key of at least 32 characters.")

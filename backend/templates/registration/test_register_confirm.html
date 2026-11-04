@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Confirm test account" %} | Intelligent Publishing Studio{% endblock %}
+{% block content %}
+<section class="narrow card form-card">
+  <span class="eyebrow">{% translate "FICTIONAL TEST ONLY" %}</span>
+  <h1>{% translate "Simulate account confirmation" %}</h1>
+  <p class="notice">{% translate "For this local demonstration the code is shown in this browser. No email was sent, and no mailbox or identity was verified." %}</p>
+  {% if failed %}<p class="notice error">{% translate "The test confirmation could not be completed." %}</p>{% endif %}
+  {% if entry %}
+    <p>{% translate "This test code expires after 15 minutes." %}</p>
+    <p><code style="overflow-wrap:anywhere">{{ entry.token }}</code></p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="token" value="{{ entry.token }}">
+      <button class="button" type="submit">{% translate "Complete simulated confirmation" %}</button>
+    </form>
+  {% else %}
+    <p>{% translate "There is no pending test confirmation in this browser, or it has expired." %}</p>
+    <p><a href="{% url 'test_registration' %}">{% translate "Create a fictional test account" %}</a></p>
+  {% endif %}
+</section>
+{% endblock %}

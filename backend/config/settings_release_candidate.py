@@ -109,6 +109,8 @@ IPS_LOCAL_LOGIN_THROTTLE_ENABLED = False
 IPS_LOCAL_LOGIN_THROTTLE_KEY = ""
 IPS_LOCAL_REVIEW_MAIL_ENABLED = False
 IPS_LOCAL_REVIEW_MAIL_KEY = ""
+IPS_LOCAL_REGISTRATION_ENABLED = False
+IPS_LOCAL_REGISTRATION_KEY = ""
 
 # This is intentionally not controlled by an environment variable. Removing
 # the block requires a separate reviewed code change after release criteria.

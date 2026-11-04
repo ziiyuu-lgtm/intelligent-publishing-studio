@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Create test account" %} | Intelligent Publishing Studio{% endblock %}
+{% block content %}
+<section class="narrow card form-card">
+  <span class="eyebrow">{% translate "FICTIONAL TEST ONLY" %}</span>
+  <h1>{% translate "Create a test account" %}</h1>
+  <p class="notice">{% translate "Use invented details only. This local demonstration does not send email or verify an email address." %}</p>
+  <form method="post" class="stack">{% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}
+    <button class="button" type="submit">{% translate "Create fictional account" %}</button>
+  </form>
+  <p><a href="{% url 'login' %}">{% translate "Back to sign in" %}</a></p>
+</section>
+{% endblock %}

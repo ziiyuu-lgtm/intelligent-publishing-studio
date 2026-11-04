@@ -20,8 +20,8 @@ Missing or structurally invalid settings fail at startup, without printing
 secrets. Store real credentials through an appropriate secret-management
 mechanism; do not commit them or paste them into chat. Candidate dependencies
 are listed separately in `requirements.release-candidate.txt`. The fictional
-workflow and login-throttle tests ran against PostgreSQL on the VPS on
-2026-11-04 (95 tests passed). The blocked release profile, production role
+workflow, login-throttle and fictional invitation-mail tests ran against
+PostgreSQL on the VPS on 2026-11-04 (108 tests passed). The blocked release profile, production role
 permissions and real-data workflows have not been validated by that test.
 
 The separate `config.settings_postgres_probe` profile and
@@ -49,6 +49,16 @@ expired invitations or revoked access are suppressed. This local simulation
 is not a production email system: real delivery requires verified addresses,
 consent and privacy rules, crash and retry handling, provider configuration,
 retention, audit and independent security review.
+
+An optional fictional account-registration demonstration is disabled by
+default and works only in DEBUG with `IPS_LOCAL_REGISTRATION_ENABLED=1` and a
+separate `IPS_LOCAL_REGISTRATION_KEY` of at least 32 characters. It accepts only
+test-prefixed usernames and invented `.invalid` addresses. The confirmation
+code is deliberately displayed in the same browser, so it does not verify a
+mailbox or a person's identity; no email is sent. Accounts start inactive,
+confirmation expires, and no journal or organisation role is granted.
+This demonstration is not a real account lifecycle or a substitute for
+production registration, recovery, abuse prevention or verified email.
 
 The profile sets HTTPS-only cookies and redirection, but does not install TLS,
 configure a reverse proxy or trust proxy-provided headers. HSTS subdomain and
