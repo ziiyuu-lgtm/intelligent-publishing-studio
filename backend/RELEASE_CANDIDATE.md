@@ -22,6 +22,15 @@ mechanism; do not commit them or paste them into chat. Candidate dependencies
 are listed separately in `requirements.release-candidate.txt`. PostgreSQL and
 the driver have not yet been integration-tested as part of this change.
 
+The separate `config.settings_postgres_probe` profile and
+`scripts/run_altavien_postgres_probe.sh` are for a single isolated, fictional
+database compatibility test. The profile accepts only the Django test
+command, a randomly named probe database and the local postgres OS account;
+it must never serve web traffic. The script refuses non-loopback database
+listeners, creates new names and preserves the probe databases for inspection.
+The test uses a PostgreSQL administrator account to exercise compatibility;
+it does not validate production database permissions or credentials.
+
 The profile sets HTTPS-only cookies and redirection, but does not install TLS,
 configure a reverse proxy or trust proxy-provided headers. HSTS subdomain and
 preload options remain disabled pending a scope and certificate review; Django
