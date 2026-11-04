@@ -17,6 +17,7 @@ import tempfile
 from unittest import skipUnless
 
 from django.contrib.auth import get_user_model
+from django.core.files.storage import FileSystemStorage
 from django.db import connection
 from django.test import SimpleTestCase, TransactionTestCase
 
@@ -153,7 +154,7 @@ class PostgreSQLBackupDrillTests(TransactionTestCase):
         print(f"FICTIONAL_BACKUP_DIRECTORY: {root}", flush=True)
 
         relative_file = "manuscripts/fictional-recovery.pdf"
-        fictional_pdf = b"%PDF-1.4\n% Fictional recovery drill only.\n%%EOF\n"
+        fictional_pdf = _fictional_pdf()
         source_file = source_media / relative_file
         _write_private_file(source_file, fictional_pdf)
 
@@ -211,7 +212,8 @@ class PostgreSQLBackupDrillTests(TransactionTestCase):
             "version": 1, "version_path": relative_file,
         })
         self.assertEqual(_sha256(restored_file), loaded["media_sha256"])
-        self.assertEqual(restored_file.read_bytes(), fictional_pdf)
+        with FileSystemStorage(location=restored_media).open(restored["path"], "rb") as stream:
+            self.assertEqual(stream.read(), fictional_pdf)
         self.assertEqual(root.stat().st_mode & 0o077, 0)
         self.assertEqual(archive.stat().st_mode & 0o077, 0)
         self.assertEqual(manifest_file.stat().st_mode & 0o077, 0)
@@ -223,6 +225,31 @@ def _write_private_file(path, data):
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as stream:
         stream.write(data)
+
+
+def _fictional_pdf():
+    """Create a small valid PDF without relying on an external library."""
+    content = b"BT /F1 12 Tf 72 720 Td (Fictional recovery drill) Tj ET\n"
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length " + str(len(content)).encode("ascii") + b" >>\nstream\n" + content + b"endstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    result = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(result))
+        result.extend(f"{number} 0 obj\n".encode("ascii") + body + b"\nendobj\n")
+    xref_offset = len(result)
+    result.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    result.extend(b"0000000000 65535 f \n")
+    for offset in offsets:
+        result.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    result.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("ascii"))
+    return bytes(result)
 
 
 def _copy_private_file(source, destination):
