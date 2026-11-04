@@ -1312,3 +1312,15 @@ class SubmissionEvent(models.Model):
 
     class Meta:
         ordering = ["created_at", "pk"]
+
+
+class LocalLoginThrottleBucket(models.Model):
+    """Short-lived, pseudonymous counters for fictional local tests only."""
+    scope = models.CharField(max_length=8, choices=[("source", "Source"), ("pair", "Source and username")])
+    digest = models.CharField(max_length=64)
+    window_start = models.DateTimeField()
+    expires_at = models.DateTimeField(db_index=True)
+    attempts = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["scope", "digest", "window_start"], name="unique_local_login_bucket")]

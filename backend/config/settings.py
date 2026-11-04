@@ -57,3 +57,11 @@ IPS_OPENAI_IMAGE_MODEL = os.environ.get("IPS_OPENAI_IMAGE_MODEL", "").strip()
 
 # Only for locally bound, fictional-data publishing demonstrations.
 IPS_LOCAL_PUBLICATION_ENABLED = DEBUG and os.environ.get("IPS_LOCAL_PUBLICATION_ENABLED") == "1"
+
+# Fictional local tests only; production settings do not enable this feature.
+IPS_LOCAL_LOGIN_THROTTLE_ENABLED = DEBUG and os.environ.get("IPS_LOCAL_LOGIN_THROTTLE_ENABLED") == "1"
+IPS_LOCAL_LOGIN_THROTTLE_KEY = os.environ.get("IPS_LOCAL_LOGIN_THROTTLE_KEY", "")
+if IPS_LOCAL_LOGIN_THROTTLE_ENABLED and (
+    len(IPS_LOCAL_LOGIN_THROTTLE_KEY) < 32 or any(c in IPS_LOCAL_LOGIN_THROTTLE_KEY for c in "\r\n\0")
+):
+    raise ImproperlyConfigured("IPS_LOCAL_LOGIN_THROTTLE_KEY must be a private key of at least 32 characters.")

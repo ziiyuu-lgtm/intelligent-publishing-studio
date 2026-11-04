@@ -31,6 +31,13 @@ listeners, creates new names and preserves the probe databases for inspection.
 The test uses a PostgreSQL administrator account to exercise compatibility;
 it does not validate production database permissions or credentials.
 
+An optional local-only login-throttle experiment is disabled by default. It
+requires a separate private key, works only in DEBUG, and counts attempts by
+direct source IP and source/username pair with pseudonymous stored keys. Its
+fixed window and direct-IP assumption are not a complete production abuse
+defence; proxy trust, distributed attacks, account recovery, retention and
+operational monitoring must be designed and independently tested first.
+
 The profile sets HTTPS-only cookies and redirection, but does not install TLS,
 configure a reverse proxy or trust proxy-provided headers. HSTS subdomain and
 preload options remain disabled pending a scope and certificate review; Django

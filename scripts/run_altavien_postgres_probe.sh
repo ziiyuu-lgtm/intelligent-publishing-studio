@@ -61,6 +61,7 @@ runuser -u postgres -- env -i \
     publishing.tests.test_production \
     publishing.tests.test_submission_checklist \
     publishing.tests.test_editor_assignments \
+    publishing.tests.test_local_login_throttle \
     --keepdb --noinput -v 1
 
 echo ALTAVIEN_POSTGRES_PROBE_PASSED

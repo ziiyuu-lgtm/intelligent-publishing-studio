@@ -51,6 +51,7 @@ class BlockedCandidateTests(SimpleTestCase):
         self.assertFalse(candidate.IPS_LOCAL_PUBLICATION_ENABLED)
         self.assertFalse(candidate.IPS_OPENAI_ENABLED)
         self.assertFalse(candidate.IPS_OPENAI_IMAGE_ENABLED)
+        self.assertFalse(candidate.IPS_LOCAL_LOGIN_THROTTLE_ENABLED)
         self.assertEqual(candidate.DATABASES["default"]["ENGINE"], "django.db.backends.postgresql")
         self.assertEqual(candidate.DATABASES["default"]["HOST"], "127.0.0.1")
         self.assertEqual(candidate.ALLOWED_HOSTS, ["altavien.example", "www.altavien.example"])
