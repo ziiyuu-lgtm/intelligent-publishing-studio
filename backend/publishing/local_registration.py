@@ -38,8 +38,9 @@ def _address_digest(address):
     return _digest("address", address.casefold())
 
 
-def _token_digest(registration_id, token):
-    return _digest("token", str(registration_id) + "\0" + token)
+def _token_digest(registration_id, token, password_hash):
+    # A changed password invalidates a pending test link without storing it.
+    return _digest("token", str(registration_id) + "\0" + token + "\0" + password_hash)
 
 
 class FictionalRegistrationForm(UserCreationForm):
@@ -77,7 +78,7 @@ def create_attempt(form):
         user.save()
         LocalTestRegistration.objects.create(
             id=attempt_id, user=user, address_digest=_address_digest(user.email),
-            token_digest=_token_digest(attempt_id, token), expires_at=timezone.now() + LIFETIME,
+            token_digest=_token_digest(attempt_id, token, user.password), expires_at=timezone.now() + LIFETIME,
         )
     return attempt_id, token
 
@@ -99,10 +100,11 @@ def activate_attempt(attempt_id, token):
         user = get_user_model().objects.select_for_update().get(pk=attempt.user_id)
         address = _fictional_address(user.email)
         if (attempt.activated_at is not None or attempt.expires_at <= timezone.now()
-                or attempt.failed_attempts >= MAX_ATTEMPTS or user.is_active or not address
+                or attempt.failed_attempts >= MAX_ATTEMPTS or user.is_active
+                or user.is_staff or user.is_superuser or not address
                 or not constant_time_compare(attempt.address_digest, _address_digest(address))):
             return False
-        if not constant_time_compare(attempt.token_digest, _token_digest(attempt.pk, token)):
+        if not constant_time_compare(attempt.token_digest, _token_digest(attempt.pk, token, user.password)):
             attempt.failed_attempts += 1
             attempt.save(update_fields=["failed_attempts"])
             return False

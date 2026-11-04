@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Fictional email-link test" %}{% endblock %}
+{% block content %}
+<section class="narrow card form-card">
+  <span class="eyebrow">{% translate "FICTIONAL TEST ONLY" %}</span>
+  <h1>{% translate "Test request received" %}</h1>
+  <p>{% translate "If fictional details were accepted, a confirmation message was prepared in test memory. No email was sent." %}</p>
+  <p><a href="{% url 'login' %}">{% translate "Back to sign in" %}</a></p>
+</section>
+{% endblock %}

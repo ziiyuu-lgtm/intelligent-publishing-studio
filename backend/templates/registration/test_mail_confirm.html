@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% translate "Fictional confirmation" %}{% endblock %}
+{% block content %}
+<section class="narrow card form-card">
+  <span class="eyebrow">{% translate "FICTIONAL TEST ONLY" %}</span>
+  <h1>{% translate "Confirm a fictional account" %}</h1>
+  <p class="notice">{% translate "This is an isolated simulation. No actual mailbox or identity is verified." %}</p>
+  {% if result == 'confirmed' %}
+    <p>{% translate "The fictional test account is active. No actual email was sent." %}</p>
+    <p><a href="{% url 'login' %}">{% translate "Sign in" %}</a></p>
+  {% elif result == 'invalid' %}
+    <p>{% translate "The test confirmation is invalid or expired." %}</p>
+  {% else %}
+    <form method="post" data-test-mail-confirmation>{% csrf_token %}<input type="hidden" name="token" value="">
+      <button class="button" type="submit" disabled>{% translate "Confirm test account" %}</button>
+    </form>
+    <noscript><p>{% translate "JavaScript is required for this isolated link test." %}</p></noscript>
+    <script src="{% static 'local_mail_confirmation.js' %}" defer></script>
+  {% endif %}
+</section>
+{% endblock %}

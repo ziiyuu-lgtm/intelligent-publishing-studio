@@ -20,8 +20,8 @@ Missing or structurally invalid settings fail at startup, without printing
 secrets. Store real credentials through an appropriate secret-management
 mechanism; do not commit them or paste them into chat. Candidate dependencies
 are listed separately in `requirements.release-candidate.txt`. The fictional
-workflow, login-throttle and fictional invitation-mail tests ran against
-PostgreSQL on the VPS on 2026-11-04 (108 tests passed). The blocked release profile, production role
+workflow, login-throttle, fictional invitation-mail and local registration
+tests ran against PostgreSQL on the VPS on 2026-11-04 (123 tests passed). The blocked release profile, production role
 permissions and real-data workflows have not been validated by that test.
 
 The separate `config.settings_postgres_probe` profile and
@@ -59,6 +59,27 @@ mailbox or a person's identity; no email is sent. Accounts start inactive,
 confirmation expires, and no journal or organisation role is granted.
 This demonstration is not a real account lifecycle or a substitute for
 production registration, recovery, abuse prevention or verified email.
+
+An additional experiment, `IPS_LOCAL_MAIL_VERIFICATION_ENABLED=1`, requires
+that fictional registration also be enabled. It creates a fictional message
+for an `.invalid` address in the current process's in-memory outbox, using the
+in-memory email backend directly even if SMTP is configured elsewhere. A test
+can retrieve its link and simulate opening it in another browser; the link
+token is in the URL fragment and confirmation requires a separate CSRF-checked
+POST. The fragment is still visible to the browser and its scripts or
+extensions. It never sends or verifies a real email. This remains local-only,
+default-off and disabled in the blocked release profile. The experiment has no
+durable delivery queue, resend or recovery workflow, provider integration,
+or production abuse/identity protections; successful synthetic tests do not
+establish those properties. The in-memory message is scheduled only after the
+database transaction commits, but it is not durable; a process interruption or
+callback failure can lose it. The link-validation tests for this experiment
+have not yet been run on the VPS PostgreSQL probe.
+
+The test confirmation fingerprint now also depends on the password hash. A
+password change invalidates a pending test link. Pending links issued by the
+earlier test code are also invalid after upgrading; already active accounts
+are not changed.
 
 The profile sets HTTPS-only cookies and redirection, but does not install TLS,
 configure a reverse proxy or trust proxy-provided headers. HSTS subdomain and

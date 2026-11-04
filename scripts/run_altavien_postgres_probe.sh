@@ -64,6 +64,7 @@ runuser -u postgres -- env -i \
     publishing.tests.test_local_login_throttle \
     publishing.tests.test_local_review_mail \
     publishing.tests.test_local_registration \
+    publishing.tests.test_local_mail_verification \
     --keepdb --noinput -v 1
 
 echo ALTAVIEN_POSTGRES_PROBE_PASSED

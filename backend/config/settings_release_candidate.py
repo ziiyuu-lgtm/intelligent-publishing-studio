@@ -111,6 +111,7 @@ IPS_LOCAL_REVIEW_MAIL_ENABLED = False
 IPS_LOCAL_REVIEW_MAIL_KEY = ""
 IPS_LOCAL_REGISTRATION_ENABLED = False
 IPS_LOCAL_REGISTRATION_KEY = ""
+IPS_LOCAL_MAIL_VERIFICATION_ENABLED = False
 
 # This is intentionally not controlled by an environment variable. Removing
 # the block requires a separate reviewed code change after release criteria.
