@@ -11,6 +11,7 @@ case "${1:-workflow}" in
         backup_drill_enabled=0
         probe_labels=(
             publishing.tests.test_workflow
+            publishing.tests.test_review_copy_integrity
             publishing.tests.test_production
             publishing.tests.test_submission_checklist
             publishing.tests.test_editor_assignments
@@ -23,6 +24,10 @@ case "${1:-workflow}" in
     backup-drill)
         backup_drill_enabled=1
         probe_labels=(publishing.tests.test_postgres_backup_drill)
+        ;;
+    review-copy)
+        backup_drill_enabled=0
+        probe_labels=(publishing.tests.test_review_copy_integrity)
         ;;
     *)
         echo STOP_INVALID_PROBE_MODE
@@ -95,6 +100,9 @@ runuser -u postgres -- env -i \
 
 if [ "$backup_drill_enabled" = 1 ]; then
     echo ALTAVIEN_BACKUP_DRILL_PASSED
+fi
+if [ "${1:-workflow}" = review-copy ]; then
+    echo ALTAVIEN_REVIEW_COPY_PROBE_PASSED
 fi
 echo ALTAVIEN_POSTGRES_PROBE_PASSED
 echo PROBE_DATABASES_RETAINED_FOR_REVIEW

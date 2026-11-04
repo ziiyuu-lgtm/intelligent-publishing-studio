@@ -622,6 +622,8 @@ class SubmissionVersion(models.Model):
     review_copy_confirmed = models.BooleanField(default=False)
     review_copy_checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="review_copies_checked")
     review_copy_checked_at = models.DateTimeField(null=True, blank=True)
+    # Empty for legacy checks: the editor must review the current file again.
+    review_copy_checked_sha256 = models.CharField(max_length=64, blank=True)
     author_response = models.TextField(_("Response to the editor"), max_length=20000, blank=True)
     # Older records have no trustworthy version-specific metadata; NULL means unknown.
     title_snapshot = models.CharField(_("Version title"), max_length=250, null=True, blank=True)

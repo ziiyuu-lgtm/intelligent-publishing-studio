@@ -423,6 +423,12 @@ class WorkflowTests(TestCase):
         self.assertEqual(result.status_code, 302)
         return Submission.objects.get()
 
+    def confirm_review_copy(self, submission, token=None):
+        if token is None:
+            token = self.client.get(reverse("submission_detail", args=[submission.pk])).context["review_copy_check_token"]
+        return self.client.post(reverse("review_copy_screen", args=[submission.pk]),
+                                {"confirmed": "yes", "check_token": token})
+
     def test_separate_copy_requires_checks_and_never_returns_author_file_to_reviewer(self):
         self.journal.review_mode = Journal.ReviewMode.SEPARATE
         self.journal.save(update_fields=["review_mode"])
@@ -459,8 +465,9 @@ class WorkflowTests(TestCase):
         self.client.force_login(self.other_editor)
         self.assertEqual(self.client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"}).status_code, 404)
         self.client.force_login(self.editor)
-        self.assertEqual(self.client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"}).status_code, 302)
-        self.assertEqual(self.client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"}).status_code, 302)
+        token = self.client.get(reverse("submission_detail", args=[submission.pk])).context["review_copy_check_token"]
+        self.assertEqual(self.confirm_review_copy(submission, token).status_code, 302)
+        self.assertEqual(self.confirm_review_copy(submission, token).status_code, 302)
         self.assertEqual(submission.events.filter(action="review_copy_checked").count(), 1)
         assignment = self.invite(submission)
         self.client.force_login(self.reviewer)
@@ -489,7 +496,7 @@ class WorkflowTests(TestCase):
         submission = self.create_separate_draft()
         self.submit(submission)
         self.client.force_login(self.editor)
-        self.client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"})
+        self.confirm_review_copy(submission)
         assignment = self.invite(submission)
         self.finish_review(assignment)
         self.decide(submission)
@@ -506,7 +513,7 @@ class WorkflowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.client.force_login(self.editor)
         self.assertEqual(self.client.post(reverse("review_invite", args=[submission.pk]), {"reviewer":self.reviewer.pk}).status_code, 409)
-        self.client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"})
+        self.confirm_review_copy(submission)
         self.client.post(reverse("review_invite", args=[submission.pk]), {"reviewer":self.reviewer.pk})
         second = ReviewAssignment.objects.get(submission=submission, reviewer=self.reviewer, round__number=2)
         self.client.force_login(self.reviewer)
@@ -596,7 +603,7 @@ class WorkflowTests(TestCase):
         client.force_login(self.editor)
         self.assertEqual(client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"}).status_code, 403)
         self.client.force_login(self.editor)
-        self.client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"})
+        self.confirm_review_copy(submission)
         assignment = self.invite(submission)
         client.force_login(self.reviewer)
         self.assertEqual(client.post(reverse("review_respond", args=[assignment.pk]), {"response":"conflict", "conflict_details":"test"}).status_code, 403)
@@ -608,7 +615,7 @@ class WorkflowTests(TestCase):
         submission = self.create_separate_draft()
         self.submit(submission)
         self.client.force_login(self.editor)
-        self.client.post(reverse("review_copy_screen", args=[submission.pk]), {"confirmed":"yes"})
+        self.confirm_review_copy(submission)
         assignment = self.invite(submission)
         self.finish_review(assignment)
         self.decide(submission)

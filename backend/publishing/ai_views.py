@@ -20,7 +20,7 @@ from .ai_gateway import METADATA_WRITING, OPENAI, run_ai_task
 from .ai_provider import PROMPT_VERSION, metadata_fingerprint
 from .ai_usage import DAILY_REQUEST_LIMIT, account_requests_since, journal_requests_since
 from .models import AIConsent, AIAssistanceRun, Journal, JournalAIPolicy, Submission
-from .views import _author_can_view, _editor_can_view, _event, _file_exists, _submission
+from .views import _author_can_view, _editor_can_view, _event, _file_exists, _review_copy_ready, _submission
 
 def _provider_configured():
     key = os.environ.get("OPENAI_API_KEY", "")
@@ -70,7 +70,7 @@ def _local_checks(submission, version):
         checks.append((_("Separate reviewer PDF"), bool(version.review_copy_confirmed and _file_exists(version.review_copy)),
                        _("A separate reviewer file and author confirmation are required.")))
         if submission.status != Submission.Status.DRAFT:
-            checks.append((_("Reviewer file check"), bool(version.review_copy_checked_at and version.review_copy_checked_by_id),
+            checks.append((_("Reviewer file check"), _review_copy_ready(submission, version),
                            _("An editor must record a manual check; anonymity is not guaranteed.")))
     return checks
 

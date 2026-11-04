@@ -1,7 +1,10 @@
+import io
+
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core import signing
 from django.db import transaction
 from django.db.models import Exists, F, OuterRef, Prefetch, Q
 from django.http import FileResponse, Http404, HttpResponse
@@ -16,6 +19,7 @@ from .author_responses import author_responses_ready, is_response_participant
 from .author_notices import visible_author_notices
 from .contributor_evidence import all_confirmations_intact, confirmation_rows
 from .review_notices import visible_review_notices
+from .review_copy import checked_review_copy_bytes, read_review_copy, review_copy_sha256
 from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
                            MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
 from .models import (AuthorNotice, ConflictDeclaration, ContributorChangeRequest, ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
@@ -106,9 +110,17 @@ def _review_copy_ready(submission, version):
     if submission.review_mode == Journal.ReviewMode.DIRECT:
         return _file_exists(version.manuscript)
     if submission.review_mode == Journal.ReviewMode.SEPARATE:
-        return bool(_file_exists(version.manuscript) and version.review_copy_confirmed and version.review_copy_checked_at and
-                    version.review_copy_checked_by_id and _file_exists(version.review_copy))
+        return bool(_file_exists(version.manuscript) and checked_review_copy_bytes(submission, version) is not None)
     return False
+
+
+def _review_copy_check_payload(submission, review_round, editor, data):
+    return {"submission": str(submission.pk), "round": str(review_round.pk),
+            "version": str(review_round.version_id), "editor": str(editor.pk),
+            "sha256": review_copy_sha256(data)}
+
+
+REVIEW_COPY_CHECK_SALT = "publishing.review-copy-check.v1"
 
 
 @require_GET
@@ -413,6 +425,13 @@ def submission_detail(request, pk):
         context["has_reported_conflict"] = submission.reviews.filter(conflict=ReviewAssignment.Conflict.YES).exists()
         if submission.status in ACTIVE_REVIEW_STATUSES and review_round:
             context["invite_form"] = InviteForm(submission=submission, actor=request.user)
+            if (submission.review_mode == Journal.ReviewMode.SEPARATE and
+                    not context["review_copy_ready"] and review_round.version.review_copy_confirmed and
+                    _file_exists(review_round.version.manuscript)):
+                data = read_review_copy(review_round.version)
+                if data is not None:
+                    payload = _review_copy_check_payload(submission, review_round, request.user, data)
+                    context["review_copy_check_token"] = signing.dumps(payload, salt=REVIEW_COPY_CHECK_SALT)
         context["reviews"] = submission.reviews.select_related("reviewer", "round").all()
     return render(request, "publishing/submission_detail.html", context)
 
@@ -702,13 +721,20 @@ def submission_file(request, pk):
 def _download_version(request, submission, version, reviewer=False, copy=False):
     if version.submission_id != submission.pk:
         raise Http404
-    if reviewer and not _review_copy_ready(submission, version):
-        raise Http404
-    field = version.review_copy if (copy or (reviewer and submission.review_mode == Journal.ReviewMode.SEPARATE)) else version.manuscript
-    try:
-        stream = field.open("rb")
-    except (OSError, ValueError):
-        raise Http404
+    if reviewer and submission.review_mode == Journal.ReviewMode.SEPARATE:
+        data = checked_review_copy_bytes(submission, version) if _file_exists(version.manuscript) else None
+        if data is None:
+            raise Http404
+        # Serve precisely the bytes just verified, without reopening the path.
+        stream = io.BytesIO(data)
+    else:
+        if reviewer and not _review_copy_ready(submission, version):
+            raise Http404
+        field = version.review_copy if copy else version.manuscript
+        try:
+            stream = field.open("rb")
+        except (OSError, ValueError):
+            raise Http404
     _event(submission, request.user, "file_downloaded")
     response = FileResponse(stream, as_attachment=True, filename=f"manuscript-v{version.number}.pdf", content_type="application/octet-stream")
     response["X-Content-Type-Options"] = "nosniff"
@@ -766,12 +792,22 @@ def review_copy_screen(request, pk):
         if not review_round or submission.status not in ACTIVE_REVIEW_STATUSES or submission.review_mode != Journal.ReviewMode.SEPARATE:
             return HttpResponse(_("There is no reviewer copy awaiting checks."), status=409)
         version = SubmissionVersion.objects.select_for_update().get(pk=review_round.version_id)
-        if not version.review_copy_confirmed or not _file_exists(version.review_copy) or not _file_exists(version.manuscript):
+        data = read_review_copy(version)
+        if not version.review_copy_confirmed or data is None or not _file_exists(version.manuscript):
             return HttpResponse(_("A confirmed reviewer copy is required."), status=409)
-        if not version.review_copy_checked_at:
+        try:
+            payload = signing.loads(request.POST.get("check_token", ""), salt=REVIEW_COPY_CHECK_SALT, max_age=3600)
+        except signing.BadSignature:
+            return HttpResponse(_("The submission or request changed; reload the page."), status=409)
+        if payload != _review_copy_check_payload(submission, review_round, request.user, data):
+            return HttpResponse(_("The submission or request changed; reload the page."), status=409)
+        digest = review_copy_sha256(data)
+        if (not version.review_copy_checked_at or not version.review_copy_checked_by_id or
+                version.review_copy_checked_sha256 != digest):
             version.review_copy_checked_by = request.user
             version.review_copy_checked_at = timezone.now()
-            version.save(update_fields=["review_copy_checked_by", "review_copy_checked_at"])
+            version.review_copy_checked_sha256 = digest
+            version.save(update_fields=["review_copy_checked_by", "review_copy_checked_at", "review_copy_checked_sha256"])
             _event(submission, request.user, "review_copy_checked")
     messages.success(request, _("Manual check recorded for this version."))
     return redirect("submission_detail", pk=pk)

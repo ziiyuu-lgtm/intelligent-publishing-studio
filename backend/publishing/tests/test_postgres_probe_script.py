@@ -106,6 +106,22 @@ exit 0
         self.assertIn("STOP_INVALID_PROBE_MODE", result.stdout)
         self.assertFalse(self.log.exists())
 
+    def test_review_copy_mode_runs_only_its_suite_and_retains_test_databases(self):
+        result = self.run_probe("review-copy")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.log.read_text()
+        self.assertEqual(calls.count("createdb"), 2)
+        self.assertIn("publishing.tests.test_review_copy_integrity", calls)
+        self.assertNotIn("publishing.tests.test_workflow", calls)
+        self.assertNotIn("dropdb", calls)
+        self.assertIn("ALTAVIEN_REVIEW_COPY_PROBE_PASSED", result.stdout)
+
+    def test_review_copy_failure_has_no_success_marker(self):
+        result = self.run_probe("review-copy", PROBE_FAKE_FAIL_TESTS="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("ALTAVIEN_REVIEW_COPY_PROBE_PASSED", result.stdout)
+        self.assertNotIn("ALTAVIEN_POSTGRES_PROBE_PASSED", result.stdout)
+
     def test_backup_failure_is_not_reported_as_success(self):
         result = self.run_probe("backup-drill", PROBE_FAKE_FAIL_TESTS="1")
         self.assertNotEqual(result.returncode, 0)

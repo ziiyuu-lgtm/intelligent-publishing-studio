@@ -45,6 +45,16 @@ and explicitly enabled fictional test are accepted. The new databases and a
 private temporary directory are retained for inspection; the operating demo
 database, files and services are not involved.
 
+For separate reviewer PDFs, the local workflow now records a digest of the
+specific file checked by the editor. A changed or missing file blocks invitations
+and reviewer downloads until an assigned editor checks it again. The checked
+bytes are served directly rather than reopening the file after verification.
+Legacy checks have no digest and require a fresh check. This does not check the
+truth of the editor's confirmation, verify PDF anonymity, or protect changes to
+the version's title, abstract or keywords; independent review is still needed.
+The isolated probe runner's `review-copy` mode runs the relevant tests against
+two newly created, retained fictional PostgreSQL probe databases.
+
 This drill is not a backup of existing data or a production backup system. It
 uses one quiescent fictional file and no concurrent writers; a real service
 needs a coordinated database-and-file snapshot, authenticated integrity,
