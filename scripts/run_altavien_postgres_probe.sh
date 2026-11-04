@@ -2,6 +2,34 @@
 # Fictional-data compatibility test only. Run by root from a dedicated checkout.
 set -euo pipefail
 
+if [ "$#" -gt 1 ]; then
+    echo STOP_INVALID_PROBE_MODE
+    exit 1
+fi
+case "${1:-workflow}" in
+    workflow)
+        backup_drill_enabled=0
+        probe_labels=(
+            publishing.tests.test_workflow
+            publishing.tests.test_production
+            publishing.tests.test_submission_checklist
+            publishing.tests.test_editor_assignments
+            publishing.tests.test_local_login_throttle
+            publishing.tests.test_local_review_mail
+            publishing.tests.test_local_registration
+            publishing.tests.test_local_mail_verification
+        )
+        ;;
+    backup-drill)
+        backup_drill_enabled=1
+        probe_labels=(publishing.tests.test_postgres_backup_drill)
+        ;;
+    *)
+        echo STOP_INVALID_PROBE_MODE
+        exit 1
+        ;;
+esac
+
 if [ "$(id -u)" -ne 0 ]; then
     echo STOP_REQUIRES_ROOT
     exit 1
@@ -17,7 +45,11 @@ if [ "$(stat -c %U "$source_dir")" != postgres ]; then
     echo STOP_UNEXPECTED_OWNER
     exit 1
 fi
-for command in pg_isready psql createdb runuser ss python3; do
+required_commands=(pg_isready psql createdb runuser ss python3)
+if [ "$backup_drill_enabled" = 1 ]; then
+    required_commands+=(pg_dump pg_restore)
+fi
+for command in "${required_commands[@]}"; do
     if ! command -v "$command" >/dev/null; then
         echo "STOP_MISSING_COMMAND: $command"
         exit 1
@@ -55,17 +87,14 @@ runuser -u postgres -- env -i \
     HOME=/var/lib/postgresql \
     DJANGO_SETTINGS_MODULE=config.settings_postgres_probe \
     ALTAVIEN_PROBE_CONFIRM_SYNTHETIC=1 \
+    ALTAVIEN_BACKUP_DRILL_ENABLED="$backup_drill_enabled" \
     ALTAVIEN_PROBE_DB="$probe_db" \
     "$source_dir/.venv/bin/python" manage.py test \
-    publishing.tests.test_workflow \
-    publishing.tests.test_production \
-    publishing.tests.test_submission_checklist \
-    publishing.tests.test_editor_assignments \
-    publishing.tests.test_local_login_throttle \
-    publishing.tests.test_local_review_mail \
-    publishing.tests.test_local_registration \
-    publishing.tests.test_local_mail_verification \
+    "${probe_labels[@]}" \
     --keepdb --noinput -v 1
 
+if [ "$backup_drill_enabled" = 1 ]; then
+    echo ALTAVIEN_BACKUP_DRILL_PASSED
+fi
 echo ALTAVIEN_POSTGRES_PROBE_PASSED
 echo PROBE_DATABASES_RETAINED_FOR_REVIEW

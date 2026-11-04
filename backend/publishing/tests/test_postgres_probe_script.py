@@ -26,6 +26,8 @@ class PostgreSQLProbeScriptSafetyTests(SimpleTestCase):
         self.stub("pg_isready", 'exit 0')
         self.stub("psql", 'exit 0')
         self.stub("createdb", 'exit 0')
+        self.stub("pg_dump", 'exit 0')
+        self.stub("pg_restore", 'exit 0')
         self.stub("python3", 'echo 0123456789abcdef01234567')
         self.stub("ss", 'printf "%s\\n" "$PROBE_FAKE_LISTENER"')
         self.stub("runuser", '''
@@ -50,12 +52,12 @@ exit 0
         path.write_text("#!/bin/sh\nset -eu\n" + content + "\n")
         path.chmod(0o755)
 
-    def run_probe(self, **changes):
+    def run_probe(self, *args, **changes):
         env = dict(os.environ, PATH=str(self.bin) + ":/usr/bin:/bin",
                    PROBE_FAKE_LOG=str(self.log), PROBE_FAKE_COUNT=str(self.root / "count"),
                    PROBE_FAKE_LISTENER="LISTEN 0 244 127.0.0.1:5432 0.0.0.0:*")
         env.update(changes)
-        return subprocess.run(["/bin/bash", str(self.script)], env=env, capture_output=True, text=True, timeout=10)
+        return subprocess.run(["/bin/bash", str(self.script), *args], env=env, capture_output=True, text=True, timeout=10)
 
     def test_nonlocal_listener_stops_before_creating_databases(self):
         result = self.run_probe(PROBE_FAKE_LISTENER="LISTEN 0 244 0.0.0.0:5432 0.0.0.0:*")
@@ -86,3 +88,26 @@ exit 0
         self.assertIn("--keepdb", calls)
         self.assertNotIn("dropdb", calls)
         self.assertIn("ALTAVIEN_POSTGRES_PROBE_PASSED", result.stdout)
+
+    def test_backup_mode_runs_only_the_dedicated_drill_and_preserves_databases(self):
+        result = self.run_probe("backup-drill")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.log.read_text()
+        self.assertEqual(calls.count("createdb"), 2)
+        self.assertIn("ALTAVIEN_BACKUP_DRILL_ENABLED=1", calls)
+        self.assertIn("publishing.tests.test_postgres_backup_drill", calls)
+        self.assertNotIn("publishing.tests.test_workflow", calls)
+        self.assertNotIn("dropdb", calls)
+        self.assertIn("ALTAVIEN_BACKUP_DRILL_PASSED", result.stdout)
+
+    def test_invalid_mode_fails_before_creating_databases(self):
+        result = self.run_probe("unexpected-mode")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("STOP_INVALID_PROBE_MODE", result.stdout)
+        self.assertFalse(self.log.exists())
+
+    def test_backup_failure_is_not_reported_as_success(self):
+        result = self.run_probe("backup-drill", PROBE_FAKE_FAIL_TESTS="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("ALTAVIEN_BACKUP_DRILL_PASSED", result.stdout)
+        self.assertNotIn("ALTAVIEN_POSTGRES_PROBE_PASSED", result.stdout)

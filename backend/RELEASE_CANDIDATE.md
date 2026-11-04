@@ -34,6 +34,24 @@ listeners, creates new names and preserves the probe databases for inspection.
 The test uses a PostgreSQL administrator account to exercise compatibility;
 it does not validate production database permissions or credentials.
 
+The same probe runner has a separate `backup-drill` mode for a fictional
+recovery rehearsal. It creates new random probe databases, adds an invented
+submission and a fictional PDF, exports the isolated test database with
+`pg_dump`, and restores the archive into another newly created random database.
+It checks the restored submission, journal, author, version, file path and file
+bytes; SHA-256 checks detect accidental changes to the sample archive or file.
+Only the dedicated probe profile, local PostgreSQL socket, postgres OS account
+and explicitly enabled fictional test are accepted. The new databases and a
+private temporary directory are retained for inspection; the operating demo
+database, files and services are not involved.
+
+This drill is not a backup of existing data or a production backup system. It
+uses one quiescent fictional file and no concurrent writers; a real service
+needs a coordinated database-and-file snapshot, authenticated integrity,
+encryption, off-host copies, retention, monitoring and regularly tested
+recovery. Temporary files may be removed by the operating system. Do not use
+the drill with real manuscripts or personal data.
+
 An optional local-only login-throttle experiment is disabled by default. It
 requires a separate private key, works only in DEBUG, and counts attempts by
 direct source IP and source/username pair with pseudonymous stored keys. Its
