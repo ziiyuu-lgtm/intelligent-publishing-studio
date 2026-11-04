@@ -19,7 +19,7 @@ from .author_responses import author_responses_ready, is_response_participant
 from .author_notices import visible_author_notices
 from .contributor_evidence import all_confirmations_intact, confirmation_rows
 from .review_notices import visible_review_notices
-from .review_copy import checked_review_copy_bytes, read_review_copy, review_copy_sha256
+from .review_copy import checked_review_copy_bytes, read_review_copy, review_copy_sha256, review_metadata_sha256
 from .contributors import (ContributorChangeDecisionForm, ContributorChangeForm, ContributorFormSet,
                            MAX_CONTRIBUTORS, ready_to_submit, validate_contributors)
 from .models import (AuthorNotice, ConflictDeclaration, ContributorChangeRequest, ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalSiteDraft, Membership, Organisation, OrganisationMembership, OrganisationPortalDraft, ProductionAssignment,
@@ -114,10 +114,10 @@ def _review_copy_ready(submission, version):
     return False
 
 
-def _review_copy_check_payload(submission, review_round, editor, data):
+def _review_copy_check_payload(submission, review_round, editor, version, data):
     return {"submission": str(submission.pk), "round": str(review_round.pk),
             "version": str(review_round.version_id), "editor": str(editor.pk),
-            "sha256": review_copy_sha256(data)}
+            "sha256": review_copy_sha256(data), "metadata_sha256": review_metadata_sha256(version)}
 
 
 REVIEW_COPY_CHECK_SALT = "publishing.review-copy-check.v1"
@@ -180,7 +180,7 @@ def workspace(request):
         Exists(ContributorResponseRequest.objects.filter(change__submission_id=OuterRef("submission_id"), recipient=request.user))
     ).exclude(
         Exists(ProductionAssignment.objects.filter(draft__submission_id=OuterRef("submission_id"), producer=request.user))
-    ).select_related("submission__journal", "round__version").distinct()
+    ).select_related("submission__journal", "round__version__submission").distinct()
     production_enabled = settings.DEBUG and settings.IPS_LOCAL_PUBLICATION_ENABLED
     production = PublicationDraft.objects.none()
     if production_enabled:
@@ -425,12 +425,14 @@ def submission_detail(request, pk):
         context["has_reported_conflict"] = submission.reviews.filter(conflict=ReviewAssignment.Conflict.YES).exists()
         if submission.status in ACTIVE_REVIEW_STATUSES and review_round:
             context["invite_form"] = InviteForm(submission=submission, actor=request.user)
+            if submission.review_mode == Journal.ReviewMode.SEPARATE:
+                context["review_preview_keywords"] = visible_keywords(review_round.version.keywords_snapshot)
             if (submission.review_mode == Journal.ReviewMode.SEPARATE and
                     not context["review_copy_ready"] and review_round.version.review_copy_confirmed and
                     _file_exists(review_round.version.manuscript)):
                 data = read_review_copy(review_round.version)
-                if data is not None:
-                    payload = _review_copy_check_payload(submission, review_round, request.user, data)
+                if data is not None and review_metadata_sha256(review_round.version):
+                    payload = _review_copy_check_payload(submission, review_round, request.user, review_round.version, data)
                     context["review_copy_check_token"] = signing.dumps(payload, salt=REVIEW_COPY_CHECK_SALT)
         context["reviews"] = submission.reviews.select_related("reviewer", "round").all()
     return render(request, "publishing/submission_detail.html", context)
@@ -793,21 +795,24 @@ def review_copy_screen(request, pk):
             return HttpResponse(_("There is no reviewer copy awaiting checks."), status=409)
         version = SubmissionVersion.objects.select_for_update().get(pk=review_round.version_id)
         data = read_review_copy(version)
-        if not version.review_copy_confirmed or data is None or not _file_exists(version.manuscript):
+        metadata_digest = review_metadata_sha256(version)
+        if not version.review_copy_confirmed or data is None or not metadata_digest or not _file_exists(version.manuscript):
             return HttpResponse(_("A confirmed reviewer copy is required."), status=409)
         try:
             payload = signing.loads(request.POST.get("check_token", ""), salt=REVIEW_COPY_CHECK_SALT, max_age=3600)
         except signing.BadSignature:
             return HttpResponse(_("The submission or request changed; reload the page."), status=409)
-        if payload != _review_copy_check_payload(submission, review_round, request.user, data):
+        if payload != _review_copy_check_payload(submission, review_round, request.user, version, data):
             return HttpResponse(_("The submission or request changed; reload the page."), status=409)
         digest = review_copy_sha256(data)
         if (not version.review_copy_checked_at or not version.review_copy_checked_by_id or
-                version.review_copy_checked_sha256 != digest):
+                version.review_copy_checked_sha256 != digest or version.review_metadata_checked_sha256 != metadata_digest):
             version.review_copy_checked_by = request.user
             version.review_copy_checked_at = timezone.now()
             version.review_copy_checked_sha256 = digest
-            version.save(update_fields=["review_copy_checked_by", "review_copy_checked_at", "review_copy_checked_sha256"])
+            version.review_metadata_checked_sha256 = metadata_digest
+            version.save(update_fields=["review_copy_checked_by", "review_copy_checked_at", "review_copy_checked_sha256",
+                                        "review_metadata_checked_sha256"])
             _event(submission, request.user, "review_copy_checked")
     messages.success(request, _("Manual check recorded for this version."))
     return redirect("submission_detail", pk=pk)

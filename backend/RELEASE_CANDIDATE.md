@@ -44,16 +44,22 @@ Only the dedicated probe profile, local PostgreSQL socket, postgres OS account
 and explicitly enabled fictional test are accepted. The new databases and a
 private temporary directory are retained for inspection; the operating demo
 database, files and services are not involved.
+The four-test fictional backup drill passed on the VPS on 2026-11-04.
 
 For separate reviewer PDFs, the local workflow now records a digest of the
-specific file checked by the editor. A changed or missing file blocks invitations
-and reviewer downloads until an assigned editor checks it again. The checked
-bytes are served directly rather than reopening the file after verification.
-Legacy checks have no digest and require a fresh check. This does not check the
-truth of the editor's confirmation, verify PDF anonymity, or protect changes to
-the version's title, abstract or keywords; independent review is still needed.
+specific file and version title, abstract and keywords checked by the editor.
+The editor sees that version's metadata beside the check form. A changed or
+missing file blocks invitations and reviewer downloads until an assigned editor
+checks it again. Changed or legacy metadata is hidden on reviewer-facing pages
+until rechecked. The checked file bytes are served directly rather than
+reopening the file after verification. Legacy checks without both digests need
+a fresh check. These digests detect changes but do not protect against someone
+who can also modify the database, validate the editor's confirmation, or verify
+PDF or metadata anonymity; independent review is still needed.
 The isolated probe runner's `review-copy` mode runs the relevant tests against
 two newly created, retained fictional PostgreSQL probe databases.
+The earlier five-test reviewer-PDF probe passed on the VPS on 2026-11-04;
+the newer metadata checks have not yet been verified there.
 
 This drill is not a backup of existing data or a production backup system. It
 uses one quiescent fictional file and no concurrent writers; a real service

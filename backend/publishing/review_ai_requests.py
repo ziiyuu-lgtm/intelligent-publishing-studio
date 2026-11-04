@@ -49,5 +49,5 @@ def visible_entries(actor):
     if not actor.is_active:
         return []
     candidates = ReviewAIPermissionRequest.objects.filter(recipient=actor).select_related(
-        'submission__journal__organisation', 'review_round__version', 'version', 'assignment__round__version')
+        'submission__journal__organisation', 'review_round__version', 'version__submission', 'assignment__round__version')
     return [entry for entry in candidates if visible_entry(entry, actor)]

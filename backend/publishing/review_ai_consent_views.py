@@ -180,7 +180,7 @@ def reviewer_permission(request, pk):
         token = signing.dumps(_snapshot(request.user, submission, selected, assignment, existing, fingerprint, permission_request), salt=SALT, compress=True)
         return render(request, 'publishing/review_ai_permission.html', {'kind':'reviewer', 'submission':submission,
             'assignment':assignment, 'selected_round':selected, 'existing':existing, 'active':active,
-            'may_grant':may_grant, 'show_title':may_grant, 'token':token,
+            'may_grant':may_grant, 'show_title':may_grant and selected.version.reviewer_metadata_visible, 'token':token,
             'permission_request':permission_request if may_grant else None})
     action = request.POST.get('action')
     if action not in ('grant', 'withdraw', 'decline'):

@@ -624,6 +624,7 @@ class SubmissionVersion(models.Model):
     review_copy_checked_at = models.DateTimeField(null=True, blank=True)
     # Empty for legacy checks: the editor must review the current file again.
     review_copy_checked_sha256 = models.CharField(max_length=64, blank=True)
+    review_metadata_checked_sha256 = models.CharField(max_length=64, blank=True)
     author_response = models.TextField(_("Response to the editor"), max_length=20000, blank=True)
     # Older records have no trustworthy version-specific metadata; NULL means unknown.
     title_snapshot = models.CharField(_("Version title"), max_length=250, null=True, blank=True)
@@ -644,6 +645,12 @@ class SubmissionVersion(models.Model):
     @property
     def metadata_recorded(self):
         return self.title_snapshot is not None and self.abstract_snapshot is not None
+
+    @property
+    def reviewer_metadata_visible(self):
+        # Reviewer-facing templates use this rather than trusting live metadata.
+        from .review_copy import reviewer_metadata_is_visible
+        return reviewer_metadata_is_visible(self)
 
 
 def supporting_file_path(instance, filename):

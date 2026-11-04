@@ -23,4 +23,4 @@ def visible_review_notices(user):
         change__submission_id=OuterRef("assignment__submission_id"), recipient=user)))
      .exclude(Exists(ProductionAssignment.objects.filter(
         draft__submission_id=OuterRef("assignment__submission_id"), producer=user)))
-     .select_related("assignment__submission__journal", "assignment__round__version"))
+     .select_related("assignment__submission__journal", "assignment__round__version__submission"))
