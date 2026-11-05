@@ -1,4 +1,4 @@
-name: Transient service recovery canary
+name: Fictional test-site installer rehearsal
 on:
   push:
     branches:
@@ -6,39 +6,73 @@ on:
 permissions:
   contents: read
 jobs:
-  canary:
+  install-and-rollback:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
-      - name: Verify restart and runtime unit recovery
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up a fictional site and test both recovery and installation
         shell: bash
         run: |
           set -euo pipefail
-          d=/tmp/altavien-transient-canary
-          mkdir "$d"
-          printf '#!/bin/bash\nif test -f /tmp/altavien-transient-canary/fail; then exit 9; fi\nexec /bin/sleep 600\n' > "$d/worker"
-          sudo systemd-run --unit=altavien-transient-canary --property=Type=exec /bin/bash "$d/worker"
-          fragment=$(systemctl show altavien-transient-canary.service -p FragmentPath --value)
-          test -f "$fragment"
-          sudo cp "$fragment" "$d/unit.backup"
-          sudo systemctl restart altavien-transient-canary.service
-          systemctl is-active --quiet altavien-transient-canary.service
-          echo TRANSIENT_RESTART_PASSED
-          touch "$d/fail"
-          sudo systemctl restart altavien-transient-canary.service || true
-          sleep 2
-          systemctl show altavien-transient-canary.service -p LoadState -p ActiveState -p SubState
-          rm "$d/fail"
-          if ! sudo systemctl start altavien-transient-canary.service; then
-            echo TRANSIENT_RECREATE_FROM_RUNTIME_FRAGMENT
-            sudo install -m 0644 "$d/unit.backup" /run/systemd/system/altavien-transient-canary.service
-            sudo systemctl daemon-reload
-            sudo systemctl start altavien-transient-canary.service
-          fi
-          systemctl is-active --quiet altavien-transient-canary.service
-          echo TRANSIENT_RECOVERY_PASSED
-          sudo systemctl stop altavien-transient-canary.service || true
-          if test -f /run/systemd/system/altavien-transient-canary.service; then
-            sudo rm /run/systemd/system/altavien-transient-canary.service
-            sudo systemctl daemon-reload
-          fi
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv rsync
+          id -u postgres >/dev/null 2>&1 || sudo useradd --system --home-dir /var/lib/postgresql postgres
+          id -u altavien-test >/dev/null 2>&1 || sudo useradd --system --home-dir /srv/altavien-test altavien-test
+          sudo mkdir -p /srv/altavien-test /srv/altavien-pg-probe/source
+          git archive a9fdf7ed32a9aad9435166f974c8bdd8bcc79875 backend | sudo tar -xf - -C /srv/altavien-test
+          sudo rsync -a "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
+          sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
+          sudo runuser -u postgres -- git -C /srv/altavien-pg-probe/source checkout --detach a9fdf7ed32a9aad9435166f974c8bdd8bcc79875
+          sudo chown -R altavien-test:altavien-test /srv/altavien-test
+          sudo runuser -u altavien-test -- python3 -m venv /srv/altavien-test/.venv
+          sudo runuser -u altavien-test -- /srv/altavien-test/.venv/bin/pip install --disable-pip-version-check --no-input -r /srv/altavien-test/backend/requirements.txt
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py migrate --noinput
+          cat > /tmp/altavien-ci-seed.py <<'PY'
+          import hashlib
+          from django.contrib.auth import get_user_model
+          from django.core.files.uploadedfile import SimpleUploadedFile
+          from django.utils import timezone
+          from publishing.models import Organisation, Journal, Submission, SubmissionVersion, ReviewRound, EditorialDecision, PublicationDraft, PublicationProof
+          u = get_user_model().objects.create_user('fictional-user', password='fictional-test-password')
+          o = Organisation.objects.create(name='Fictional publisher', slug='fictional-publisher')
+          j = Journal.objects.create(organisation=o, name='Fictional journal', slug='fictional-journal')
+          s = Submission.objects.create(journal=j, author=u, title='Fictional paper', abstract='Fictional abstract', manuscript='manuscripts/example.pdf', status='accepted')
+          v = SubmissionVersion.objects.create(submission=s, number=1, manuscript='manuscripts/example.pdf', uploaded_by=u)
+          r = ReviewRound.objects.create(submission=s, version=v, number=1, status='closed')
+          d = EditorialDecision.objects.create(submission=s, round=r, outcome='accept', author_message='Accepted', decided_by=u)
+          p = PublicationDraft.objects.create(submission=s, decision=d, title='Fictional published paper', authors='Fictional Author', abstract='Fictional abstract', created_by=u, published_by=u, published_at=timezone.now())
+          data = b'%PDF-1.4\nFictional PDF\n%%EOF\n'
+          f = PublicationProof.objects.create(draft=p, file=SimpleUploadedFile('proof.pdf', data), sha256=hashlib.sha256(data).hexdigest(), uploaded_by=u)
+          p.published_proof = f
+          p.save(update_fields=['published_proof'])
+          PY
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py shell < /tmp/altavien-ci-seed.py
+          sudo systemd-run --unit=altavien-test-web.service --property=Type=exec --property=User=altavien-test --property=WorkingDirectory=/srv/altavien-test/backend --setenv=DJANGO_SETTINGS_MODULE=config.settings --setenv=IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py runserver 127.0.0.1:8000 --noreload
+          for n in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+          sudo env INSTALLER="$GITHUB_WORKSPACE/scripts/install_altavien_history_test.py" python3 - <<'PY'
+          import hashlib
+          import importlib.util
+          import os
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('history_installer', os.environ['INSTALLER'])
+          m = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          def fail_after_swap(paths):
+              raise RuntimeError('CI_INJECTED_FAILURE')
+          m.restart_and_check = fail_after_swap
+          assert m.main() == 1
+          for rel, expected in m.OLD.items():
+              assert hashlib.sha256((m.BASE / rel).read_bytes()).hexdigest() == expected
+          for rel in m.NEW.keys() - m.OLD.keys():
+              assert not (m.BASE / rel).exists()
+          print('ROLLBACK_REHEARSAL_PASSED')
+          PY
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+          sudo python3 "$GITHUB_WORKSPACE/scripts/install_altavien_history_test.py"
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+          echo INSTALL_REHEARSAL_PASSED
