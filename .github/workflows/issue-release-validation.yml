@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,8 @@ jobs:
           msgfmt --check -o /tmp/altavien-chinese.mo locale/zh_Hans/LC_MESSAGES/django.po
           cmp /tmp/altavien-chinese.mo locale/zh_Hans/LC_MESSAGES/django.mo
       - name: Run fictional PostgreSQL workflow
-        run: sudo /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh workflow
+        timeout-minutes: 4
+        run: sudo timeout --signal=INT --kill-after=10s 180 /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh workflow
   browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
