@@ -1,0 +1,158 @@
+name: Fictional issue-order installer rehearsal
+on:
+  push:
+    branches:
+      - feature/altavien-issue-order-append-install-ci-20261105
+permissions:
+  contents: read
+jobs:
+  guarded-install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare the isolated fictional site
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv rsync
+          id -u postgres >/dev/null 2>&1 || sudo useradd --system --home-dir /var/lib/postgresql postgres
+          id -u altavien-test >/dev/null 2>&1 || sudo useradd --system --home-dir /srv/altavien-test altavien-test
+          test ! -e /srv/altavien-test
+          test ! -e /srv/altavien-pg-probe/source
+          sudo mkdir -p /srv/altavien-test /srv/altavien-pg-probe/source
+          git archive 0e7deb4c3f5bf1b479bd847c2d41e17650cfabf7 backend | sudo tar -xf - -C /srv/altavien-test
+          sudo rsync -a "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
+          sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
+          sudo runuser -u postgres -- git -C /srv/altavien-pg-probe/source checkout --detach a9fdf7ed32a9aad9435166f974c8bdd8bcc79875
+          sudo chown -R altavien-test:altavien-test /srv/altavien-test
+          sudo runuser -u altavien-test -- python3 -m venv /srv/altavien-test/.venv
+          sudo runuser -u altavien-test -- /srv/altavien-test/.venv/bin/pip install --disable-pip-version-check --no-input -r /srv/altavien-test/backend/requirements.txt
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py migrate --noinput
+          cat > /tmp/altavien-issue-ci-seed.py <<'PY'
+          import hashlib
+          from django.contrib.auth import get_user_model
+          from django.core.files.uploadedfile import SimpleUploadedFile
+          from django.utils import timezone
+          from publishing.models import Organisation, Journal, JournalIssue, Submission, SubmissionVersion, ReviewRound, EditorialDecision, PublicationDraft, PublicationProof, PublicationApproval, PublishedIssueProposal
+          from publishing.production_views import _fingerprint
+          u = get_user_model().objects.create_user('fictional-author', password='fictional-test-password')
+          o = Organisation.objects.create(name='Fictional publisher', slug='fictional-publisher')
+          j = Journal.objects.create(organisation=o, name='Fictional journal', slug='fictional-journal')
+          s = Submission.objects.create(journal=j, author=u, title='Fictional paper', abstract='Fictional abstract', manuscript='manuscripts/example.pdf', status='accepted')
+          v = SubmissionVersion.objects.create(submission=s, number=1, manuscript='manuscripts/example.pdf', uploaded_by=u)
+          r = ReviewRound.objects.create(submission=s, version=v, number=1, status='closed')
+          d = EditorialDecision.objects.create(submission=s, round=r, outcome='accept', author_message='Accepted', decided_by=u)
+          p = PublicationDraft.objects.create(submission=s, decision=d, title='Fictional published paper', authors='Fictional Author', abstract='Fictional abstract', created_by=u, published_by=u, published_at=timezone.now())
+          data = b'%PDF-1.4\nFictional PDF\n%%EOF\n'
+          f = PublicationProof.objects.create(draft=p, file=SimpleUploadedFile('proof.pdf', data), sha256=hashlib.sha256(data).hexdigest(), uploaded_by=u)
+          p.published_proof = f
+          p.save(update_fields=['published_proof'])
+          issue = JournalIssue.objects.create(journal=j, volume=1, number=99, year=2026, title='Fictional issue', created_by=u)
+          p.issue = issue
+          p.save(update_fields=['issue'])
+          PublicationApproval.objects.create(draft=p, proof=f, revision=p.revision, fingerprint=_fingerprint(p, f), approved_by=u)
+          PublishedIssueProposal.objects.create(draft=p, issue=issue, proposed_by=u, source_fingerprint='0'*64, issue_snapshot={}, status='accepted', resolved_by=u, resolved_at=timezone.now())
+          # A previously released issue must retain the same publication order.
+          legacy = JournalIssue.objects.create(journal=j, volume=2, number=1, year=2025, title='Legacy issue', created_by=u, released_by=u, released_at=timezone.now())
+          from datetime import timedelta
+          for index, title in enumerate(('Legacy Earlier Article', 'Legacy Later Article')):
+              sub = Submission.objects.create(journal=j, author=u, title=title, abstract='Fictional', manuscript='manuscripts/example.pdf', status='accepted')
+              ver = SubmissionVersion.objects.create(submission=sub, number=1, manuscript='manuscripts/example.pdf', uploaded_by=u)
+              rnd = ReviewRound.objects.create(submission=sub, version=ver, number=1, status='closed')
+              dec = EditorialDecision.objects.create(submission=sub, round=rnd, outcome='accept', author_message='Accepted', decided_by=u)
+              draft = PublicationDraft.objects.create(submission=sub, decision=dec, issue=legacy, title=title, authors='Fictional Author', abstract='Fictional', created_by=u, published_by=u, published_at=timezone.now()+timedelta(minutes=index))
+              proof = PublicationProof.objects.create(draft=draft, file=SimpleUploadedFile('legacy.pdf', data), sha256=hashlib.sha256(data).hexdigest(), uploaded_by=u)
+              draft.published_proof = proof
+              draft.save(update_fields=['published_proof'])
+          PY
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py shell < /tmp/altavien-issue-ci-seed.py
+          sudo systemd-run --unit=altavien-test-web.service --property=Type=exec --property=User=altavien-test --property=WorkingDirectory=/srv/altavien-test/backend --setenv=DJANGO_SETTINGS_MODULE=config.settings --setenv=IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py runserver 127.0.0.1:8000 --noreload
+          for n in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+      - name: Rehearse failure recovery and complete installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo env INSTALLER="$GITHUB_WORKSPACE/scripts/install_altavien_issue_order.py" python3 - <<'PY'
+          import hashlib
+          import importlib.util
+          import os
+          import sqlite3
+          import subprocess
+          import time
+          import urllib.request
+          import uuid
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('issue_installer', os.environ['INSTALLER'])
+          m = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          def check_legacy_issue_order():
+              with sqlite3.connect(m.BASE / '.runtime/dev.sqlite3') as db:
+                  raw = db.execute('select id from publishing_journalissue where volume=2 and number=1').fetchone()[0]
+              path = 'http://127.0.0.1:8000/journals/fictional-journal/test-issues/' + str(uuid.UUID(raw)) + '/'
+              with urllib.request.urlopen(path, timeout=10) as response:
+                  page = response.read().decode()
+              assert page.index('Legacy Earlier Article') < page.index('Legacy Later Article')
+          check_legacy_issue_order()
+          old_apply = m.apply_schema_and_check
+          def fail_after_migration(env, before):
+              old_apply(env, before)
+              raise RuntimeError('CI_FAILURE_AFTER_MIGRATION')
+          m.apply_schema_and_check = fail_after_migration
+          assert m.main() == 1
+          m.apply_schema_and_check = old_apply
+          for rel, expected in m.OLD.items():
+              assert hashlib.sha256((m.BASE / rel).read_bytes()).hexdigest() == expected
+          for rel in m.NEW.keys() - m.OLD.keys():
+              assert not (m.BASE / rel).exists()
+          assert m.database_state(m.BASE / '.runtime/dev.sqlite3')['applied']
+          m.homepage()
+          check_legacy_issue_order()
+          print('PRESTART_FAILURE_RECOVERED_WITH_SCHEMA_PRESERVED', flush=True)
+          old_live = m.live_check
+          def fail_after_service_started(paths):
+              old_live(paths)
+              env = dict(os.environ, DJANGO_SETTINGS_MODULE='config.settings', IPS_LOCAL_PUBLICATION_ENABLED='1')
+              code = "from django.contrib.auth import get_user_model; from django.utils import timezone; from publishing.models import PublishedIssueProposal, PublicationDraft, JournalIssue; u=get_user_model().objects.get(username='fictional-author'); get_user_model().objects.create_user('post_start_write'); p=PublicationDraft.objects.first(); i=JournalIssue.objects.first(); PublishedIssueProposal.objects.create(draft=p,issue=i,proposed_by=u,source_fingerprint='0'*64,issue_snapshot={},status='declined',resolved_by=u,resolved_at=timezone.now())"
+              m.app_command(m.BASE, env, 'shell', '-c', code)
+              raise RuntimeError('CI_FAILURE_AFTER_LIVE_WRITE')
+          m.live_check = fail_after_service_started
+          assert m.main() == 1
+          m.live_check = old_live
+          for rel, expected in m.OLD.items():
+              assert hashlib.sha256((m.BASE / rel).read_bytes()).hexdigest() == expected
+          m.homepage()
+          check_legacy_issue_order()
+          with sqlite3.connect(m.BASE / '.runtime/dev.sqlite3') as db:
+              assert db.execute("select count(*) from auth_user where username='post_start_write'").fetchone()[0] == 1
+              assert db.execute('select count(*) from publishing_publishedissueproposal').fetchone()[0] == 2
+          print('POSTSTART_FAILURE_RECOVERED_WITH_NEW_WRITES_PRESERVED', flush=True)
+          # Reset ONLY this disposable CI database to the first offline snapshot,
+          # so the final successful run also exercises a previously unapplied migration.
+          backup = sorted(Path('/srv').glob('altavien-issue-order-backup-*'), key=lambda p:p.stat().st_mtime)[0]
+          subprocess.run(['systemctl', 'stop', m.UNIT], check=True)
+          with sqlite3.connect(backup / 'db-before-maintenance.sqlite3') as source:
+              with sqlite3.connect(m.BASE / '.runtime/dev.sqlite3') as destination:
+                  source.backup(destination)
+          subprocess.run(['systemctl', 'start', m.UNIT], check=True)
+          for attempt in range(30):
+              try:
+                  m.homepage()
+                  break
+              except Exception:
+                  time.sleep(0.5)
+          else:
+              raise RuntimeError('CI_RESET_SERVICE_NOT_READY')
+          assert not m.database_state(m.BASE / '.runtime/dev.sqlite3')['applied']
+          assert m.main() == 0
+          assert m.database_state(m.BASE / '.runtime/dev.sqlite3')['applied']
+          m.homepage()
+          check_legacy_issue_order()
+          print('LEGACY_RELEASE_ORDER_PRESERVED', flush=True)
+          print('CLEAN_INSTALL_AND_MIGRATION_REHEARSAL_PASSED', flush=True)
+          PY
