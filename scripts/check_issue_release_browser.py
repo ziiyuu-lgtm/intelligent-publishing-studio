@@ -1,6 +1,7 @@
 """Run the fictional issue-release browser checks against a disposable test DB.
 
-Requires the separate browser-test dependency and an installed Chromium build.
+Requires the separate browser-test dependency and an installed Chromium build,
+or installed Google Chrome with IPS_BROWSER_CHANNEL=chrome.
 No existing server, account, database, email service or AI provider is used.
 """
 import hashlib
@@ -79,7 +80,10 @@ class IssueReleaseBrowserChecks(StaticLiveServerTestCase):
         # The sync browser API runs an event loop in this thread. Perform ORM
         # setup/assertions outside this scope; the live server has its own thread.
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
+            channel = os.environ.get("IPS_BROWSER_CHANNEL") or None
+            if channel not in (None, "chrome"):
+                raise ValueError("Use the bundled Chromium build or IPS_BROWSER_CHANNEL=chrome.")
+            browser = playwright.chromium.launch(headless=True, channel=channel)
             self.context = browser.new_context(viewport={"width": 1440, "height": 1000})
             try:
                 self.page = self.context.new_page()
