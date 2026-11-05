@@ -126,10 +126,11 @@ def database_state(path):
         for name in PRESERVED_TABLES:
             names = [row[1] for row in db.execute('PRAGMA table_info("' + name + '")')
                      if not (name == 'publishing_journalissue' and row[1] == 'article_order')]
-            require(all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', value) for value in names), 'STOP_DATABASE_COLUMNS')
+            require('id' in names and all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', value) for value in names),
+                    'STOP_DATABASE_COLUMNS')
             fields = ', '.join('"' + value + '"' for value in names)
             checksum = hashlib.sha256()
-            for row in db.execute('SELECT ' + fields + ' FROM "' + name + '" ORDER BY rowid'):
+            for row in db.execute('SELECT ' + fields + ' FROM "' + name + '" ORDER BY "id"'):
                 checksum.update(repr(row).encode('utf-8'))
                 checksum.update(b'\n')
             checksums[name] = checksum.hexdigest()
