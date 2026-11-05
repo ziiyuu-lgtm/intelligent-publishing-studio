@@ -69,6 +69,7 @@ jobs:
           import os
           import sqlite3
           import subprocess
+          import time
           from pathlib import Path
           spec = importlib.util.spec_from_file_location('issue_installer', os.environ['INSTALLER'])
           m = importlib.util.module_from_spec(spec)
@@ -112,7 +113,14 @@ jobs:
               with sqlite3.connect(m.BASE / '.runtime/dev.sqlite3') as destination:
                   source.backup(destination)
           subprocess.run(['systemctl', 'start', m.UNIT], check=True)
-          m.homepage()
+          for attempt in range(30):
+              try:
+                  m.homepage()
+                  break
+              except Exception:
+                  time.sleep(0.5)
+          else:
+              raise RuntimeError('CI_RESET_SERVICE_NOT_READY')
           assert not m.database_state(m.BASE / '.runtime/dev.sqlite3')['applied']
           assert m.main() == 0
           assert m.database_state(m.BASE / '.runtime/dev.sqlite3')['applied']
