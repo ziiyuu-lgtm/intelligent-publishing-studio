@@ -243,6 +243,22 @@ class ReviewerCopyIntegrityTests(TestCase):
         self.assertEqual(self.client.get(reverse('review_file', args=[assignment.pk])).status_code, 404)
         self.assertEqual(self.client.get(reverse('submission_file', args=[submission.pk])).status_code, 404)
 
+    def test_closed_recheck_is_translated_when_chinese_is_selected(self):
+        submission, assignment, version = self.closed_legacy_round()
+        url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])
+        self.client.force_login(self.editor)
+        self.client.post(reverse('set_language'), {'language': 'zh-hans', 'next': url})
+        page = self.client.get(reverse('submission_detail', args=[submission.pk]))
+        self.assertContains(page, '已关闭轮次的审稿副本核查')
+        self.assertContains(page, '核查审稿副本和元数据')
+        page = self.client.get(url)
+        self.assertContains(page, '重新核查历史审稿副本')
+        self.assertContains(page, '此项检查不能保证匿名。')
+        self.assertContains(page, '不会重新开放该轮审稿或允许审稿人下载文件。')
+        token = page.context['check_token']
+        response = self.client.post(url, {'confirmed': 'yes', 'check_token': token}, follow=True)
+        self.assertContains(response, '已记录该关闭轮次的人工核查。')
+
     def test_closed_recheck_rejects_stale_file_metadata_and_round_tokens(self):
         submission, assignment, version = self.closed_legacy_round()
         url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])

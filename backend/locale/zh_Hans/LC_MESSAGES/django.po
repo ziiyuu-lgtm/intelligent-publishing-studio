@@ -8475,3 +8475,39 @@ msgstr "请选择有效建议，确保关键词总数不超过十个。"
 
 msgid "Selected keywords were added to your draft. Review them before submitting."
 msgstr "所选关键词已加入草稿。提交前请检查。"
+
+#: templates/publishing/historical_review_copy_check.html
+msgid "CLOSED REVIEW ROUND"
+msgstr "已关闭的审稿轮次"
+
+#: templates/publishing/historical_review_copy_check.html
+msgid "Recheck historical reviewer copy"
+msgstr "重新核查历史审稿副本"
+
+#: templates/publishing/historical_review_copy_check.html
+msgid "Review the PDF, document metadata, title, abstract and keywords for identifying information. This does not guarantee anonymity."
+msgstr "请检查 PDF、文档元数据、标题、摘要和关键词中是否包含身份识别信息。此项检查不能保证匿名。"
+
+#: templates/publishing/historical_review_copy_check.html
+msgid "A check can restore historical metadata visibility. It does not reopen the round or enable reviewer downloads."
+msgstr "核查后可恢复历史元数据的显示，但不会重新开放该轮审稿或允许审稿人下载文件。"
+
+#: templates/publishing/historical_review_copy_check.html
+msgid "This version is in an open review round. Use that round's editorial check."
+msgstr "此版本正用于一个开放的审稿轮次，请在该轮次的编辑核查中处理。"
+
+#: templates/publishing/submission_detail.html
+msgid "Closed-round reviewer copy checks"
+msgstr "已关闭轮次的审稿副本核查"
+
+#: templates/publishing/submission_detail.html
+msgid "Recheck older copies to restore historical metadata visibility. Closed rounds remain closed."
+msgstr "重新核查较早的副本，以恢复历史元数据的显示。已关闭的轮次将保持关闭。"
+
+#: templates/publishing/submission_detail.html
+msgid "Review copy and metadata"
+msgstr "核查审稿副本和元数据"
+
+#: publishing/historical_review_views.py
+msgid "Manual check recorded for this closed round."
+msgstr "已记录该关闭轮次的人工核查。"
