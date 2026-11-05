@@ -1,0 +1,36 @@
+name: Fictional online-first PostgreSQL tests
+on:
+  push:
+    branches:
+      - feature/altavien-online-first-ci-20261105
+permissions:
+  contents: read
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare isolated PostgreSQL and application
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql postgresql-client python3-venv rsync gettext
+          sudo systemctl start postgresql
+          test ! -e /srv/altavien-pg-probe/source
+          sudo mkdir -p /srv/altavien-pg-probe/source
+          sudo rsync -a --exclude=.git "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
+          sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
+          sudo -u postgres python3 -m venv /srv/altavien-pg-probe/source/.venv
+          sudo -u postgres /srv/altavien-pg-probe/source/.venv/bin/python -m pip install --disable-pip-version-check --no-input -r /srv/altavien-pg-probe/source/backend/requirements.release-candidate.txt
+      - name: Verify migration state and translations
+        run: |
+          set -euo pipefail
+          cd /srv/altavien-pg-probe/source/backend
+          sudo -u postgres /srv/altavien-pg-probe/source/.venv/bin/python manage.py makemigrations --check --dry-run
+          msgfmt --check -o /tmp/altavien-chinese.mo locale/zh_Hans/LC_MESSAGES/django.po
+          cmp /tmp/altavien-chinese.mo locale/zh_Hans/LC_MESSAGES/django.mo
+      - name: Run fictional workflow against PostgreSQL
+        run: sudo /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh workflow
