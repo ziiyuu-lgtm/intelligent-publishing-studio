@@ -1,4 +1,4 @@
-name: Fictional PostgreSQL workflow probe
+name: Transient service recovery canary
 on:
   push:
     branches:
@@ -6,24 +6,39 @@ on:
 permissions:
   contents: read
 jobs:
-  review-copy:
+  canary:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Run isolated PostgreSQL workflow tests
+      - name: Verify restart and runtime unit recovery
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql postgresql-client python3-venv rsync
-          sudo systemctl start postgresql
-          test ! -e /srv/altavien-pg-probe/source
-          sudo mkdir -p /srv/altavien-pg-probe/source
-          sudo rsync -a --exclude=.git "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
-          sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
-          sudo -u postgres python3 -m venv /srv/altavien-pg-probe/source/.venv
-          sudo -u postgres /srv/altavien-pg-probe/source/.venv/bin/python -m pip install --disable-pip-version-check --no-input -r /srv/altavien-pg-probe/source/backend/requirements.release-candidate.txt
-          sudo /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh workflow
+          d=/tmp/altavien-transient-canary
+          mkdir "$d"
+          printf '#!/bin/bash\nif test -f /tmp/altavien-transient-canary/fail; then exit 9; fi\nexec /bin/sleep 600\n' > "$d/worker"
+          sudo systemd-run --unit=altavien-transient-canary --property=Type=exec /bin/bash "$d/worker"
+          fragment=$(systemctl show altavien-transient-canary.service -p FragmentPath --value)
+          test -f "$fragment"
+          sudo cp "$fragment" "$d/unit.backup"
+          sudo systemctl restart altavien-transient-canary.service
+          systemctl is-active --quiet altavien-transient-canary.service
+          echo TRANSIENT_RESTART_PASSED
+          touch "$d/fail"
+          sudo systemctl restart altavien-transient-canary.service || true
+          sleep 2
+          systemctl show altavien-transient-canary.service -p LoadState -p ActiveState -p SubState
+          rm "$d/fail"
+          if ! sudo systemctl start altavien-transient-canary.service; then
+            echo TRANSIENT_RECREATE_FROM_RUNTIME_FRAGMENT
+            sudo install -m 0644 "$d/unit.backup" /run/systemd/system/altavien-transient-canary.service
+            sudo systemctl daemon-reload
+            sudo systemctl start altavien-transient-canary.service
+          fi
+          systemctl is-active --quiet altavien-transient-canary.service
+          echo TRANSIENT_RECOVERY_PASSED
+          sudo systemctl stop altavien-transient-canary.service || true
+          if test -f /run/systemd/system/altavien-transient-canary.service; then
+            sudo rm /run/systemd/system/altavien-transient-canary.service
+            sudo systemctl daemon-reload
+          fi
