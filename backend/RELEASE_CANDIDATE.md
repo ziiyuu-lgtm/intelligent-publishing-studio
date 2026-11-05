@@ -61,6 +61,13 @@ two newly created, retained fictional PostgreSQL probe databases.
 The reviewer-PDF and metadata checks passed eight tests against the VPS probe's
 fictional PostgreSQL database on 2026-11-04.
 
+For a closed review round, an assigned editor may separately recheck the
+historical reviewer PDF and version metadata. The confirmation is tied to the
+editor, round, file digest and metadata. It can restore visibility of recorded
+historical metadata but does not reopen the round or enable reviewer downloads.
+No check is offered while an open round uses the same version. This remains a
+manual, fictional-data workflow and does not establish anonymity.
+
 In the local publication simulation, private proof and published-PDF downloads
 return the exact bounded bytes whose PDF header and stored SHA-256 were checked.
 This closes a gap where a file could change between the check and a second

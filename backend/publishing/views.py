@@ -423,6 +423,9 @@ def submission_detail(request, pk):
     if editor_view:
         context["my_editorial_assignment"] = submission.editor_assignments.get(editor=request.user, status=EditorialAssignment.Status.ACTIVE)
         context["has_reported_conflict"] = submission.reviews.filter(conflict=ReviewAssignment.Conflict.YES).exists()
+        if settings.DEBUG and submission.review_mode == Journal.ReviewMode.SEPARATE:
+            context["historical_review_rounds"] = submission.rounds.filter(
+                status=ReviewRound.Status.CLOSED, version__submission=submission).select_related("version")
         if submission.status in ACTIVE_REVIEW_STATUSES and review_round:
             context["invite_form"] = InviteForm(submission=submission, actor=request.user)
             if submission.review_mode == Journal.ReviewMode.SEPARATE:

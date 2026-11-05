@@ -2,6 +2,7 @@ from django.urls import path
 from . import draft_edit_views, supporting_views, keyword_ai_views
 from . import image_ai_views, site_change_review_views, review_comparison_views, review_ai_consent_views, review_ai_reply_views, review_ai_request_views, review_synthesis_views, version_metadata_views
 from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, design_history_views, editor_ai_reply_views, editor_comparison_consent_views, editor_comparison_request_views, editor_revision_comparison_views, editor_revision_views, issue_views, manual_layout_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, visual_ai_review_views, views
+from . import historical_review_views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -206,6 +207,7 @@ urlpatterns = [
     path("submissions/<uuid:pk>/versions/<int:number>/file/", views.submission_version_file, name="submission_version_file"),
     path("submissions/<uuid:pk>/versions/<int:number>/review-copy/", views.submission_review_copy_file, name="submission_review_copy_file"),
     path("submissions/<uuid:pk>/review-copy-check/", views.review_copy_screen, name="review_copy_screen"),
+    path("submissions/<uuid:pk>/review-copy-check/history/<int:number>/", historical_review_views.historical_review_copy_check, name="historical_review_copy_check"),
     path("submissions/<uuid:pk>/revision/", views.submission_revision, name="submission_revision"),
     path("submissions/<uuid:pk>/revision-plan/", revision_plan_views.revision_plan, name="revision_plan"),
     path("submissions/<uuid:pk>/revision-response/", revision_response_views.revision_response_builder, name="revision_response_builder"),
