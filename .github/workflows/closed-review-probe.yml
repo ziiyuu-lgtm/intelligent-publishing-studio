@@ -1,4 +1,4 @@
-name: Fictional PostgreSQL review-copy probe
+name: Fictional PostgreSQL workflow probe
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Run isolated PostgreSQL review-copy tests
+      - name: Run isolated PostgreSQL workflow tests
         shell: bash
         run: |
           set -euo pipefail
@@ -26,4 +26,4 @@ jobs:
           sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
           sudo -u postgres python3 -m venv /srv/altavien-pg-probe/source/.venv
           sudo -u postgres /srv/altavien-pg-probe/source/.venv/bin/python -m pip install --disable-pip-version-check --no-input -r /srv/altavien-pg-probe/source/backend/requirements.release-candidate.txt
-          sudo /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh review-copy
+          sudo /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh workflow
