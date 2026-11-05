@@ -2,6 +2,7 @@ import shutil
 import tempfile
 import hashlib
 import json
+import time
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -119,7 +120,10 @@ class ProductionTests(TestCase):
 
     def release_issue(self, issue, actor=None):
         self.client.force_login(actor or self.coordinator)
-        return self.client.post(reverse("release_test_issue", args=[issue.pk]), {"confirm":"yes", "synthetic":"yes"})
+        review = self.client.get(reverse("review_test_issue_release", args=[issue.pk]))
+        token = review.context["release_token"] if review.status_code == 200 else ""
+        return self.client.post(reverse("release_test_issue", args=[issue.pk]),
+            {"confirm":"yes", "synthetic":"yes", "release_token":token})
 
     def test_default_off_and_debug_off_block_all_publication_routes(self):
         for settings_values in ({"IPS_LOCAL_PUBLICATION_ENABLED":False}, {"DEBUG":False}):
@@ -1056,3 +1060,206 @@ class ProductionTests(TestCase):
         page = self.client.get(reverse("order_test_issue", args=[issue.pk]))
         self.assertContains(page, "排列测试期次文章")
         self.assertContains(page, "此期次尚未分配已发表的测试文章")
+
+    def release_review(self, issue):
+        self.client.force_login(self.coordinator)
+        page = self.client.get(reverse("review_test_issue_release", args=[issue.pk]))
+        self.assertEqual(page.status_code, 200)
+        return page, {"release_token":page.context["release_token"], "confirm":"yes", "synthetic":"yes"}
+
+    def test_issue_release_review_matches_public_order_without_writes(self):
+        issue = self.create_issue()
+        first = self.extra_issue_article(issue, "First test article", timezone.now())
+        second = self.extra_issue_article(issue, "<script>Second test article</script>", timezone.now())
+        order = self.order_page(issue)
+        self.client.post(reverse("order_test_issue", args=[issue.pk]), self.order_data(order, [second, first]))
+        before = list(PublicationDraft.objects.values())
+        events = SubmissionEvent.objects.count()
+        page, data = self.release_review(issue)
+        self.assertEqual([a.pk for a in page.context["articles"]], [second.pk, first.pk])
+        self.assertContains(page, "&lt;script&gt;Second test article&lt;/script&gt;")
+        self.assertNotContains(page, "<script>Second test article</script>")
+        self.assertNotContains(page, "SECRET fictional review")
+        self.assertContains(page, reverse("test_article_pdf", args=[self.journal.slug, first.pk]))
+        self.assertIn("no-store", page["Cache-Control"])
+        self.assertIn("noindex", page["X-Robots-Tag"])
+        self.assertEqual(list(PublicationDraft.objects.values()), before)
+        self.assertEqual(SubmissionEvent.objects.count(), events)
+        issue.refresh_from_db()
+        self.assertIsNone(issue.released_at)
+        self.assertEqual(Client().get(reverse("test_issue", args=[self.journal.slug, issue.pk])).status_code, 404)
+        listing = self.client.get(reverse("manage_test_issues", args=[self.journal.slug]))
+        self.assertContains(listing, reverse("review_test_issue_release", args=[issue.pk]))
+        self.assertNotContains(listing, 'action="' + reverse("release_test_issue", args=[issue.pk]) + '"')
+        self.assertEqual(self.client.post(reverse("release_test_issue", args=[issue.pk]), data).status_code, 302)
+        public = Client().get(reverse("test_issue", args=[self.journal.slug, issue.pk]))
+        self.assertEqual([a.pk for a in public.context["articles"]], [second.pk, first.pk])
+        self.assertContains(public, "Articles follow the order fixed")
+        self.assertNotContains(public, "Articles are ordered by local test publication time.")
+        self.assertEqual(list(PublicationDraft.objects.values()), before)
+
+    def test_issue_release_rejects_missing_tampered_expired_and_replayed_review(self):
+        issue = self.create_issue()
+        self.extra_issue_article(issue, "Test article", timezone.now())
+        _, data = self.release_review(issue)
+        url = reverse("release_test_issue", args=[issue.pk])
+        for token in ("", "invalid", data["release_token"] + "x"):
+            self.assertEqual(self.client.post(url, {**data, "release_token":token}).status_code, 409)
+        with patch("django.core.signing.time.time", return_value=time.time() + 3602):
+            self.assertEqual(self.client.post(url, data).status_code, 409)
+        issue.refresh_from_db()
+        self.assertIsNone(issue.released_at)
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        issue.refresh_from_db()
+        released_at = issue.released_at
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        self.assertEqual(self.client.get(reverse("review_test_issue_release", args=[issue.pk])).status_code, 409)
+        issue.refresh_from_db()
+        self.assertEqual(issue.released_at, released_at)
+
+    def test_issue_release_review_binds_actor_issue_and_current_permissions(self):
+        issue = self.create_issue()
+        self.extra_issue_article(issue, "Test article", timezone.now())
+        _, data = self.release_review(issue)
+        second = self.create_issue(number=2)
+        self.extra_issue_article(second, "Other test article", timezone.now())
+        self.assertEqual(self.client.post(reverse("release_test_issue", args=[second.pk]), data).status_code, 409)
+        peer = get_user_model().objects.create_user("other-issue-coordinator")
+        Membership.objects.create(user=peer, journal=self.journal, role="coordinator")
+        self.client.force_login(peer)
+        self.assertEqual(self.client.post(reverse("release_test_issue", args=[issue.pk]), data).status_code, 409)
+        self.client.force_login(self.coordinator)
+        Membership.objects.filter(user=self.coordinator, journal=self.journal).update(active=False)
+        self.assertEqual(self.client.post(reverse("release_test_issue", args=[issue.pk]), data).status_code, 404)
+        self.assertEqual(self.client.get(reverse("review_test_issue_release", args=[issue.pk])).status_code, 404)
+        issue.refresh_from_db()
+        second.refresh_from_db()
+        self.assertIsNone(issue.released_at)
+        self.assertIsNone(second.released_at)
+
+    def test_issue_release_review_rejects_changed_metadata_and_order(self):
+        issue = self.create_issue()
+        first = self.extra_issue_article(issue, "First test article", timezone.now())
+        second = self.extra_issue_article(issue, "Second test article", timezone.now())
+        _, data = self.release_review(issue)
+        url = reverse("release_test_issue", args=[issue.pk])
+        cases = [(JournalIssue.objects.filter(pk=issue.pk), "title", issue.title, "Changed issue"),
+                 (JournalIssue.objects.filter(pk=issue.pk), "year", issue.year, issue.year + 1),
+                 (Journal.objects.filter(pk=self.journal.pk), "name", self.journal.name, "Changed journal"),
+                 (PublicationDraft.objects.filter(pk=first.pk), "title", first.title, "Changed article"),
+                 (PublicationDraft.objects.filter(pk=first.pk), "authors", first.authors, "Changed author"),
+                 (PublicationDraft.objects.filter(pk=first.pk), "abstract", first.abstract, "Changed abstract"),
+                 (PublicationDraft.objects.filter(pk=first.pk), "published_at", first.published_at, first.published_at - timedelta(days=1)),
+                 (JournalIssue.objects.filter(pk=issue.pk), "article_order", None, [str(second.pk), str(first.pk)])]
+        for queryset, field, original, changed in cases:
+            with self.subTest(field=field, model=queryset.model.__name__):
+                queryset.update(**{field:changed})
+                self.assertEqual(self.client.post(url, data).status_code, 409)
+                issue.refresh_from_db()
+                self.assertIsNone(issue.released_at)
+                queryset.update(**{field:original})
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+
+    def test_issue_release_review_rejects_added_articles_and_allows_fresh_review(self):
+        issue = self.create_issue()
+        self.extra_issue_article(issue, "First test article", timezone.now())
+        _, data = self.release_review(issue)
+        self.extra_issue_article(issue, "New test article", timezone.now() - timedelta(days=1))
+        url = reverse("release_test_issue", args=[issue.pk])
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        page, fresh = self.release_review(issue)
+        self.assertEqual(len(page.context["articles"]), 2)
+        self.assertEqual(self.client.post(url, fresh).status_code, 302)
+
+    def test_issue_release_review_blocks_missing_or_replaced_pdf(self):
+        issue = self.create_issue()
+        article = self.extra_issue_article(issue, "Test article", timezone.now())
+        _, data = self.release_review(issue)
+        url = reverse("release_test_issue", args=[issue.pk])
+        proof = article.published_proof
+        proof.file.storage.delete(proof.file.name)
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        page, blocked = self.release_review(issue)
+        self.assertEqual(blocked["release_token"], "")
+        self.assertContains(page, "Published PDF missing or changed")
+        self.assertNotContains(page, 'name="release_token"')
+        changed = PDF.replace(b"Fictional publication proof", b"Changed fictional proof")
+        proof.file.save("changed-test.pdf", ContentFile(changed), save=False)
+        proof.sha256 = hashlib.sha256(changed).hexdigest()
+        proof.save(update_fields=["file", "sha256"])
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        _, fresh = self.release_review(issue)
+        self.assertEqual(self.client.post(url, fresh).status_code, 302)
+
+    def test_issue_release_review_hides_unpublished_and_foreign_drafts(self):
+        issue = self.create_issue()
+        draft = self.start()
+        self.select_issue(draft, issue)
+        page, data = self.release_review(issue)
+        self.assertEqual(data["release_token"], "")
+        self.assertNotContains(page, "Fictional original title")
+        self.assertNotContains(page, 'name="release_token"')
+        foreign = self.extra_issue_article(issue, "Foreign unpublished secret", timezone.now())
+        Submission.objects.filter(pk=foreign.submission_id).update(journal=self.other_journal)
+        page, data = self.release_review(issue)
+        self.assertEqual(data["release_token"], "")
+        self.assertNotContains(page, "Foreign unpublished secret")
+
+    def test_issue_release_review_handles_empty_and_corrupt_issue(self):
+        issue = self.create_issue()
+        page, data = self.release_review(issue)
+        self.assertEqual(data["release_token"], "")
+        self.assertContains(page, "at least one published article")
+        article = self.extra_issue_article(issue, "Test article", timezone.now())
+        JournalIssue.objects.filter(pk=issue.pk).update(article_order=[str(article.pk), str(article.pk)])
+        page, data = self.release_review(issue)
+        self.assertEqual(data["release_token"], "")
+        self.assertContains(page, "The saved issue order is invalid")
+
+    def test_issue_release_review_enforces_scope_conflicts_and_feature_gates(self):
+        issue = self.create_issue()
+        self.extra_issue_article(issue, "Test article", timezone.now())
+        url = reverse("review_test_issue_release", args=[issue.pk])
+        self.assertEqual(Client().get(url).status_code, 302)
+        for user in (self.author, self.producer, self.editor):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(url).status_code, 404)
+        Membership.objects.create(user=self.author, journal=self.journal, role="coordinator")
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        _, data = self.release_review(issue)
+        for values in ({"DEBUG":False}, {"IPS_LOCAL_PUBLICATION_ENABLED":False}):
+            with self.subTest(values=values), override_settings(**values):
+                self.assertEqual(self.client.get(url).status_code, 404)
+                self.assertEqual(self.client.post(reverse("release_test_issue", args=[issue.pk]), data).status_code, 404)
+        guarded = Client(enforce_csrf_checks=True)
+        guarded.force_login(self.coordinator)
+        self.assertEqual(guarded.post(reverse("release_test_issue", args=[issue.pk]), data).status_code, 403)
+        self.assertEqual(self.client.post(url, {}).status_code, 405)
+        for field in ("confirm", "synthetic"):
+            self.assertEqual(self.client.post(reverse("release_test_issue", args=[issue.pk]), {**data, field:""}).status_code, 400)
+
+    def test_issue_release_failure_rolls_back_order_and_release(self):
+        issue = self.create_issue()
+        self.extra_issue_article(issue, "Test article", timezone.now())
+        _, data = self.release_review(issue)
+        original_save = JournalIssue.save
+        def fail_after_save(instance, *args, **kwargs):
+            original_save(instance, *args, **kwargs)
+            raise RuntimeError("Simulated issue write failure")
+        with patch.object(JournalIssue, "save", fail_after_save), self.assertRaises(RuntimeError):
+            self.client.post(reverse("release_test_issue", args=[issue.pk]), data)
+        issue.refresh_from_db()
+        self.assertIsNone(issue.released_at)
+        self.assertIsNone(issue.released_by_id)
+        self.assertIsNone(issue.article_order)
+
+    def test_issue_release_review_supports_simplified_chinese(self):
+        issue = self.create_issue()
+        self.extra_issue_article(issue, "Test article", timezone.now())
+        self.client.post(reverse("set_language"), {"language":"zh-hans", "next":"/"})
+        page, data = self.release_review(issue)
+        self.assertContains(page, "测试期次发布前核对")
+        self.assertContains(page, "按发布顺序排列的期次目录")
+        self.assertContains(page, "确认发布期次")
+        self.assertTrue(data["release_token"])

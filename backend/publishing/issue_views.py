@@ -6,6 +6,7 @@ import uuid
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core import signing
 from django.db import transaction
 from django.db.models import F, Q
 from django.http import Http404, HttpResponse
@@ -17,7 +18,8 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from .forms import JournalIssueForm
 from .models import ContributorResponseRequest, EditorialAssignment, Journal, JournalIssue, Membership, ProductionAssignment, PublicationDraft, ReviewAssignment
-from .production_views import _draft, _enabled, _no_index, _producer_can_manage, _proof_intact, _source_valid, _stale
+from .production_views import _draft, _enabled, _fingerprint, _no_index, _producer_can_manage, _proof_intact, _source_valid, _stale
+from .published_issue import issue_snapshot
 from .views import _event, _has_role
 
 
@@ -60,6 +62,60 @@ def _invalid_issue_articles(articles, issue):
     return articles.filter(Q(published_at__isnull=True) | Q(published_proof__isnull=True) |
                            ~Q(submission__journal_id=issue.journal_id) |
                            ~Q(published_proof__draft_id=F("pk"))).exists()
+
+
+ISSUE_RELEASE_SALT = "publishing.test-issue-release.v1"
+ISSUE_RELEASE_MAX_AGE = 60 * 60
+
+
+def _issue_release_contents(issue, articles):
+    """Inspect public article metadata only; never expose unfinished drafts."""
+    blockers = []
+    if not articles.exists() or _invalid_issue_articles(articles, issue):
+        blockers.append(_("The issue needs at least one published article and no unpublished assignments."))
+    chronological = list(articles.filter(published_at__isnull=False, published_proof__isnull=False,
+        published_proof__draft_id=F("pk"), submission__journal_id=issue.journal_id
+    ).select_related("published_proof", "issue").order_by("published_at", "pk"))
+    for article in chronological:
+        article.proof_intact = _proof_intact(article.published_proof)
+    if any(not article.proof_intact for article in chronological):
+        blockers.append(_("A published test PDF is missing or changed; the issue cannot be released."))
+    try:
+        ordered = _articles_in_issue_order(issue, chronological)
+    except ValueError:
+        ordered = []
+        blockers.append(_("The saved issue order is invalid; an administrator must review it."))
+    return ordered, blockers
+
+
+def _issue_release_state(issue, articles):
+    payload = {"issue": issue_snapshot(issue), "journal": str(issue.journal_id),
+        "journal_name": issue.journal.name, "saved_order": issue.article_order,
+        "articles": [{"fingerprint": _fingerprint(article, article.published_proof),
+                      "published_at": article.published_at.isoformat(),
+                      "file": article.published_proof.file.name} for article in articles]}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                                    separators=(",", ":")).encode()).hexdigest()
+
+
+@login_required
+@never_cache
+@require_GET
+def review_test_issue_release(request, pk):
+    _enabled()
+    issue = get_object_or_404(JournalIssue.objects.select_related("journal__organisation"), pk=pk)
+    if not _has_role(request.user, issue.journal, Membership.Role.COORDINATOR):
+        raise Http404
+    if issue.released_at:
+        return HttpResponse(_("This test issue is already released."), status=409)
+    articles = PublicationDraft.objects.filter(issue=issue)
+    if not _independent_coordinator(request.user, articles):
+        return HttpResponse(_("An independent coordinator must release this issue."), status=403)
+    ordered, blockers = _issue_release_contents(issue, articles)
+    token = "" if blockers else signing.dumps({"actor": str(request.user.pk),
+        "state": _issue_release_state(issue, ordered)}, salt=ISSUE_RELEASE_SALT)
+    return _no_index(render(request, "publishing/review_test_issue_release.html", {
+        "issue": issue, "articles": ordered, "blockers": blockers, "release_token": token}))
 
 
 @login_required
@@ -191,17 +247,18 @@ def release_test_issue(request, pk):
         if issue.released_at:
             return HttpResponse(_("This test issue is already released."), status=409)
         articles = PublicationDraft.objects.filter(issue=issue)
-        if not articles.exists() or _invalid_issue_articles(articles, issue):
-            return HttpResponse(_("The issue needs at least one published article and no unpublished assignments."), status=409)
         if not _independent_coordinator(request.user, articles):
             return HttpResponse(_("An independent coordinator must release this issue."), status=403)
-        chronological = list(articles.select_related("published_proof").order_by("published_at", "pk"))
-        if any(not _proof_intact(article.published_proof) for article in chronological):
-            return HttpResponse(_("A published test PDF is missing or changed; the issue cannot be released."), status=409)
+        ordered, blockers = _issue_release_contents(issue, articles)
+        if blockers:
+            return HttpResponse(blockers[0], status=409)
         try:
-            ordered = _articles_in_issue_order(issue, chronological)
-        except ValueError:
-            return HttpResponse(_("The saved issue order is invalid; an administrator must review it."), status=409)
+            reviewed = signing.loads(request.POST.get("release_token", ""),
+                                     salt=ISSUE_RELEASE_SALT, max_age=ISSUE_RELEASE_MAX_AGE)
+        except signing.BadSignature:
+            reviewed = None
+        if reviewed != {"actor": str(request.user.pk), "state": _issue_release_state(issue, ordered)}:
+            return HttpResponse(_("The release review expired or the issue changed. Open a fresh release review before confirming."), status=409)
         issue.article_order = [str(article.pk) for article in ordered]
         issue.released_at, issue.released_by = timezone.now(), request.user
         issue.save(update_fields=["article_order", "released_at", "released_by"])

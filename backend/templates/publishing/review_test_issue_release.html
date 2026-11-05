@@ -1,0 +1,52 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<a class="back" href="{% url 'manage_test_issues' issue.journal.slug %}">← {% translate "Back to test issues" %}</a>
+<div class="page-intro">
+  <span class="eyebrow">{{ issue.journal.name }}</span>
+  <h1>{% translate "Review test issue release" %}</h1>
+  <p>{% translate "Volume" %} {{ issue.volume }}, {% translate "Issue" %} {{ issue.number }} · {{ issue.year }}{% if issue.title %} · {{ issue.title }}{% endif %}</p>
+</div>
+<div class="notice">{% translate "Private review of a fictional test issue. Opening this page does not release it." %}</div>
+<section class="card panel">
+  <h2>{% translate "Release checks" %}</h2>
+  {% if blockers %}
+  <ul>{% for blocker in blockers %}<li>{{ blocker }}</li>{% endfor %}</ul>
+  <p>{% translate "Resolve these checks, then reopen this review." %}</p>
+  {% else %}
+  <p>{% translate "All assigned articles are published and their stored test PDFs passed the file check." %}</p>
+  {% endif %}
+  <p class="muted">{% translate "The file check compares the PDF header and stored digest; it does not review article content." %}</p>
+  <a class="button secondary small" href="{% url 'order_test_issue' issue.pk %}">{% translate "Arrange articles" %}</a>
+</section>
+<section class="card panel">
+  <h2>{% translate "Issue contents in release order" %} ({{ articles|length }})</h2>
+  <ol class="stack">
+  {% for article in articles %}
+    <li>
+      <h3>{{ article.title }}</h3>
+      <p>{{ article.authors }}</p>
+      <p class="muted">{% translate "Published" %}: {{ article.published_at|date:"Y-m-d H:i" }} UTC</p>
+      <div class="actions">
+        <a class="button secondary small" href="{% url 'test_article' issue.journal.slug article.pk %}" target="_blank" rel="noopener">{% translate "View article" %}</a>
+        {% if article.proof_intact %}
+        <a class="button secondary small" href="{% url 'test_article_pdf' issue.journal.slug article.pk %}" target="_blank" rel="noopener">{% translate "Download published PDF" %}</a>
+        {% else %}<span class="notice">{% translate "Published PDF missing or changed" %}</span>{% endif %}
+      </div>
+    </li>
+  {% empty %}<li>{% translate "No published test articles are assigned to this issue." %}</li>{% endfor %}
+  </ol>
+</section>
+{% if release_token %}
+<section class="card panel">
+  <h2>{% translate "Confirm issue release" %}</h2>
+  <p>{% translate "Check the issue details and article order above. Release fixes this order and closes the issue to further articles." %}</p>
+  <p class="muted">{% translate "This review is valid for one hour. Changes to the issue, article metadata, order or PDFs require a fresh review." %}</p>
+  <form method="post" action="{% url 'release_test_issue' issue.pk %}" class="stack">
+    {% csrf_token %}<input type="hidden" name="release_token" value="{{ release_token }}">
+    <label class="check"><input type="checkbox" name="confirm" value="yes" required> {% translate "I reviewed the issue details, article order and published PDFs and want to release this test issue locally." %}</label>
+    <label class="check"><input type="checkbox" name="synthetic" value="yes" required> {% translate "I confirm that this is a fictional test issue." %}</label>
+    <button class="button" type="submit">{% translate "Release issue" %}</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

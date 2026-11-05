@@ -8610,3 +8610,54 @@ msgstr "此期次尚未分配已发表的测试文章。"
 
 msgid "Arrange articles"
 msgstr "排列文章"
+
+msgid "Review test issue release"
+msgstr "测试期次发布前核对"
+
+msgid "Private review of a fictional test issue. Opening this page does not release it."
+msgstr "这是虚构测试期次的私人核对页面，打开页面不会发布期次。"
+
+msgid "Release checks"
+msgstr "发布检查"
+
+msgid "Resolve these checks, then reopen this review."
+msgstr "请先处理上述问题，再重新打开核对页面。"
+
+msgid "All assigned articles are published and their stored test PDFs passed the file check."
+msgstr "已分配的全部文章均已发表，保存的测试 PDF 已通过文件检查。"
+
+msgid "The file check compares the PDF header and stored digest; it does not review article content."
+msgstr "文件检查比对 PDF 文件头及保存的摘要值，不代替文章内容审核。"
+
+msgid "Issue contents in release order"
+msgstr "按发布顺序排列的期次目录"
+
+msgid "Published PDF missing or changed"
+msgstr "已发表 PDF 缺失或已更改"
+
+msgid "Confirm issue release"
+msgstr "确认发布期次"
+
+msgid "Check the issue details and article order above. Release fixes this order and closes the issue to further articles."
+msgstr "请核对上方期次信息及文章顺序。发布后顺序将固定，不能再向此期次添加文章。"
+
+msgid "This review is valid for one hour. Changes to the issue, article metadata, order or PDFs require a fresh review."
+msgstr "本次核对有效期为一小时。期次、文章元数据、顺序或 PDF 变化后，须重新核对。"
+
+msgid "I reviewed the issue details, article order and published PDFs and want to release this test issue locally."
+msgstr "我已核对期次信息、文章顺序和已发表 PDF，确认在本地发布此测试期次。"
+
+msgid "The release review expired or the issue changed. Open a fresh release review before confirming."
+msgstr "发布核对已过期或期次内容已更改。请重新打开发布前核对页面，再确认发布。"
+
+msgid "Review before release"
+msgstr "发布前核对"
+
+msgid "Articles follow the order fixed when this test issue was released."
+msgstr "文章按此测试期次发布时固定的顺序排列。"
+
+msgid "View article"
+msgstr "查看文章"
+
+msgid "Download published PDF"
+msgstr "下载已发表 PDF"
