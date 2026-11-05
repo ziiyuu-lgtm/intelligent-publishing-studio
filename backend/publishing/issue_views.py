@@ -1,4 +1,7 @@
 """Fictional, opt-in local issue management; no external publication."""
+import hashlib
+import json
+import re
 import uuid
 
 from django.contrib import messages
@@ -23,6 +26,40 @@ def _coordinator_journal(user, slug):
     if not _has_role(user, journal, Membership.Role.COORDINATOR):
         raise Http404
     return journal
+
+
+def _independent_coordinator(user, articles):
+    submission_ids = articles.values("submission_id")
+    return not (
+        articles.filter(submission__author=user).exists() or
+        ContributorResponseRequest.objects.filter(change__submission_id__in=submission_ids, recipient=user).exists() or
+        ReviewAssignment.objects.filter(submission_id__in=submission_ids, reviewer=user).exists() or
+        EditorialAssignment.objects.filter(submission_id__in=submission_ids, editor=user, status=EditorialAssignment.Status.RECUSED).exists() or
+        ProductionAssignment.objects.filter(draft__submission_id__in=submission_ids, producer=user, status=ProductionAssignment.Status.RECUSED).exists()
+    )
+
+
+def _articles_in_issue_order(issue, articles):
+    """Use saved positions; append newly assigned articles in publication order."""
+    saved = [] if issue.article_order is None else issue.article_order
+    by_id = {str(article.pk): article for article in articles}
+    if (not isinstance(saved, list) or any(not isinstance(value, str) for value in saved) or
+            len(saved) != len(set(saved)) or any(value not in by_id for value in saved)):
+        raise ValueError("Invalid saved issue order")
+    selected = set(saved)
+    return [by_id[value] for value in saved] + [article for article in articles if str(article.pk) not in selected]
+
+
+def _issue_order_state(issue, articles):
+    payload = {"issue": str(issue.pk), "saved": issue.article_order,
+               "articles": [str(article.pk) for article in articles]}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _invalid_issue_articles(articles, issue):
+    return articles.filter(Q(published_at__isnull=True) | Q(published_proof__isnull=True) |
+                           ~Q(submission__journal_id=issue.journal_id) |
+                           ~Q(published_proof__draft_id=F("pk"))).exists()
 
 
 @login_required
@@ -81,6 +118,64 @@ def set_production_issue(request, pk):
 
 @login_required
 @never_cache
+@require_http_methods(["GET", "POST"])
+def order_test_issue(request, pk):
+    _enabled()
+    with transaction.atomic():
+        issues = JournalIssue.objects.select_for_update() if request.method == "POST" else JournalIssue.objects.all()
+        issue = get_object_or_404(issues, pk=pk)
+        if not _has_role(request.user, issue.journal, Membership.Role.COORDINATOR):
+            raise Http404
+        if issue.released_at:
+            return HttpResponse(_("The order of a released test issue cannot be changed."), status=409)
+        articles = PublicationDraft.objects.filter(issue=issue)
+        if not _independent_coordinator(request.user, articles):
+            return HttpResponse(_("An independent coordinator must manage this issue."), status=403)
+        incomplete = _invalid_issue_articles(articles, issue)
+        if incomplete and request.method == "POST":
+            return HttpResponse(_("Publish all assigned test articles before setting their order."), status=409)
+        chronological = list(articles.filter(published_at__isnull=False, published_proof__isnull=False,
+                                             published_proof__draft_id=F("pk"),
+                                             submission__journal_id=issue.journal_id).order_by("published_at", "pk"))
+        try:
+            ordered = _articles_in_issue_order(issue, chronological)
+        except ValueError:
+            return HttpResponse(_("The saved issue order is invalid; an administrator must review it."), status=409)
+        state = _issue_order_state(issue, ordered)
+        if request.method == "POST":
+            if request.POST.get("synthetic") != "yes":
+                return HttpResponse(_("Confirm this is a fictional test issue."), status=400)
+            if request.POST.get("state") != state:
+                return HttpResponse(_("The issue contents or order changed; reload the page."), status=409)
+            if not ordered:
+                return HttpResponse(_("Add published test articles before setting their order."), status=409)
+            expected = {"position_" + str(article.pk) for article in ordered}
+            provided = {key for key in request.POST if key.startswith("position_")}
+            if provided != expected:
+                return HttpResponse(_("Enter each position once, from 1 to the number of articles."), status=400)
+            positions = []
+            for article in ordered:
+                values = request.POST.getlist("position_" + str(article.pk))
+                if len(values) != 1 or not re.fullmatch(r"[0-9]{1,9}", values[0]):
+                    return HttpResponse(_("Enter each position once, from 1 to the number of articles."), status=400)
+                positions.append((int(values[0]), article))
+            if sorted(position for position, _ in positions) != list(range(1, len(ordered) + 1)):
+                return HttpResponse(_("Enter each position once, from 1 to the number of articles."), status=400)
+            positions.sort(key=lambda item: item[0])
+            selected = [str(article.pk) for _, article in positions]
+            if selected != [str(article.pk) for article in ordered]:
+                issue.article_order = selected
+                issue.save(update_fields=["article_order"])
+                for article in ordered:
+                    _event(article.submission, request.user, "test_issue_order_changed")
+            messages.success(request, _("Test issue order saved."))
+            return redirect("order_test_issue", pk=pk)
+        return render(request, "publishing/order_test_issue.html", {"issue": issue, "articles": ordered,
+                      "order_state": state, "incomplete": incomplete})
+
+
+@login_required
+@never_cache
 @require_POST
 def release_test_issue(request, pk):
     _enabled()
@@ -94,20 +189,20 @@ def release_test_issue(request, pk):
         if issue.released_at:
             return HttpResponse(_("This test issue is already released."), status=409)
         articles = PublicationDraft.objects.filter(issue=issue)
-        if (not articles.exists() or articles.filter(Q(published_at__isnull=True) | Q(published_proof__isnull=True) |
-             ~Q(submission__journal_id=issue.journal_id) | ~Q(published_proof__draft_id=F("pk"))).exists()):
+        if not articles.exists() or _invalid_issue_articles(articles, issue):
             return HttpResponse(_("The issue needs at least one published article and no unpublished assignments."), status=409)
-        submission_ids = articles.values("submission_id")
-        if (articles.filter(submission__author=request.user).exists() or
-                ContributorResponseRequest.objects.filter(change__submission_id__in=submission_ids, recipient=request.user).exists() or
-                ReviewAssignment.objects.filter(submission_id__in=submission_ids, reviewer=request.user).exists() or
-                EditorialAssignment.objects.filter(submission_id__in=submission_ids, editor=request.user, status=EditorialAssignment.Status.RECUSED).exists() or
-                ProductionAssignment.objects.filter(draft__submission_id__in=submission_ids, producer=request.user, status=ProductionAssignment.Status.RECUSED).exists()):
+        if not _independent_coordinator(request.user, articles):
             return HttpResponse(_("An independent coordinator must release this issue."), status=403)
-        if any(not _proof_intact(article.published_proof) for article in articles.select_related("published_proof").iterator()):
+        chronological = list(articles.select_related("published_proof").order_by("published_at", "pk"))
+        if any(not _proof_intact(article.published_proof) for article in chronological):
             return HttpResponse(_("A published test PDF is missing or changed; the issue cannot be released."), status=409)
+        try:
+            ordered = _articles_in_issue_order(issue, chronological)
+        except ValueError:
+            return HttpResponse(_("The saved issue order is invalid; an administrator must review it."), status=409)
+        issue.article_order = [str(article.pk) for article in ordered]
         issue.released_at, issue.released_by = timezone.now(), request.user
-        issue.save(update_fields=["released_at", "released_by"])
+        issue.save(update_fields=["article_order", "released_at", "released_by"])
     messages.success(request, _("Fictional issue released in the local test environment."))
     return redirect("manage_test_issues", slug=journal.slug)
 
@@ -117,6 +212,10 @@ def test_issue(request, slug, pk):
     _enabled()
     issue = get_object_or_404(JournalIssue.objects.select_related("journal__organisation"), pk=pk,
         journal__slug=slug, journal__active=True, journal__organisation__active=True, released_at__isnull=False)
-    articles = issue.articles.filter(submission__journal_id=issue.journal_id, published_at__isnull=False,
-        published_proof__isnull=False, published_proof__draft_id=F("pk")).order_by("published_at", "pk")
+    chronological = list(issue.articles.filter(submission__journal_id=issue.journal_id, published_at__isnull=False,
+        published_proof__isnull=False, published_proof__draft_id=F("pk")).order_by("published_at", "pk"))
+    try:
+        articles = _articles_in_issue_order(issue, chronological)
+    except ValueError:
+        raise Http404
     return _no_index(render(request, "publishing/test_issue.html", {"issue": issue, "journal": issue.journal, "articles": articles}))

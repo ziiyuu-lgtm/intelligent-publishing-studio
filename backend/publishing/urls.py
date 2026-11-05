@@ -107,6 +107,7 @@ urlpatterns = [
     path("publishers/<slug:slug>/site/restore/<int:release_id>/", portal_views.restore_portal, name="restore_publisher_portal"),
     path("coordination/", views.coordination_workspace, name="coordination_workspace"),
     path("coordination/journals/<slug:slug>/issues/", issue_views.manage_test_issues, name="manage_test_issues"),
+    path("coordination/issues/<uuid:pk>/order/", issue_views.order_test_issue, name="order_test_issue"),
     path("coordination/issues/<uuid:pk>/release/", issue_views.release_test_issue, name="release_test_issue"),
     path("submissions/<uuid:pk>/editors/", views.submission_editors, name="submission_editors"),
     path("editorial-assignments/<int:pk>/remove/", views.remove_editor_assignment, name="remove_editor_assignment"),

@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<a class="back" href="{% url 'manage_test_issues' issue.journal.slug %}">← {% translate "Back to test issues" %}</a>
+<div class="page-intro"><span class="eyebrow">{{ issue.journal.name }}</span><h1>{% translate "Arrange test issue articles" %}</h1><p>{% translate "Volume" %} {{ issue.volume }}, {% translate "Issue" %} {{ issue.number }} · {{ issue.year }}{% if issue.title %} · {{ issue.title }}{% endif %}</p></div>
+<div class="notice">{% translate "Arrange only fictional test articles. The order is fixed when this test issue is released." %}</div>
+<section class="card panel review-list">
+{% if incomplete %}<p class="notice">{% translate "Publish all assigned test articles before setting their order." %}</p>{% endif %}
+{% if articles and not incomplete %}
+<p class="muted">{% translate "Enter each position once, from 1 to the number of articles. Newly assigned articles are appended until the order is saved again." %}</p>
+<form method="post" class="stack">{% csrf_token %}<input type="hidden" name="state" value="{{ order_state }}">
+{% for article in articles %}<div class="field"><label for="position-{{ article.pk }}">{{ article.title }}</label><input id="position-{{ article.pk }}" name="position_{{ article.pk }}" type="number" min="1" max="{{ articles|length }}" value="{{ forloop.counter }}" required></div>{% endfor %}
+<label class="check"><input type="checkbox" name="synthetic" value="yes" required> {% translate "I confirm that this is a fictional test issue." %}</label>
+<button class="button" type="submit">{% translate "Save article order" %}</button></form>
+{% elif not incomplete %}<p class="muted">{% translate "No published test articles are assigned to this issue yet." %}</p>{% endif %}
+</section>
+{% endblock %}

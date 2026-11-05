@@ -8562,3 +8562,51 @@ msgstr "保存期次提议"
 
 msgid "Issue changes require a fresh author confirmation. Once assigned after publication, the issue cannot be changed."
 msgstr "更改期次需要作者重新确认。文章发表后，一旦编入期次便无法更改。"
+
+msgid "The order of a released test issue cannot be changed."
+msgstr "已发布的测试期次不能更改文章顺序。"
+
+msgid "An independent coordinator must manage this issue."
+msgstr "必须由独立协调员管理此期次。"
+
+msgid "Publish all assigned test articles before setting their order."
+msgstr "请先发表分配到此期次的全部测试文章，再设置顺序。"
+
+msgid "The saved issue order is invalid; an administrator must review it."
+msgstr "保存的期次顺序无效，请由管理员核查。"
+
+msgid "Confirm this is a fictional test issue."
+msgstr "请确认这是虚构测试期次。"
+
+msgid "The issue contents or order changed; reload the page."
+msgstr "期次内容或顺序已更改，请重新加载页面。"
+
+msgid "Add published test articles before setting their order."
+msgstr "请先为此期次分配已发表的测试文章。"
+
+msgid "Enter each position once, from 1 to the number of articles."
+msgstr "请从 1 到文章总数填写顺序，每个数字只能使用一次。"
+
+msgid "Test issue order saved."
+msgstr "测试期次文章顺序已保存。"
+
+msgid "Back to test issues"
+msgstr "返回测试卷期"
+
+msgid "Arrange test issue articles"
+msgstr "排列测试期次文章"
+
+msgid "Arrange only fictional test articles. The order is fixed when this test issue is released."
+msgstr "请仅排列虚构测试文章。测试期次发布后，文章顺序将固定。"
+
+msgid "Enter each position once, from 1 to the number of articles. Newly assigned articles are appended until the order is saved again."
+msgstr "请从 1 到文章总数填写顺序，每个数字只能使用一次。新分配的文章将排在末尾，直到重新保存顺序。"
+
+msgid "Save article order"
+msgstr "保存文章顺序"
+
+msgid "No published test articles are assigned to this issue yet."
+msgstr "此期次尚未分配已发表的测试文章。"
+
+msgid "Arrange articles"
+msgstr "排列文章"
