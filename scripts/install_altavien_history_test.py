@@ -113,7 +113,13 @@ def preflight():
     argv = [os.fsdecode(x) for x in Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0') if x]
     require('runserver' in argv and '127.0.0.1:8000' in argv and '--noreload' in argv,
             'STOP_UNSUPPORTED_SERVICE_COMMAND')
-    require(any(Path(x).name == 'manage.py' for x in argv), 'STOP_SERVICE_COMMAND')
+    cwd = Path(os.readlink(f'/proc/{pid}/cwd'))
+    manage_paths = [(Path(x) if Path(x).is_absolute() else cwd / x).resolve()
+                    for x in argv if Path(x).name == 'manage.py']
+    require(manage_paths == [(BASE / 'manage.py').resolve()], 'STOP_SERVICE_COMMAND')
+    executable = Path(argv[0]) if Path(argv[0]).is_absolute() else cwd / argv[0]
+    require(executable.parent == Path(PYTHON).parent and executable.resolve() == Path(PYTHON).resolve(),
+            'STOP_SERVICE_PYTHON')
     fragment = Path(state.get('FragmentPath', ''))
     require(fragment.is_file() and fragment.resolve().is_relative_to(Path('/run/systemd')),
             'STOP_SERVICE_FRAGMENT')
@@ -122,7 +128,7 @@ def preflight():
     homepage()
     db = BASE / '.runtime/dev.sqlite3'
     require(db.is_file() and not db.is_symlink(), 'STOP_DATABASE_PATH')
-    return account, read_service_environment(pid), fragment, db
+    return account, read_service_environment(pid), fragment, db, pid
 
 
 def transient_canary():
@@ -298,7 +304,8 @@ def main():
     backup = None
     modified = []
     try:
-        account, env, fragment, db = preflight()
+        account, env, fragment, db, pid = preflight()
+        db_identity = (db.stat().st_dev, db.stat().st_ino)
         candidates = get_candidates()
         transient_canary()
         backup = Path(tempfile.mkdtemp(prefix='altavien-history-backup-a092-', dir='/srv'))
@@ -321,6 +328,10 @@ def main():
         sqlite_snapshot(db, snapshot, 0, 0)
         print('BACKUP_DIRECTORY=' + str(backup), flush=True)
         paths = stage_check(candidates, env, account, snapshot)
+        _, _, current_fragment, current_db, current_pid = preflight()
+        require(current_pid == pid and current_fragment == fragment and
+                (current_db.stat().st_dev, current_db.stat().st_ino) == db_identity,
+                'STOP_SITE_CHANGED_DURING_STAGING')
         for rel, data in candidates.items():
             path = BASE / rel
             require(path.parent.is_dir() and not path.parent.is_symlink(), 'STOP_LIVE_PARENT:' + rel)
