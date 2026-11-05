@@ -1,4 +1,5 @@
 from django.urls import path
+from . import published_issue_views
 from . import draft_edit_views, supporting_views, keyword_ai_views
 from . import image_ai_views, site_change_review_views, review_comparison_views, review_ai_consent_views, review_ai_reply_views, review_ai_request_views, review_synthesis_views, version_metadata_views
 from . import ai_policy_views, ai_views, author_dashboard_views, author_notice_views, author_response_views, author_submission_views, contributor_evidence_views, design_history_views, editor_ai_reply_views, editor_comparison_consent_views, editor_comparison_request_views, editor_revision_comparison_views, editor_revision_views, issue_views, manual_layout_views, portal_ai_module_views, portal_ai_views, portal_policy_views, portal_views, production_views, review_deadline_views, review_notice_views, revision_plan_views, revision_response_views, site_ai_module_views, site_ai_views, site_image_views, site_page_ai_views, site_page_block_ai_views, site_page_block_views, site_page_layout_ai_views, site_page_views, site_views, visual_ai_review_views, views
@@ -222,6 +223,8 @@ urlpatterns = [
     path("production/<uuid:pk>/source/", production_views.accepted_production_source, name="accepted_production_source"),
     path("production/<uuid:pk>/metadata/", production_views.edit_production_metadata, name="edit_production_metadata"),
     path("production/<uuid:pk>/issue/", issue_views.set_production_issue, name="set_production_issue"),
+    path("production/<uuid:pk>/published-issue/propose/", published_issue_views.propose_published_issue, name="propose_published_issue"),
+    path("production/<uuid:pk>/published-issue/<uuid:proposal_id>/resolve/", published_issue_views.resolve_published_issue, name="resolve_published_issue"),
     path("production/<uuid:pk>/proof/", production_views.upload_publication_proof, name="upload_publication_proof"),
     path("production/<uuid:pk>/proof/<int:proof_id>/", production_views.private_publication_proof, name="private_publication_proof"),
     path("production/<uuid:pk>/approve/", production_views.approve_publication_proof, name="approve_publication_proof"),

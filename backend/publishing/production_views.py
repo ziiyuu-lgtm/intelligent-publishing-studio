@@ -24,10 +24,11 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from .forms import MAX_MANUSCRIPT_BYTES, PublicationMetadataForm, PublicationProofForm
 from .models import (ContributorResponseRequest, EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, ProductionAssignment,
-                     PublicationApproval, PublicationDraft, PublicationProof, ReviewRound, Submission)
+                     PublicationApproval, PublicationDraft, PublicationProof, PublishedIssueProposal, ReviewRound, Submission)
 from .views import _author_can_view, _can_coordinate, _download_version, _editor_can_view, _event, _has_role, _submission
 from .author_responses import is_response_participant
 from .keywords import keywords_text, validate_keywords, visible_keywords
+from .published_issue import proposal_token
 
 
 def _enabled():
@@ -115,12 +116,16 @@ def _context(request, draft, metadata_form=None, proof_form=None):
     assignment = (draft.production_assignments.filter(producer=request.user, status=ProductionAssignment.Status.ACTIVE).first()
                   if producer_view else None)
     issues = (JournalIssue.objects.filter(journal=draft.submission.journal, released_at__isnull=True)
-              if producer_view and not draft.published_at else JournalIssue.objects.none())
+              if producer_view and (not draft.published_at or not draft.issue_id) else JournalIssue.objects.none())
+    issue_proposal = (PublishedIssueProposal.objects.filter(draft=draft, status="pending").first()
+                      if draft.published_at and not draft.issue_id else None)
     return {"draft": draft, "submission": draft.submission, "proof": proof, "fingerprint": fingerprint,
             "public_keywords":visible_keywords(draft.keywords_config), "keywords_valid":_keywords_valid(draft),
             "approval": approval, "author_view": _author_can_view(request.user, draft.submission),
             "producer_view": producer_view, "my_production_assignment": assignment,
             "available_issues": issues,
+            "issue_proposal": issue_proposal,
+            "issue_proposal_token": proposal_token(issue_proposal) if issue_proposal else "",
             "can_view_submission": (_author_can_view(request.user, draft.submission) or _editor_can_view(request.user, draft.submission)),
             "metadata_form": metadata_form or PublicationMetadataForm(instance=draft),
             "proof_form": proof_form or PublicationProofForm()}

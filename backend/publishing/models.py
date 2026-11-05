@@ -1326,6 +1326,38 @@ class PublicationApproval(models.Model):
         constraints = [models.UniqueConstraint(fields=["draft", "revision", "proof", "approved_by"], name="unique_publication_approval")]
 
 
+class PublishedIssueProposal(models.Model):
+    """An explicit, local-only proposal to place an online-first test article."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        ACCEPTED = "accepted", _("Accepted")
+        DECLINED = "declined", _("Declined")
+        WITHDRAWN = "withdrawn", _("Withdrawn")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    draft = models.ForeignKey(PublicationDraft, on_delete=models.PROTECT, related_name="published_issue_proposals")
+    issue = models.ForeignKey(JournalIssue, on_delete=models.PROTECT, related_name="online_first_proposals")
+    proposed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="published_issue_proposals_made")
+    source_fingerprint = models.CharField(max_length=64)
+    issue_snapshot = models.JSONField()
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                    related_name="published_issue_proposals_resolved")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["draft"], condition=models.Q(status="pending"), name="one_pending_published_issue"),
+            models.CheckConstraint(
+                condition=(models.Q(status="pending", resolved_at__isnull=True, resolved_by__isnull=True) |
+                           models.Q(status__in=["accepted", "declined", "withdrawn"], resolved_at__isnull=False, resolved_by__isnull=False)),
+                name="published_issue_resolution_state",
+            ),
+        ]
+
+
 class SubmissionEvent(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.PROTECT, related_name="events")
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
