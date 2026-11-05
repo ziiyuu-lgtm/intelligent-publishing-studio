@@ -9,3 +9,4 @@ __pycache__/
 .venv/
 .runtime/
 *.sqlite3
+artifacts/issue-release-browser/

@@ -1,0 +1,3 @@
+# Optional, isolated browser acceptance only; not an application dependency.
+-r requirements.txt
+playwright==1.62.0
