@@ -868,3 +868,169 @@ class ProductionTests(TestCase):
         self.assertContains(page, "将先行发表的测试文章编入期次")
         self.assertContains(page, "确认编入期次")
         self.assertContains(page, "Fictional issue")
+
+    def extra_issue_article(self, issue, title, published_at):
+        submission = Submission.objects.create(journal=self.journal, author=self.author, title=title,
+            abstract="Fictional abstract", manuscript="manuscripts/example.pdf", status="accepted")
+        version = SubmissionVersion.objects.create(submission=submission, number=1,
+            manuscript="manuscripts/example.pdf", uploaded_by=self.author)
+        round_ = ReviewRound.objects.create(submission=submission, version=version, number=1, status="closed")
+        decision = EditorialDecision.objects.create(submission=submission, round=round_, outcome="accept",
+            author_message="Fictional acceptance", decided_by=self.editor)
+        draft = PublicationDraft.objects.create(submission=submission, decision=decision, issue=issue,
+            title=title, authors="Fictional author", abstract="Fictional abstract", created_by=self.editor,
+            published_by=self.producer, published_at=published_at)
+        proof = PublicationProof.objects.create(draft=draft, file=SimpleUploadedFile("issue-test.pdf", PDF),
+            sha256=hashlib.sha256(PDF).hexdigest(), uploaded_by=self.producer)
+        draft.published_proof = proof
+        draft.save(update_fields=["published_proof"])
+        return draft
+
+    def order_page(self, issue, actor=None):
+        self.client.force_login(actor or self.coordinator)
+        response = self.client.get(reverse("order_test_issue", args=[issue.pk]))
+        self.assertEqual(response.status_code, 200)
+        return response
+
+    def order_data(self, page, desired):
+        return {"state":page.context["order_state"], "synthetic":"yes",
+                **{"position_" + str(article.pk):str(index) for index, article in enumerate(desired, 1)}}
+
+    def test_issue_manual_order_is_published_and_fixed_on_release(self):
+        first = self.ready()
+        issue = self.create_issue()
+        self.assertEqual(self.select_issue(first, issue).status_code, 302)
+        self.assertEqual(self.approve(first).status_code, 302)
+        self.assertEqual(self.publish(first).status_code, 302)
+        first.refresh_from_db()
+        second = self.extra_issue_article(issue, "Fictional second article", first.published_at + timedelta(minutes=1))
+        third = self.extra_issue_article(issue, "Fictional third article", first.published_at + timedelta(minutes=2))
+        page = self.order_page(issue)
+        self.assertEqual([a.pk for a in page.context["articles"]], [first.pk, second.pk, third.pk])
+        desired = [third, first, second]
+        self.assertEqual(self.client.post(reverse("order_test_issue", args=[issue.pk]), self.order_data(page, desired)).status_code, 302)
+        issue.refresh_from_db()
+        self.assertEqual(issue.article_order, [str(a.pk) for a in desired])
+        self.assertEqual(SubmissionEvent.objects.filter(action="test_issue_order_changed").count(), 3)
+        self.assertEqual(self.release_issue(issue).status_code, 302)
+        public = Client().get(reverse("test_issue", args=[self.journal.slug, issue.pk])).content.decode()
+        self.assertLess(public.index(third.title), public.index(first.title))
+        self.assertLess(public.index(first.title), public.index(second.title))
+        for draft in desired:
+            response = Client().get(reverse("test_article_pdf", args=[self.journal.slug, draft.pk]))
+            self.assertEqual(b"".join(response.streaming_content), PDF)
+        self.client.force_login(self.coordinator)
+        self.assertEqual(self.client.get(reverse("order_test_issue", args=[issue.pk])).status_code, 409)
+        self.assertEqual(self.client.post(reverse("order_test_issue", args=[issue.pk]), self.order_data(page, desired)).status_code, 409)
+
+    def test_issue_order_rejects_stale_invalid_and_forged_positions(self):
+        first = self.ready()
+        issue = self.create_issue()
+        self.select_issue(first, issue)
+        self.approve(first)
+        self.publish(first)
+        first.refresh_from_db()
+        second = self.extra_issue_article(issue, "Second issue article", first.published_at + timedelta(minutes=1))
+        page = self.order_page(issue)
+        url = reverse("order_test_issue", args=[issue.pk])
+        data = self.order_data(page, [first, second])
+        for changes in ({"position_" + str(first.pk):"2"}, {"position_" + str(first.pk):"0"},
+                        {"position_" + str(first.pk):"99999999999999999999"}, {"position_fake":"3"},
+                        {"synthetic":""}):
+            with self.subTest(changes=changes):
+                self.assertEqual(self.client.post(url, {**data, **changes}).status_code, 400)
+        missing = dict(data)
+        missing.pop("position_" + str(first.pk))
+        self.assertEqual(self.client.post(url, missing).status_code, 400)
+        duplicated = {**data, "position_" + str(first.pk):["1", "1"]}
+        self.assertEqual(self.client.post(url, duplicated).status_code, 400)
+        self.assertEqual(self.client.post(url, self.order_data(page, [second, first])).status_code, 302)
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        issue.refresh_from_db()
+        self.assertEqual(issue.article_order, [str(second.pk), str(first.pk)])
+
+    def test_issue_order_appends_new_articles_and_rejects_old_forms(self):
+        first = self.ready()
+        issue = self.create_issue()
+        self.select_issue(first, issue)
+        self.approve(first)
+        self.publish(first)
+        first.refresh_from_db()
+        second = self.extra_issue_article(issue, "New second article", first.published_at + timedelta(minutes=1))
+        page = self.order_page(issue)
+        url = reverse("order_test_issue", args=[issue.pk])
+        self.assertEqual(self.client.post(url, self.order_data(page, [second, first])).status_code, 302)
+        stale = self.order_page(issue)
+        third = self.extra_issue_article(issue, "New third article", first.published_at + timedelta(minutes=2))
+        self.assertEqual(self.client.post(url, self.order_data(stale, [first, second])).status_code, 409)
+        page = self.order_page(issue)
+        self.assertEqual([a.pk for a in page.context["articles"]], [second.pk, first.pk, third.pk])
+        self.assertEqual(self.release_issue(issue).status_code, 302)
+        issue.refresh_from_db()
+        self.assertEqual(issue.article_order, [str(second.pk), str(first.pk), str(third.pk)])
+
+    def test_issue_order_requires_independent_coordinator(self):
+        draft = self.ready()
+        issue = self.create_issue()
+        self.select_issue(draft, issue)
+        self.approve(draft)
+        self.publish(draft)
+        url = reverse("order_test_issue", args=[issue.pk])
+        for user in (self.author, self.reviewer, self.producer, self.editor):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(url).status_code, 404)
+        Membership.objects.create(user=self.author, journal=self.journal, role="coordinator")
+        Membership.objects.create(user=self.reviewer, journal=self.journal, role="coordinator")
+        for user in (self.author, self.reviewer):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(url).status_code, 403)
+            self.assertEqual(self.client.post(url, {"synthetic":"yes"}).status_code, 403)
+
+    def test_issue_order_blocks_unpublished_assignments_and_hides_their_titles(self):
+        issue = self.create_issue()
+        draft = self.start()
+        self.select_issue(draft, issue)
+        page = self.order_page(issue)
+        self.assertContains(page, "Publish all assigned test articles")
+        self.assertNotContains(page, "Fictional original title")
+        url = reverse("order_test_issue", args=[issue.pk])
+        self.assertEqual(self.client.post(url, {"state":page.context["order_state"], "synthetic":"yes"}).status_code, 409)
+        self.assertEqual(self.release_issue(issue).status_code, 409)
+
+    def test_issue_order_rejects_corrupt_stored_positions(self):
+        first = self.ready()
+        issue = self.create_issue()
+        self.select_issue(first, issue)
+        self.approve(first)
+        self.publish(first)
+        JournalIssue.objects.filter(pk=issue.pk).update(article_order=[str(first.pk), str(first.pk)])
+        self.client.force_login(self.coordinator)
+        self.assertEqual(self.client.get(reverse("order_test_issue", args=[issue.pk])).status_code, 409)
+        self.assertEqual(self.release_issue(issue).status_code, 409)
+        issue.refresh_from_db()
+        self.assertIsNone(issue.released_at)
+
+    def test_issue_order_routes_require_csrf_and_fictional_feature(self):
+        first = self.ready()
+        issue = self.create_issue()
+        self.select_issue(first, issue)
+        self.approve(first)
+        self.publish(first)
+        page = self.order_page(issue)
+        url = reverse("order_test_issue", args=[issue.pk])
+        data = self.order_data(page, [first])
+        guarded = Client(enforce_csrf_checks=True)
+        guarded.force_login(self.coordinator)
+        self.assertEqual(guarded.post(url, data).status_code, 403)
+        for setting in ({"DEBUG":False}, {"IPS_LOCAL_PUBLICATION_ENABLED":False}):
+            with self.subTest(setting=setting), override_settings(**setting):
+                self.assertEqual(self.client.get(url).status_code, 404)
+                self.assertEqual(self.client.post(url, data).status_code, 404)
+
+    def test_issue_order_screen_supports_simplified_chinese(self):
+        issue = self.create_issue()
+        self.client.force_login(self.coordinator)
+        self.client.post(reverse("set_language"), {"language":"zh-hans", "next":"/"})
+        page = self.client.get(reverse("order_test_issue", args=[issue.pk]))
+        self.assertContains(page, "排列测试期次文章")
+        self.assertContains(page, "此期次尚未分配已发表的测试文章")

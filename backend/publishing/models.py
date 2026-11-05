@@ -1252,6 +1252,7 @@ class JournalIssue(models.Model):
     number = models.PositiveIntegerField(_("Issue number"))
     year = models.PositiveIntegerField(_("Year"))
     title = models.CharField(_("Issue title"), max_length=200, blank=True)
+    article_order = models.JSONField(null=True, blank=True, default=None)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="test_issues_created")
     created_at = models.DateTimeField(auto_now_add=True)
     released_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="test_issues_released")
