@@ -1,4 +1,4 @@
-name: Historical review localization probe
+name: Fictional Chinese localization installer rehearsal
 on:
   push:
     branches:
@@ -6,38 +6,73 @@ on:
 permissions:
   contents: read
 jobs:
-  review-copy:
+  install-and-rollback:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - name: Compile and compare Chinese translation catalogs
+      - name: Set up a fictional site and test both recovery and installation
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gettext postgresql postgresql-client python3-venv rsync
-          msgfmt --check -o /tmp/altavien-check.mo backend/locale/zh_Hans/LC_MESSAGES/django.po
-          python3 - <<'PY'
-          import gettext
-          with open('/tmp/altavien-check.mo', 'rb') as f:
-              expected = gettext.GNUTranslations(f)._catalog
-          with open('backend/locale/zh_Hans/LC_MESSAGES/django.mo', 'rb') as f:
-              shipped = gettext.GNUTranslations(f)._catalog
-          assert expected == shipped
-          print('CHINESE_CATALOG_MATCHES_SOURCE')
-          PY
-      - name: Run isolated PostgreSQL review-copy tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo systemctl start postgresql
-          test ! -e /srv/altavien-pg-probe/source
-          sudo mkdir -p /srv/altavien-pg-probe/source
-          sudo rsync -a --exclude=.git "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv rsync
+          id -u postgres >/dev/null 2>&1 || sudo useradd --system --home-dir /var/lib/postgresql postgres
+          id -u altavien-test >/dev/null 2>&1 || sudo useradd --system --home-dir /srv/altavien-test altavien-test
+          sudo mkdir -p /srv/altavien-test /srv/altavien-pg-probe/source
+          git archive da0365766f8e995ba8b1b6a3d36f274bc3f31af4 backend | sudo tar -xf - -C /srv/altavien-test
+          sudo rsync -a "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
           sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
-          sudo -u postgres python3 -m venv /srv/altavien-pg-probe/source/.venv
-          sudo -u postgres /srv/altavien-pg-probe/source/.venv/bin/python -m pip install --disable-pip-version-check --no-input -r /srv/altavien-pg-probe/source/backend/requirements.release-candidate.txt
-          sudo /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh review-copy
+          sudo runuser -u postgres -- git -C /srv/altavien-pg-probe/source checkout --detach a9fdf7ed32a9aad9435166f974c8bdd8bcc79875
+          sudo chown -R altavien-test:altavien-test /srv/altavien-test
+          sudo runuser -u altavien-test -- python3 -m venv /srv/altavien-test/.venv
+          sudo runuser -u altavien-test -- /srv/altavien-test/.venv/bin/pip install --disable-pip-version-check --no-input -r /srv/altavien-test/backend/requirements.txt
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py migrate --noinput
+          cat > /tmp/altavien-ci-seed.py <<'PY'
+          import hashlib
+          from django.contrib.auth import get_user_model
+          from django.core.files.uploadedfile import SimpleUploadedFile
+          from django.utils import timezone
+          from publishing.models import Organisation, Journal, Submission, SubmissionVersion, ReviewRound, EditorialDecision, PublicationDraft, PublicationProof
+          u = get_user_model().objects.create_user('fictional-user', password='fictional-test-password')
+          o = Organisation.objects.create(name='Fictional publisher', slug='fictional-publisher')
+          j = Journal.objects.create(organisation=o, name='Fictional journal', slug='fictional-journal')
+          s = Submission.objects.create(journal=j, author=u, title='Fictional paper', abstract='Fictional abstract', manuscript='manuscripts/example.pdf', status='accepted')
+          v = SubmissionVersion.objects.create(submission=s, number=1, manuscript='manuscripts/example.pdf', uploaded_by=u)
+          r = ReviewRound.objects.create(submission=s, version=v, number=1, status='closed')
+          d = EditorialDecision.objects.create(submission=s, round=r, outcome='accept', author_message='Accepted', decided_by=u)
+          p = PublicationDraft.objects.create(submission=s, decision=d, title='Fictional published paper', authors='Fictional Author', abstract='Fictional abstract', created_by=u, published_by=u, published_at=timezone.now())
+          data = b'%PDF-1.4\nFictional PDF\n%%EOF\n'
+          f = PublicationProof.objects.create(draft=p, file=SimpleUploadedFile('proof.pdf', data), sha256=hashlib.sha256(data).hexdigest(), uploaded_by=u)
+          p.published_proof = f
+          p.save(update_fields=['published_proof'])
+          PY
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py shell < /tmp/altavien-ci-seed.py
+          sudo systemd-run --unit=altavien-test-web.service --property=Type=exec --property=User=altavien-test --property=WorkingDirectory=/srv/altavien-test/backend --setenv=DJANGO_SETTINGS_MODULE=config.settings --setenv=IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py runserver 127.0.0.1:8000 --noreload
+          for n in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+          sudo env INSTALLER="$GITHUB_WORKSPACE/scripts/install_altavien_history_zh.py" python3 - <<'PY'
+          import hashlib
+          import importlib.util
+          import os
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('history_installer', os.environ['INSTALLER'])
+          m = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          def fail_after_swap(paths):
+              raise RuntimeError('CI_INJECTED_FAILURE')
+          m.restart_and_check = fail_after_swap
+          assert m.main() == 1
+          for rel, expected in m.OLD.items():
+              assert hashlib.sha256((m.BASE / rel).read_bytes()).hexdigest() == expected
+          for rel in m.NEW.keys() - m.OLD.keys():
+              assert not (m.BASE / rel).exists()
+          print('ROLLBACK_REHEARSAL_PASSED')
+          PY
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+          sudo python3 "$GITHUB_WORKSPACE/scripts/install_altavien_history_zh.py"
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+          echo INSTALL_REHEARSAL_PASSED
