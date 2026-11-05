@@ -1,0 +1,43 @@
+name: Historical review localization probe
+on:
+  push:
+    branches:
+      - feature/altavien-history-zh-ci-20261105
+permissions:
+  contents: read
+jobs:
+  review-copy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile and compare Chinese translation catalogs
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gettext postgresql postgresql-client python3-venv rsync
+          msgfmt --check -o /tmp/altavien-check.mo backend/locale/zh_Hans/LC_MESSAGES/django.po
+          python3 - <<'PY'
+          import gettext
+          with open('/tmp/altavien-check.mo', 'rb') as f:
+              expected = gettext.GNUTranslations(f)._catalog
+          with open('backend/locale/zh_Hans/LC_MESSAGES/django.mo', 'rb') as f:
+              shipped = gettext.GNUTranslations(f)._catalog
+          assert expected == shipped
+          print('CHINESE_CATALOG_MATCHES_SOURCE')
+          PY
+      - name: Run isolated PostgreSQL review-copy tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo systemctl start postgresql
+          test ! -e /srv/altavien-pg-probe/source
+          sudo mkdir -p /srv/altavien-pg-probe/source
+          sudo rsync -a --exclude=.git "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
+          sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
+          sudo -u postgres python3 -m venv /srv/altavien-pg-probe/source/.venv
+          sudo -u postgres /srv/altavien-pg-probe/source/.venv/bin/python -m pip install --disable-pip-version-check --no-input -r /srv/altavien-pg-probe/source/backend/requirements.release-candidate.txt
+          sudo /bin/bash /srv/altavien-pg-probe/source/scripts/run_altavien_postgres_probe.sh review-copy
