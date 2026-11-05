@@ -45,7 +45,7 @@ jobs:
           sudo runuser -u altavien-test -- python3 -m venv /srv/altavien-test/.venv
           sudo runuser -u altavien-test -- /srv/altavien-test/.venv/bin/pip install --disable-pip-version-check --no-input -r /srv/altavien-test/backend/requirements.txt
           sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py migrate --noinput
-          sudo runuser -u altavien-test -- env GITHUB_ACTIONS=true IPS_INSTALLER_REHEARSAL=1 IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python "$GITHUB_WORKSPACE/scripts/rehearse_altavien_issue_release_install.py" seed
+          sudo runuser -u altavien-test -- env GITHUB_ACTIONS=true IPS_INSTALLER_REHEARSAL=1 IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python - seed < "$GITHUB_WORKSPACE/scripts/rehearse_altavien_issue_release_install.py"
           sudo systemd-run --unit=altavien-test-web.service --property=Type=exec --property=User=altavien-test --property=WorkingDirectory=/srv/altavien-test/backend --setenv=DJANGO_SETTINGS_MODULE=config.settings --setenv=IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py runserver 127.0.0.1:8000 --noreload
           for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/ >/dev/null && break; sleep 1; done
           curl -fsS http://127.0.0.1:8000/ >/dev/null
