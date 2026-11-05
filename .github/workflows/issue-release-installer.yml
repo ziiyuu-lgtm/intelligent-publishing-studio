@@ -1,0 +1,53 @@
+name: Fictional issue release installer rehearsal
+on:
+  pull_request:
+    branches:
+      - feature/altavien-release-foundation-20261104
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  guarded-install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - baseline: online-first
+            ref: 0e7deb4c3f5bf1b479bd847c2d41e17650cfabf7
+          - baseline: ordered
+            ref: 2a359e2d46eb341208f043fe3041128ffed730ff
+          - baseline: append-fixed
+            ref: a74b8f6bda1c67b2f6022574778691805c4ca194
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare an isolated fictional site from the previous version
+        env:
+          BASELINE_REF: ${{ matrix.ref }}
+          IPS_INSTALLER_REHEARSAL: '1'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv rsync
+          id -u postgres >/dev/null 2>&1 || sudo useradd --system --home-dir /var/lib/postgresql postgres
+          id -u altavien-test >/dev/null 2>&1 || sudo useradd --system --home-dir /srv/altavien-test altavien-test
+          test ! -e /srv/altavien-test
+          test ! -e /srv/altavien-pg-probe/source
+          sudo mkdir -p /srv/altavien-test /srv/altavien-pg-probe/source
+          git archive "$BASELINE_REF" backend | sudo tar -xf - -C /srv/altavien-test
+          sudo rsync -a "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
+          sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
+          sudo chown -R altavien-test:altavien-test /srv/altavien-test
+          sudo runuser -u altavien-test -- python3 -m venv /srv/altavien-test/.venv
+          sudo runuser -u altavien-test -- /srv/altavien-test/.venv/bin/pip install --disable-pip-version-check --no-input -r /srv/altavien-test/backend/requirements.txt
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py migrate --noinput
+          sudo runuser -u altavien-test -- env GITHUB_ACTIONS=true IPS_INSTALLER_REHEARSAL=1 IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python "$GITHUB_WORKSPACE/scripts/rehearse_altavien_issue_release_install.py" seed
+          sudo systemd-run --unit=altavien-test-web.service --property=Type=exec --property=User=altavien-test --property=WorkingDirectory=/srv/altavien-test/backend --setenv=DJANGO_SETTINGS_MODULE=config.settings --setenv=IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py runserver 127.0.0.1:8000 --noreload
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+      - name: Exercise version guards, failure recovery, data preservation and success
+        run: sudo env GITHUB_ACTIONS=true IPS_INSTALLER_REHEARSAL=1 python3 scripts/rehearse_altavien_issue_release_install.py rehearse
