@@ -11,9 +11,10 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from publishing.models import (EditorialAssignment, EditorialDecision, Journal, JournalIssue, Membership, Organisation, ProductionAssignment,
-                               PublicationApproval, PublicationDraft, PublicationProof, ReviewAssignment,
+                               PublicationApproval, PublicationDraft, PublicationProof, PublishedIssueProposal, ReviewAssignment,
                                ReviewRound, Submission, SubmissionEvent, SubmissionVersion)
 from publishing.production_views import _proof_bytes
 
@@ -679,3 +680,191 @@ class ProductionTests(TestCase):
         self.assertEqual(self.release_issue(issue).status_code, 302)
         page = Client().get(reverse("test_issue", args=[self.journal.slug, issue.pk])).content.decode("utf-8")
         self.assertLess(page.index("Earlier test article"), page.index("Fictional public title"))
+
+    def online_first(self):
+        draft = self.ready()
+        self.assertEqual(self.approve(draft).status_code, 302)
+        self.assertEqual(self.publish(draft).status_code, 302)
+        draft.refresh_from_db()
+        return draft
+
+    def issue_proposal_data(self, draft, issue):
+        self.client.force_login(self.producer)
+        page = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertEqual(page.status_code, 200)
+        pending = page.context["issue_proposal"]
+        return {"issue":str(issue.pk), "revision":str(page.context["draft"].revision),
+                "fingerprint":page.context["fingerprint"], "current_proposal":str(pending.pk) if pending else "",
+                "proposal_token":page.context["issue_proposal_token"], "confirm":"yes", "synthetic":"yes"}
+
+    def make_issue_proposal(self, draft, issue):
+        data = self.issue_proposal_data(draft, issue)
+        result = self.client.post(reverse("propose_published_issue", args=[draft.pk]), data)
+        self.assertEqual(result.status_code, 302)
+        return PublishedIssueProposal.objects.get(draft=draft, status="pending")
+
+    def issue_decision_data(self, draft, actor, choice="accept"):
+        self.client.force_login(actor)
+        page = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertEqual(page.status_code, 200)
+        return {"choice":choice, "proposal_token":page.context["issue_proposal_token"], "confirm":"yes", "synthetic":"yes"}
+
+    def test_online_first_issue_requires_author_confirmation_and_preserves_public_article(self):
+        draft = self.online_first()
+        issue = self.create_issue()
+        original_approval = PublicationApproval.objects.get(draft=draft)
+        original_proof, original_published = draft.published_proof_id, draft.published_at
+        original_text = (draft.title, draft.authors, draft.abstract, draft.keywords_config)
+        proposal = self.make_issue_proposal(draft, issue)
+        draft.refresh_from_db()
+        self.assertIsNone(draft.issue_id)
+        public = Client()
+        article_url = reverse("test_article", args=[self.journal.slug, draft.pk])
+        pdf_url = reverse("test_article_pdf", args=[self.journal.slug, draft.pk])
+        self.assertNotContains(public.get(article_url), "Volume 1")
+        data = self.issue_decision_data(draft, self.author)
+        url = reverse("resolve_published_issue", args=[draft.pk, proposal.pk])
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        draft.refresh_from_db()
+        proposal.refresh_from_db()
+        self.assertEqual((draft.issue_id, proposal.status, proposal.resolved_by_id), (issue.pk, "accepted", self.author.pk))
+        self.assertEqual((draft.published_proof_id, draft.published_at), (original_proof, original_published))
+        self.assertEqual((draft.title, draft.authors, draft.abstract, draft.keywords_config), original_text)
+        self.assertTrue(PublicationApproval.objects.filter(pk=original_approval.pk).exists())
+        self.assertEqual(PublicationApproval.objects.filter(draft=draft, approved_by=self.author).count(), 2)
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        self.assertContains(public.get(article_url), "Volume 1")
+        self.assertEqual(b"".join(public.get(pdf_url).streaming_content), PDF)
+        self.client.force_login(self.author)
+        self.assertIsNotNone(self.client.get(reverse("production_detail", args=[draft.pk])).context["approval"])
+        self.assertEqual(self.release_issue(issue).status_code, 302)
+        self.assertContains(public.get(reverse("test_issue", args=[self.journal.slug, issue.pk])), "Fictional public title")
+        self.assertEqual(self.select_issue(draft).status_code, 409)
+
+    def test_online_first_issue_permissions_are_separate_for_producer_and_author(self):
+        draft = self.online_first()
+        issue = self.create_issue()
+        data = self.issue_proposal_data(draft, issue)
+        proposal_url = reverse("propose_published_issue", args=[draft.pk])
+        for user in (self.author, self.editor, self.reviewer, self.coordinator, self.other_editor):
+            self.client.force_login(user)
+            self.assertEqual(self.client.post(proposal_url, data).status_code, 404)
+        proposal = self.make_issue_proposal(draft, issue)
+        decision = self.issue_decision_data(draft, self.author)
+        url = reverse("resolve_published_issue", args=[draft.pk, proposal.pk])
+        for user in (self.producer, self.editor, self.reviewer, self.coordinator, self.other_editor):
+            self.client.force_login(user)
+            self.assertEqual(self.client.post(url, decision).status_code, 404)
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.post(url, {**decision, "synthetic":""}).status_code, 400)
+        draft.refresh_from_db()
+        self.assertIsNone(draft.issue_id)
+
+    def test_online_first_issue_replacement_decline_and_stale_forms(self):
+        draft = self.online_first()
+        first, second = self.create_issue(), self.create_issue(number=2)
+        old_data = self.issue_proposal_data(draft, first)
+        url = reverse("propose_published_issue", args=[draft.pk])
+        self.assertEqual(self.client.post(url, old_data).status_code, 302)
+        old = PublishedIssueProposal.objects.get(draft=draft, status="pending")
+        old_decision = self.issue_decision_data(draft, self.author)
+        new_data = self.issue_proposal_data(draft, second)
+        self.assertEqual(self.client.post(url, new_data).status_code, 302)
+        old.refresh_from_db()
+        self.assertEqual(old.status, "withdrawn")
+        self.assertEqual(old.resolved_by, self.producer)
+        self.assertEqual(self.client.post(url, new_data).status_code, 409)
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.post(reverse("resolve_published_issue", args=[draft.pk, old.pk]), old_decision).status_code, 409)
+        pending = PublishedIssueProposal.objects.get(draft=draft, status="pending")
+        data = self.issue_decision_data(draft, self.author, choice="decline")
+        self.assertEqual(self.client.post(reverse("resolve_published_issue", args=[draft.pk, pending.pk]), data).status_code, 302)
+        pending.refresh_from_db()
+        self.assertEqual((pending.status, pending.resolved_by), ("declined", self.author))
+        draft.refresh_from_db()
+        self.assertIsNone(draft.issue_id)
+        pending = self.make_issue_proposal(draft, first)
+        data = self.issue_decision_data(draft, self.producer, choice="withdraw")
+        self.assertEqual(self.client.post(reverse("resolve_published_issue", args=[draft.pk, pending.pk]), data).status_code, 302)
+        pending.refresh_from_db()
+        self.assertEqual(pending.status, "withdrawn")
+
+    def test_online_first_issue_rejects_foreign_or_released_issues(self):
+        draft = self.online_first()
+        issue = self.create_issue()
+        foreign = JournalIssue.objects.create(journal=self.other_journal, volume=1, number=1, year=2025, created_by=self.coordinator)
+        data = self.issue_proposal_data(draft, foreign)
+        url = reverse("propose_published_issue", args=[draft.pk])
+        self.assertEqual(self.client.post(url, data).status_code, 400)
+        data["issue"] = str(issue.pk)
+        JournalIssue.objects.filter(pk=issue.pk).update(released_at=timezone.now(), released_by=self.coordinator)
+        self.assertEqual(self.client.post(url, data).status_code, 400)
+        self.assertFalse(PublishedIssueProposal.objects.exists())
+
+    def test_online_first_issue_revalidates_source_target_and_producer(self):
+        draft = self.online_first()
+        issue = self.create_issue()
+        proposal = self.make_issue_proposal(draft, issue)
+        data = self.issue_decision_data(draft, self.author)
+        url = reverse("resolve_published_issue", args=[draft.pk, proposal.pk])
+        JournalIssue.objects.filter(pk=issue.pk).update(released_at=timezone.now(), released_by=self.coordinator)
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        JournalIssue.objects.filter(pk=issue.pk).update(released_at=None, released_by=None, title="Changed issue")
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        JournalIssue.objects.filter(pk=issue.pk).update(title=issue.title)
+        Membership.objects.filter(user=self.producer, journal=self.journal, role="producer").update(active=False)
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        Membership.objects.filter(user=self.producer, journal=self.journal, role="producer").update(active=True)
+        PublicationDraft.objects.filter(pk=draft.pk).update(abstract="Changed after publication")
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        PublicationDraft.objects.filter(pk=draft.pk).update(abstract=draft.abstract)
+        proof = draft.published_proof
+        with open(proof.file.path, "ab") as output:
+            output.write(b"tampered")
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        draft.refresh_from_db()
+        proposal.refresh_from_db()
+        self.assertIsNone(draft.issue_id)
+        self.assertEqual(proposal.status, "pending")
+        self.assertEqual(PublicationApproval.objects.filter(draft=draft).count(), 1)
+
+    def test_online_first_issue_failure_rolls_back_all_changes(self):
+        draft = self.online_first()
+        issue = self.create_issue()
+        proposal = self.make_issue_proposal(draft, issue)
+        data = self.issue_decision_data(draft, self.author)
+        with patch("publishing.published_issue_views.PublicationApproval.objects.create", side_effect=RuntimeError("synthetic failure")):
+            with self.assertRaises(RuntimeError):
+                self.client.post(reverse("resolve_published_issue", args=[draft.pk, proposal.pk]), data)
+        draft.refresh_from_db()
+        proposal.refresh_from_db()
+        self.assertIsNone(draft.issue_id)
+        self.assertEqual(proposal.status, "pending")
+        self.assertEqual(PublicationApproval.objects.filter(draft=draft).count(), 1)
+
+    def test_online_first_issue_routes_require_csrf_and_local_feature(self):
+        draft = self.online_first()
+        issue = self.create_issue()
+        data = self.issue_proposal_data(draft, issue)
+        url = reverse("propose_published_issue", args=[draft.pk])
+        guarded = Client(enforce_csrf_checks=True)
+        guarded.force_login(self.producer)
+        self.assertEqual(guarded.post(url, data).status_code, 403)
+        for settings_values in ({"IPS_LOCAL_PUBLICATION_ENABLED":False}, {"DEBUG":False}):
+            with self.subTest(settings_values=settings_values), override_settings(**settings_values):
+                self.assertEqual(self.client.post(url, data).status_code, 404)
+        proposal = self.make_issue_proposal(draft, issue)
+        data = self.issue_decision_data(draft, self.author)
+        guarded.force_login(self.author)
+        self.assertEqual(guarded.post(reverse("resolve_published_issue", args=[draft.pk, proposal.pk]), data).status_code, 403)
+
+    def test_online_first_issue_proposal_is_available_in_simplified_chinese(self):
+        draft = self.online_first()
+        issue = self.create_issue()
+        self.make_issue_proposal(draft, issue)
+        self.client.force_login(self.author)
+        self.client.post(reverse("set_language"), {"language":"zh-hans", "next":"/"})
+        page = self.client.get(reverse("production_detail", args=[draft.pk]))
+        self.assertContains(page, "将先行发表的测试文章编入期次")
+        self.assertContains(page, "确认编入期次")
+        self.assertContains(page, "Fictional issue")

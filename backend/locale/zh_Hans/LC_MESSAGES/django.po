@@ -8511,3 +8511,54 @@ msgstr "核查审稿副本和元数据"
 #: publishing/historical_review_views.py
 msgid "Manual check recorded for this closed round."
 msgstr "已记录该关闭轮次的人工核查。"
+
+msgid "Issue proposal saved for the submitting author's review."
+msgstr "期次提议已保存，等待投稿作者审核。"
+
+msgid "The fictional article has been assigned to this test issue."
+msgstr "虚构文章已编入此测试期次。"
+
+msgid "Choose an action for this issue proposal."
+msgstr "请选择对此期次提议的操作。"
+
+msgid "The issue proposal changed; reload the page."
+msgstr "期次提议已更改，请重新加载页面。"
+
+msgid "Issue proposal closed."
+msgstr "期次提议已关闭。"
+
+msgid "The article or issue changed; ask for a new proposal."
+msgstr "文章或期次已更改，请重新提出期次提议。"
+
+msgid "Place this online-first test article in an issue"
+msgstr "将先行发表的测试文章编入期次"
+
+msgid "The production editor proposes an unreleased issue. The issue appears on the public test article when the submitting author confirms; the PDF and article text stay unchanged."
+msgstr "制作编辑提出尚未发布的期次。投稿作者确认后，该期次将显示在公开测试文章页面；PDF 和文章正文保持不变。"
+
+msgid "Proposed test issue"
+msgstr "拟编入的测试期次"
+
+msgid "I confirm this issue for the already published test article."
+msgstr "我确认将已发表的测试文章编入此期次。"
+
+msgid "Confirm issue placement"
+msgstr "确认编入期次"
+
+msgid "Decline issue proposal"
+msgstr "拒绝期次提议"
+
+msgid "Withdraw issue proposal"
+msgstr "撤回期次提议"
+
+msgid "Choose an issue"
+msgstr "选择期次"
+
+msgid "Propose this issue to the submitting author."
+msgstr "向投稿作者提出编入此期次。"
+
+msgid "Save issue proposal"
+msgstr "保存期次提议"
+
+msgid "Issue changes require a fresh author confirmation. Once assigned after publication, the issue cannot be changed."
+msgstr "更改期次需要作者重新确认。文章发表后，一旦编入期次便无法更改。"
