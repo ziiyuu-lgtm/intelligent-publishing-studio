@@ -3,10 +3,10 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from publishing.models import EditorialAssignment, Membership, ReviewAIConsent, ReviewAIPermissionRequest, SubmissionVersion
+from publishing.models import EditorialAssignment, Membership, ReviewAIConsent, ReviewAIPermissionRequest, ReviewRound, Submission, SubmissionVersion
 from publishing.review_ai_consent import PROVIDER, PURPOSE, report_fingerprint
 from publishing.review_copy import read_review_copy
 from publishing.tests import test_workflow as workflow
@@ -197,3 +197,129 @@ class ReviewerCopyIntegrityTests(TestCase):
         self.client.force_login(self.reviewer)
         self.assertContains(self.client.get(reverse("review_detail", args=[assignment.pk])),
                             "Fictional separate-copy paper")
+
+    def closed_legacy_round(self):
+        submission = self.prepared_submission()
+        self.assertEqual(self.confirm_review_copy(submission).status_code, 302)
+        assignment = self.invite(submission)
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.post(reverse('review_respond', args=[assignment.pk]),
+            {'response':'accept', 'declaration':'none'}).status_code, 302)
+        self.assertEqual(self.client.post(reverse('review_report', args=[assignment.pk]),
+            {'recommendation':'accept', 'comments':'A fictional review.'}).status_code, 302)
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.post(reverse('editorial_decision', args=[submission.pk]),
+            {'outcome':'accept', 'author_message':'Fictional decision.'}).status_code, 302)
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.round.status, ReviewRound.Status.CLOSED)
+        version = assignment.round.version
+        version.review_copy_checked_sha256 = ''
+        version.review_metadata_checked_sha256 = ''
+        version.save(update_fields=['review_copy_checked_sha256', 'review_metadata_checked_sha256'])
+        return submission, assignment, version
+
+    def test_closed_legacy_recheck_restores_metadata_but_not_file_access(self):
+        submission, assignment, version = self.closed_legacy_round()
+        url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])
+        self.client.force_login(self.reviewer)
+        self.assertNotContains(self.client.get(reverse('review_detail', args=[assignment.pk])),
+                               'Fictional separate-copy paper')
+        self.assertEqual(self.client.get(reverse('review_file', args=[assignment.pk])).status_code, 404)
+        self.client.force_login(self.editor)
+        self.assertContains(self.client.get(reverse('submission_detail', args=[submission.pk])), url)
+        page = self.client.get(url)
+        self.assertContains(page, 'Fictional separate-copy paper')
+        token = page.context['check_token']
+        self.assertTrue(token)
+        self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':token}).status_code, 302)
+        self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':token}).status_code, 302)
+        self.assertEqual(submission.events.filter(action='historical_review_copy_checked').count(), 1)
+        version.refresh_from_db()
+        self.assertEqual(len(version.review_copy_checked_sha256), 64)
+        self.assertEqual(len(version.review_metadata_checked_sha256), 64)
+        self.client.force_login(self.reviewer)
+        self.assertContains(self.client.get(reverse('review_detail', args=[assignment.pk])),
+                            'Fictional separate-copy paper')
+        self.assertEqual(self.client.get(reverse('review_file', args=[assignment.pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse('submission_file', args=[submission.pk])).status_code, 404)
+
+    def test_closed_recheck_rejects_stale_file_metadata_and_round_tokens(self):
+        submission, assignment, version = self.closed_legacy_round()
+        url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])
+        self.client.force_login(self.editor)
+        token = self.client.get(url).context['check_token']
+        Path(version.review_copy.path).write_bytes(b'%PDF-1.4\nChanged fictional file\n%%EOF')
+        self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':token}).status_code, 409)
+        token = self.client.get(url).context['check_token']
+        SubmissionVersion.objects.filter(pk=version.pk).update(title_snapshot='Changed fictional title')
+        self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':token}).status_code, 409)
+        token = self.client.get(url).context['check_token']
+        another = ReviewRound.objects.create(submission=submission, version=version, number=2, status='closed')
+        other_url = reverse('historical_review_copy_check', args=[submission.pk, another.number])
+        self.assertEqual(self.client.post(other_url, {'confirmed':'yes', 'check_token':token}).status_code, 409)
+        self.assertFalse(submission.events.filter(action='historical_review_copy_checked').exists())
+        self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':token}).status_code, 302)
+
+    def test_closed_recheck_requires_assigned_editor_and_csrf(self):
+        submission, assignment, version = self.closed_legacy_round()
+        url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])
+        for user in (self.author, self.reviewer, self.other_editor, self.superuser):
+            with self.subTest(user=user.username):
+                self.client.force_login(user)
+                self.assertEqual(self.client.get(url).status_code, 404)
+                self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':'invalid'}).status_code, 404)
+        guarded = Client(enforce_csrf_checks=True)
+        guarded.force_login(self.editor)
+        self.assertEqual(guarded.post(url, {'confirmed':'yes', 'check_token':'invalid'}).status_code, 403)
+        Membership.objects.filter(user=self.editor, journal=self.journal, role=Membership.Role.EDITOR).update(active=False)
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertFalse(submission.events.filter(action='historical_review_copy_checked').exists())
+
+    def test_closed_recheck_token_cannot_be_reused_by_another_assigned_editor(self):
+        submission, assignment, version = self.closed_legacy_round()
+        url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])
+        self.client.force_login(self.editor)
+        token = self.client.get(url).context['check_token']
+        Membership.objects.create(user=self.other_editor, journal=self.journal, role=Membership.Role.EDITOR)
+        EditorialAssignment.objects.create(submission=submission, editor=self.other_editor, assigned_by=self.coordinator)
+        self.client.force_login(self.other_editor)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':token}).status_code, 409)
+        self.assertFalse(submission.events.filter(action='historical_review_copy_checked').exists())
+
+    def test_closed_recheck_rejects_open_round_and_same_version_in_open_round(self):
+        submission, assignment, version = self.closed_legacy_round()
+        self.client.force_login(self.editor)
+        closed_url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])
+        previously_valid_token = self.client.get(closed_url).context['check_token']
+        self.assertTrue(previously_valid_token)
+        active = ReviewRound.objects.create(submission=submission, version=version, number=2, status='open')
+        open_url = reverse('historical_review_copy_check', args=[submission.pk, active.number])
+        self.assertEqual(self.client.get(open_url).status_code, 404)
+        page = self.client.get(closed_url)
+        self.assertEqual(page.status_code, 200)
+        self.assertFalse(page.context['check_token'])
+        self.assertEqual(self.client.post(closed_url, {'confirmed':'yes', 'check_token':previously_valid_token}).status_code, 409)
+        self.assertFalse(submission.events.filter(action='historical_review_copy_checked').exists())
+
+    def test_closed_recheck_is_unavailable_outside_local_debug(self):
+        submission, assignment, version = self.closed_legacy_round()
+        url = reverse('historical_review_copy_check', args=[submission.pk, assignment.round.number])
+        self.client.force_login(self.editor)
+        with self.settings(DEBUG=False):
+            self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_closed_recheck_rejects_round_linked_to_another_submission(self):
+        submission, assignment, version = self.closed_legacy_round()
+        other = Submission.objects.create(journal=self.other, author=self.author, review_mode='separate',
+            title='Another fictional paper', abstract='Another fictional abstract', manuscript=version.manuscript.name,
+            status='submitted')
+        other_version = SubmissionVersion.objects.create(submission=other, number=1,
+            manuscript=version.manuscript.name, uploaded_by=self.author)
+        wrong = ReviewRound.objects.create(submission=submission, version=other_version, number=2, status='closed')
+        url = reverse('historical_review_copy_check', args=[submission.pk, wrong.number])
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertEqual(self.client.post(url, {'confirmed':'yes', 'check_token':'invalid'}).status_code, 404)
+        self.assertFalse(submission.events.filter(action='historical_review_copy_checked').exists())

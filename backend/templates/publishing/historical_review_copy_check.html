@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<a class="back" href="{% url 'submission_detail' submission.pk %}">← {% translate "Back to submission" %}</a>
+<section class="card panel">
+  <span class="eyebrow">{% translate "CLOSED REVIEW ROUND" %} / {{ review_round.number }}</span>
+  <h1>{% translate "Recheck historical reviewer copy" %}</h1>
+  <p class="muted">{% translate "Review the PDF, document metadata, title, abstract and keywords for identifying information. This does not guarantee anonymity." %}</p>
+  <p class="notice">{% translate "A check can restore historical metadata visibility. It does not reopen the round or enable reviewer downloads." %}</p>
+  <h2>{% translate "Version" %} {{ version.number }}</h2>
+  {% if version.metadata_recorded %}
+    <p><strong>{% translate "Title" %}:</strong> {{ version.title_snapshot }}</p>
+    <p><strong>{% translate "Abstract" %}:</strong></p><p class="preserve">{{ version.abstract_snapshot }}</p>
+  {% else %}<p>{% translate "Not recorded or unavailable" %}</p>{% endif %}
+  <p><strong>{% translate "Keywords" %}:</strong> {% if keywords is None %}{% translate "Not recorded or unavailable" %}{% elif keywords %}{% for term in keywords %}<span class="status">{{ term }}</span> {% endfor %}{% else %}{% translate "None supplied" %}{% endif %}</p>
+  {% if version.review_copy %}<p><a class="button secondary small" href="{% url 'submission_review_copy_file' submission.pk version.number %}">{% translate "Download reviewer PDF" %}</a></p>{% endif %}
+  {% if already_checked %}<p class="muted">{% translate "Manual check recorded for this version." %}</p>{% endif %}
+  {% if check_token %}
+  <form method="post" class="stack">{% csrf_token %}
+    <input type="hidden" name="check_token" value="{{ check_token }}">
+    <label class="check"><input type="checkbox" name="confirmed" value="yes" required> {% translate "I manually checked this version and its identifying information." %}</label>
+    <button class="button small" type="submit">{% translate "Record manual check" %}</button>
+  </form>
+  {% elif version_in_open_round %}<p class="notice">{% translate "This version is in an open review round. Use that round's editorial check." %}</p>
+  {% else %}<p class="notice">{% translate "A confirmed reviewer copy is required." %}</p>{% endif %}
+</section>
+{% endblock %}
