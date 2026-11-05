@@ -163,11 +163,13 @@ def order_test_issue(request, pk):
                 return HttpResponse(_("Enter each position once, from 1 to the number of articles."), status=400)
             positions.sort(key=lambda item: item[0])
             selected = [str(article.pk) for _, article in positions]
-            if selected != [str(article.pk) for article in ordered]:
+            # Persist even an unchanged display order: this freezes those
+            # positions so a later online-first article is appended.
+            if selected != issue.article_order:
                 issue.article_order = selected
                 issue.save(update_fields=["article_order"])
                 for article in ordered:
-                    _event(article.submission, request.user, "test_issue_order_changed")
+                    _event(article.submission, request.user, "test_issue_order_saved")
             messages.success(request, _("Test issue order saved."))
             return redirect("order_test_issue", pk=pk)
         return render(request, "publishing/order_test_issue.html", {"issue": issue, "articles": ordered,
