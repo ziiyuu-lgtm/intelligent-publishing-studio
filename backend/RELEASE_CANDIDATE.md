@@ -25,6 +25,13 @@ simulated email-link tests ran against PostgreSQL on the VPS on 2026-11-04
 (138 tests passed). The blocked release profile, production role
 permissions and real-data workflows have not been validated by that test.
 
+On POSIX systems the private data root must be owned by the account running
+the application. If its `private-media` child already exists, it must be an
+owner-only directory owned by that account, rather than a symlink or file.
+Run candidate management commands as that same service account.
+These startup checks do not inspect all nested paths or prevent later changes;
+storage isolation and file-handling still require independent review.
+
 The separate `config.settings_postgres_probe` profile and
 `scripts/run_altavien_postgres_probe.sh` are for a single isolated, fictional
 database compatibility test. The profile accepts only the Django test
