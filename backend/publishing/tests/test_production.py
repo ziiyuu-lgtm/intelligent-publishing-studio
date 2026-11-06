@@ -1117,6 +1117,37 @@ class ProductionTests(TestCase):
         issue.refresh_from_db()
         self.assertEqual(issue.released_at, released_at)
 
+    def test_expired_issue_review_links_to_fresh_review_without_releasing(self):
+        issue = self.create_issue()
+        self.extra_issue_article(issue, "Test article", timezone.now())
+        _, data = self.release_review(issue)
+        url = reverse("release_test_issue", args=[issue.pk])
+        review_url = reverse("review_test_issue_release", args=[issue.pk])
+        for language in ("en", "zh-hans"):
+            self.client.post(reverse("set_language"), {"language":language, "next":"/"})
+            with patch("django.core.signing.time.time", return_value=time.time() + 3602):
+                response = self.client.post(url, data)
+            self.assertContains(response, f'href="{review_url}"', status_code=409)
+            self.assertNotContains(response, 'name="release_token"', status_code=409)
+            self.assertNotContains(response, 'name="confirm"', status_code=409)
+            if language == "zh-hans":
+                self.assertContains(response, "发布核对已过期或期次内容已更改", status_code=409)
+                self.assertContains(response, "发布前核对", status_code=409)
+            else:
+                self.assertContains(response, "The release review expired or the issue changed.", status_code=409)
+            self.assertIn("no-store", response["Cache-Control"])
+            self.assertEqual(response["X-Robots-Tag"], "noindex, nofollow, noarchive")
+            issue.refresh_from_db()
+            self.assertIsNone(issue.released_at)
+            self.assertIsNone(issue.article_order)
+
+        fresh = self.client.get(review_url)
+        self.assertEqual(fresh.status_code, 200)
+        self.assertTrue(fresh.context["release_token"])
+        self.assertEqual(self.client.post(url, {**data, "release_token":fresh.context["release_token"]}).status_code, 302)
+        issue.refresh_from_db()
+        self.assertIsNotNone(issue.released_at)
+
     def test_issue_release_review_binds_actor_issue_and_current_permissions(self):
         issue = self.create_issue()
         self.extra_issue_article(issue, "Test article", timezone.now())
