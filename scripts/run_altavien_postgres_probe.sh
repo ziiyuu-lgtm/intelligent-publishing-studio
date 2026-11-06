@@ -11,6 +11,7 @@ case "${1:-workflow}" in
         backup_drill_enabled=0
         probe_labels=(
             publishing.tests.test_workflow
+            publishing.tests.test_fictional_end_to_end
             publishing.tests.test_review_copy_integrity
             publishing.tests.test_supporting_files
             publishing.tests.test_release_candidate

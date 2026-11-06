@@ -85,6 +85,7 @@ exit 0
         calls = self.log.read_text()
         self.assertEqual(calls.count("createdb"), 2)
         self.assertIn("altavien_probe_0123456789abcdef01234567_test", calls)
+        self.assertIn("publishing.tests.test_fictional_end_to_end", calls)
         self.assertIn("--keepdb", calls)
         self.assertNotIn("dropdb", calls)
         self.assertIn("ALTAVIEN_POSTGRES_PROBE_PASSED", result.stdout)
