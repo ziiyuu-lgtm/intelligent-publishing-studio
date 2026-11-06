@@ -31,13 +31,13 @@ assert app.PROFILES['previous-review-recovery']['publishing/supporting_views.py'
 assert app.PROFILES['current']['publishing/views.py'] == wrapper.NEW_VIEWS
 assert app.PROFILES['current']['publishing/supporting_views.py'] == wrapper.NEW_SUPPORTING
 assert 'publishing/views.py' not in app.GUARDS
-for rel, expected in [('publishing/views.py', wrapper.NEW_VIEWS),
-                      ('publishing/supporting_views.py', wrapper.NEW_SUPPORTING)]:
-    assert sha256((root / 'backend' / rel).read_bytes()).hexdigest() == expected
-    if os.environ.get('GITHUB_ACTIONS') == 'true':
+# The installer pins an earlier application commit; later changes to the
+# working tree must not invalidate a rehearsal of that historical rollout.
+if os.environ.get('GITHUB_ACTIONS') == 'true':
+    for rel, expected in [('publishing/views.py', wrapper.NEW_VIEWS),
+                          ('publishing/supporting_views.py', wrapper.NEW_SUPPORTING)]:
         candidate = subprocess.check_output(['git', 'show', wrapper.TARGET_COMMIT + ':backend/' + rel], cwd=root)
         assert sha256(candidate).hexdigest() == expected
-if os.environ.get('GITHUB_ACTIONS') == 'true':
     base = subprocess.check_output(['git', 'show', wrapper.BASE_COMMIT + ':scripts/install_altavien_issue_review_recovery.py'], cwd=root)
     assert sha256(base).hexdigest() == wrapper.BASE_SHA256
 

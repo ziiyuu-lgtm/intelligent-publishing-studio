@@ -885,28 +885,36 @@ def review_invite(request, pk):
     return redirect("submission_detail", pk=pk)
 
 
-@login_required
-@never_cache
-@require_GET
-def review_detail(request, pk):
-    assignment = _review(pk, request.user)
+def _review_detail_context(assignment, form=None):
+    """Build the same current-round view for GET and invalid report POSTs."""
     from .keywords import visible_keywords
     reviewer_keywords = visible_keywords(assignment.round.version.keywords_snapshot)
-    form = ReportForm() if (assignment.status == ReviewAssignment.Status.ACCEPTED and
-                            assignment.conflict == ReviewAssignment.Conflict.NONE and
-                            assignment.round.status == ReviewRound.Status.OPEN) else None
     files = []
     current = _downloadable_review_round(assignment.submission)
-    copy_ready = bool(current and current.pk == assignment.round_id and
+    current_task = bool(current and current.pk == assignment.round_id)
+    can_submit_report = bool(current_task and assignment.status == ReviewAssignment.Status.ACCEPTED and
+                             assignment.conflict == ReviewAssignment.Conflict.NONE)
+    if form is None and can_submit_report:
+        form = ReportForm()
+    copy_ready = bool(current_task and
                       _review_copy_ready(assignment.submission, assignment.round.version))
     if settings.DEBUG and copy_ready and assignment.status in ('accepted', 'submitted') and assignment.conflict == 'none':
         from .supporting_files import checked_and_current, verified_bytes
         candidates = SupportingFile.objects.filter(submission=assignment.submission, version=assignment.round.version,
             visibility=SupportingFile.Visibility.REVIEWER, removed_at__isnull=True)
         files = [item for item in candidates if checked_and_current(item) and verified_bytes(item) is not None]
-    return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
+    return {"assignment": assignment, "form": form, "current_review_task": current_task,
+        "can_submit_report": can_submit_report,
         "review_ai_permissions_available": settings.DEBUG,
-        "supporting_files": files, "review_copy_ready": copy_ready, "reviewer_keywords": reviewer_keywords})
+        "supporting_files": files, "review_copy_ready": copy_ready, "reviewer_keywords": reviewer_keywords}
+
+
+@login_required
+@never_cache
+@require_GET
+def review_detail(request, pk):
+    assignment = _review(pk, request.user)
+    return render(request, "publishing/review_detail.html", _review_detail_context(assignment))
 
 
 @login_required
@@ -984,13 +992,10 @@ def review_report(request, pk):
     assignment = _review(pk, request.user)
     form = ReportForm(request.POST)
     if not form.is_valid():
-        if (assignment.status != ReviewAssignment.Status.ACCEPTED or assignment.round.status != ReviewRound.Status.OPEN or
-                assignment.conflict != ReviewAssignment.Conflict.NONE):
+        context = _review_detail_context(assignment, form=form)
+        if not context["can_submit_report"]:
             return HttpResponse(_("A report can only be sent after accepting an invitation."), status=409)
-        from .keywords import visible_keywords
-        return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
-            "reviewer_keywords":visible_keywords(assignment.round.version.keywords_snapshot),
-            "review_copy_ready": _review_copy_ready(assignment.submission, assignment.round.version)}, status=400)
+        return render(request, "publishing/review_detail.html", context, status=400)
     with transaction.atomic():
         submission = get_object_or_404(Submission.objects.select_for_update().select_related("journal__organisation"), pk=assignment.submission_id)
         review_round = _open_round(submission, locked=True)

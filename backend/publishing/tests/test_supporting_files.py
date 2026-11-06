@@ -128,6 +128,32 @@ class SupportingFileTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
 
+    def test_invalid_review_report_preserves_only_current_file_links(self):
+        submission = self.create_draft()
+        self.upload(submission, editor=False)
+        item = SupportingFile.objects.get()
+        self.submit(submission)
+        self.check(item)
+        assignment = self.invite(submission)
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.post(reverse('review_respond', args=[assignment.pk]),
+            {'response':'accept', 'declaration':'none'}).status_code, 302)
+        report = reverse('review_report', args=[assignment.pk])
+        manuscript = reverse('review_file', args=[assignment.pk])
+        supporting = reverse('download_supporting_file', args=[item.pk])
+        page = self.client.post(report, {'recommendation':'major'})
+        self.assertEqual(page.status_code, 400)
+        self.assertContains(page, manuscript, status_code=400)
+        self.assertContains(page, supporting, status_code=400)
+        self.assertTrue(page.context['form'].errors)
+
+        Path(item.file.path).write_bytes(b'%PDF-1.4\nchanged fictional bytes')
+        page = self.client.post(report, {'recommendation':'major'})
+        self.assertEqual(page.status_code, 400)
+        self.assertContains(page, manuscript, status_code=400)
+        self.assertNotContains(page, supporting, status_code=400)
+        self.assertEqual(self.client.get(supporting).status_code, 404)
+
     def test_validation_limits_removal_restore_and_methods(self):
         submission = self.create_draft()
         manage = reverse('manage_supporting_files', args=[submission.pk])
