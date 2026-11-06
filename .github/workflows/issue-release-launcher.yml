@@ -1,0 +1,42 @@
+name: Fictional issue release launcher validation
+on:
+  pull_request:
+    branches:
+      - feature/altavien-release-foundation-20261104
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  shell:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify installer pin and simulated host outcomes
+        run: python3 scripts/tests/check_resume_launcher.py
+      - name: Verify startup and completion with real systemd
+        run: sudo env GITHUB_ACTIONS=true python3 scripts/tests/check_resume_launcher_systemd.py
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build an offline SSH argument recorder
+        shell: powershell
+        run: |
+          $stubDirectory = Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub'
+          $null = New-Item -ItemType Directory -Path $stubDirectory
+          Add-Type -TypeDefinition (Get-Content scripts/tests/FakeSsh.cs -Raw) -OutputAssembly (Join-Path $stubDirectory 'ssh.exe') -OutputType ConsoleApplication
+      - name: Verify Windows PowerShell 5.1 arguments and failure reporting
+        shell: powershell
+        run: |
+          .\scripts\tests\check_resume_launcher.ps1 -StubDirectory (Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub')
+      - name: Verify PowerShell 7 arguments and failure reporting
+        shell: pwsh
+        run: |
+          .\scripts\tests\check_resume_launcher.ps1 -StubDirectory (Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub')
