@@ -170,7 +170,8 @@ class IssueReleaseBrowserChecks(StaticLiveServerTestCase):
             expect(self.page.get_by_text("The release review expired or the issue changed.", exact=False)).to_be_visible()
             self.assertEqual(self.context.request.get(self.url("test_issue", self.journal.slug, self.issue.pk)).status, 404)
 
-            self.page.goto(self.url("review_test_issue_release", self.issue.pk))
+            expect(self.page.get_by_role("button", name="Release issue", exact=True)).to_have_count(0)
+            self.page.get_by_role("link", name="Review before release", exact=True).click()
             self.assert_order(desired)
             self.page.get_by_label("Language", exact=True).select_option("zh-hans")
             expect(self.page.get_by_role("heading", name="测试期次发布前核对", exact=True)).to_be_visible()

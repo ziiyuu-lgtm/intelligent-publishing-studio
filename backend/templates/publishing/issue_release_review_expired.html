@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<a class="back" href="{% url 'manage_test_issues' issue.journal.slug %}">← {% translate "Back to test issues" %}</a>
+<section class="card panel">
+  <h1>{% translate "Review test issue release" %}</h1>
+  <p>{% translate "The release review expired or the issue changed. Open a fresh release review before confirming." %}</p>
+  <a class="button" href="{% url 'review_test_issue_release' issue.pk %}">{% translate "Review before release" %}</a>
+</section>
+{% endblock %}

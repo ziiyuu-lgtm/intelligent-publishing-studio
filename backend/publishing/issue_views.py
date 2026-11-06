@@ -258,7 +258,9 @@ def release_test_issue(request, pk):
         except signing.BadSignature:
             reviewed = None
         if reviewed != {"actor": str(request.user.pk), "state": _issue_release_state(issue, ordered)}:
-            return HttpResponse(_("The release review expired or the issue changed. Open a fresh release review before confirming."), status=409)
+            return _no_index(render(request, "publishing/issue_release_review_expired.html", {
+                "issue": issue,
+            }, status=409))
         issue.article_order = [str(article.pk) for article in ordered]
         issue.released_at, issue.released_by = timezone.now(), request.user
         issue.save(update_fields=["article_order", "released_at", "released_by"])
