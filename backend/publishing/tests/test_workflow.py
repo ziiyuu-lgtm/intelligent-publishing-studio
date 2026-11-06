@@ -132,6 +132,71 @@ class WorkflowTests(TestCase):
         self.assertEqual(self.client.get(reverse("review_detail", args=[assignment.pk])).status_code, 404)
         self.assertEqual(self.client.get(reverse("submission_file", args=[submission.pk])).status_code, 404)
 
+    def test_review_actions_follow_current_round_and_submission_status(self):
+        submission = self.create_draft()
+        self.submit(submission)
+        assignment = self.invite(submission)
+        self.client.force_login(self.reviewer)
+        detail = reverse("review_detail", args=[assignment.pk])
+        respond = reverse("review_respond", args=[assignment.pk])
+        report = reverse("review_report", args=[assignment.pk])
+        download = reverse("review_file", args=[assignment.pk])
+        self.assertContains(self.client.get(detail), 'value="accept"')
+        self.assertContains(self.client.get(detail), 'value="decline"')
+
+        version = submission.versions.get(number=1)
+        later = SubmissionVersion.objects.create(submission=submission, number=2,
+            manuscript=version.manuscript.name, uploaded_by=self.author)
+        page = self.client.get(detail)
+        self.assertNotContains(page, 'value="accept"')
+        self.assertNotContains(page, 'value="decline"')
+        self.assertEqual(self.client.post(respond, {"response":"accept", "declaration":"none"}).status_code, 409)
+        later.delete()
+
+        for status in (Submission.Status.DRAFT, Submission.Status.REVISION_REQUESTED,
+                       Submission.Status.ACCEPTED, Submission.Status.REJECTED):
+            with self.subTest(status=status, phase="invited"):
+                Submission.objects.filter(pk=submission.pk).update(status=status)
+                page = self.client.get(detail)
+                self.assertNotContains(page, 'value="accept"')
+                self.assertNotContains(page, 'value="decline"')
+                self.assertEqual(self.client.post(respond, {"response":"accept", "declaration":"none"}).status_code, 409)
+        Submission.objects.filter(pk=submission.pk).update(status=Submission.Status.UNDER_REVIEW)
+        self.assertEqual(self.client.post(respond, {"response":"accept", "declaration":"none"}).status_code, 302)
+        page = self.client.get(detail)
+        self.assertContains(page, report)
+        self.assertContains(page, download)
+
+        later = SubmissionVersion.objects.create(submission=submission, number=2,
+            manuscript=version.manuscript.name, uploaded_by=self.author)
+        self.assertNotContains(self.client.get(detail), report)
+        self.assertEqual(self.client.post(report, {}).status_code, 409)
+        self.assertEqual(self.client.post(report, {"recommendation":"accept", "comments":"Fictional report"}).status_code, 409)
+        later.delete()
+        for status in (Submission.Status.DRAFT, Submission.Status.REVISION_REQUESTED,
+                       Submission.Status.ACCEPTED, Submission.Status.REJECTED):
+            with self.subTest(status=status, phase="accepted"):
+                Submission.objects.filter(pk=submission.pk).update(status=status)
+                page = self.client.get(detail)
+                self.assertNotContains(page, report)
+                self.assertNotContains(page, download)
+                self.assertEqual(self.client.post(report, {}).status_code, 409)
+                self.assertEqual(self.client.post(report, {"recommendation":"accept", "comments":"Fictional report"}).status_code, 409)
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, ReviewAssignment.Status.ACCEPTED)
+        self.assertFalse(submission.events.filter(action="review_submitted").exists())
+
+        # A closed historical task remains available for a later conflict declaration.
+        Submission.objects.filter(pk=submission.pk).update(status=Submission.Status.UNDER_REVIEW)
+        ReviewRound.objects.filter(pk=assignment.round_id).update(status=ReviewRound.Status.CLOSED)
+        page = self.client.get(detail)
+        self.assertNotContains(page, report)
+        self.assertContains(page, 'value="conflict"')
+        self.assertEqual(self.client.post(report, {}).status_code, 409)
+        self.assertEqual(self.client.post(respond, {"response":"conflict", "conflict_details":"Fictional later conflict"}).status_code, 302)
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.conflict, ReviewAssignment.Conflict.YES)
+
     def test_review_download_requires_current_version_and_active_submission(self):
         submission = self.create_draft()
         self.submit(submission)
