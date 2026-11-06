@@ -3,12 +3,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$StubDirectory
+    [string]$StubDirectory,
+    [ValidateSet('resume_altavien_issue_release.ps1', 'resume_altavien_issue_review_recovery.ps1')]
+    [string]$Launcher = 'resume_altavien_issue_release.ps1'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $engine = (Get-Process -Id $PID).Path
-$sourcePath = Join-Path $PSScriptRoot '..\resume_altavien_issue_release.ps1'
+$sourcePath = Join-Path (Join-Path $PSScriptRoot '..') $Launcher
 $source = Get-Content -LiteralPath $sourcePath -Raw
 $tokens = $null
 $parseErrors = $null
