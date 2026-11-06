@@ -147,7 +147,7 @@ class WorkflowTests(TestCase):
             for url in (review_url, manuscript_url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200)
-                response.close()
+                self.assertTrue(b"".join(response.streaming_content).startswith(b"%PDF-"))
         self.assertContains(self.client.get(page_url), review_url)
 
         version = submission.versions.get(number=1)
@@ -174,7 +174,7 @@ class WorkflowTests(TestCase):
             self.client.force_login(actor)
             response = self.client.get(manuscript_url)
             self.assertEqual(response.status_code, 200)
-            response.close()
+            self.assertTrue(b"".join(response.streaming_content).startswith(b"%PDF-"))
 
     def test_author_with_editor_role_cannot_review_own_paper(self):
         Membership.objects.create(user=self.author, journal=self.journal, role=Membership.Role.EDITOR)

@@ -107,7 +107,7 @@ class SupportingFileTests(TestCase):
             Submission.objects.filter(pk=submission.pk).update(status=active_status)
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200)
-            response.close()
+            self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
         version = submission.versions.get(number=1)
         later = SubmissionVersion.objects.create(submission=submission, number=2,
             manuscript=version.manuscript.name, uploaded_by=self.author)
@@ -126,7 +126,7 @@ class SupportingFileTests(TestCase):
             self.client.force_login(actor)
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200)
-            response.close()
+            self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
 
     def test_validation_limits_removal_restore_and_methods(self):
         submission = self.create_draft()
