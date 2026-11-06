@@ -1,0 +1,76 @@
+name: Fictional reviewer file-scope installer
+on:
+  pull_request:
+    branches:
+      - feature/altavien-release-foundation-20261104
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  guarded-install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check installer integrity and version profiles
+        run: python3 scripts/tests/check_review_file_scope_installer.py
+      - name: Prepare a fictional site from the previous recovery version
+        env:
+          IPS_INSTALLER_REHEARSAL: '1'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv rsync
+          id -u postgres >/dev/null 2>&1 || sudo useradd --system --home-dir /var/lib/postgresql postgres
+          id -u altavien-test >/dev/null 2>&1 || sudo useradd --system --home-dir /srv/altavien-test altavien-test
+          test ! -e /srv/altavien-test
+          test ! -e /srv/altavien-pg-probe/source
+          sudo mkdir -p /srv/altavien-test /srv/altavien-pg-probe/source
+          git archive 3ffd1e2a58a8540f333d35dcfa699da467a329ac backend | sudo tar -xf - -C /srv/altavien-test
+          sudo rsync -a "$GITHUB_WORKSPACE/" /srv/altavien-pg-probe/source/
+          sudo chown -R postgres:postgres /srv/altavien-pg-probe/source
+          sudo chown -R altavien-test:altavien-test /srv/altavien-test
+          sudo runuser -u altavien-test -- python3 -m venv /srv/altavien-test/.venv
+          sudo runuser -u altavien-test -- /srv/altavien-test/.venv/bin/pip install --disable-pip-version-check --no-input -r /srv/altavien-test/backend/requirements.txt
+          sudo runuser -u altavien-test -- env IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py migrate --noinput
+          sudo runuser -u altavien-test -- env GITHUB_ACTIONS=true IPS_INSTALLER_REHEARSAL=1 IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python - seed < "$GITHUB_WORKSPACE/scripts/rehearse_altavien_review_file_scope.py"
+          sudo systemd-run --unit=altavien-test-web.service --property=Type=exec --property=User=altavien-test --property=WorkingDirectory=/srv/altavien-test/backend --setenv=DJANGO_SETTINGS_MODULE=config.settings --setenv=IPS_LOCAL_PUBLICATION_ENABLED=1 /srv/altavien-test/.venv/bin/python /srv/altavien-test/backend/manage.py runserver 127.0.0.1:8000 --noreload
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8000/ >/dev/null
+      - name: Exercise guarded upgrade, rollback and installed reviewer file boundary
+        run: sudo env GITHUB_ACTIONS=true IPS_INSTALLER_REHEARSAL=1 python3 scripts/rehearse_altavien_review_file_scope.py rehearse
+  launcher-shell:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify pinned payload and simulated host outcomes
+        run: python3 scripts/tests/check_review_file_scope_launcher.py
+      - name: Verify startup and completion with real systemd
+        run: sudo env GITHUB_ACTIONS=true python3 scripts/tests/check_review_file_scope_launcher_systemd.py
+  launcher-windows:
+    runs-on: windows-2022
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build an offline SSH argument recorder
+        shell: powershell
+        run: |
+          $stubDirectory = Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub'
+          $null = New-Item -ItemType Directory -Path $stubDirectory
+          Add-Type -TypeDefinition (Get-Content scripts/tests/FakeSsh.cs -Raw) -OutputAssembly (Join-Path $stubDirectory 'ssh.exe') -OutputType ConsoleApplication
+      - name: Verify Windows PowerShell 5.1 arguments and failure reporting
+        shell: powershell
+        run: |
+          .\scripts\tests\check_resume_launcher.ps1 -StubDirectory (Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub') -Launcher 'resume_altavien_review_file_scope.ps1'
+      - name: Verify PowerShell 7 arguments and failure reporting
+        shell: pwsh
+        run: |
+          .\scripts\tests\check_resume_launcher.ps1 -StubDirectory (Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub') -Launcher 'resume_altavien_review_file_scope.ps1'

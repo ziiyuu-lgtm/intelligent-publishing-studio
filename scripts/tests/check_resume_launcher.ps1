@@ -4,7 +4,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$StubDirectory,
-    [ValidateSet('resume_altavien_issue_release.ps1', 'resume_altavien_issue_review_recovery.ps1')]
+    [ValidateSet('resume_altavien_issue_release.ps1', 'resume_altavien_issue_review_recovery.ps1', 'resume_altavien_review_file_scope.ps1')]
     [string]$Launcher = 'resume_altavien_issue_release.ps1'
 )
 Set-StrictMode -Version Latest
