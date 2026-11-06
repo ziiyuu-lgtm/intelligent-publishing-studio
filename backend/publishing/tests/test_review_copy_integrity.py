@@ -65,6 +65,25 @@ class ReviewerCopyIntegrityTests(TestCase):
         response = self.client.get(reverse("review_file", args=[assignment.pk]))
         self.assertEqual(b"".join(response.streaming_content), new_bytes)
 
+    def test_separate_review_copy_is_blocked_when_round_version_is_stale(self):
+        submission = self.prepared_submission()
+        self.assertEqual(self.confirm_review_copy(submission).status_code, 302)
+        assignment = self.invite(submission)
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.post(reverse("review_respond", args=[assignment.pk]),
+            {"response":"accept", "declaration":"none"}).status_code, 302)
+        urls = [reverse("review_file", args=[assignment.pk]), reverse("submission_file", args=[submission.pk])]
+        for url in urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            response.close()
+        version = submission.versions.get(number=1)
+        SubmissionVersion.objects.create(submission=submission, number=2,
+            manuscript=version.manuscript.name, uploaded_by=self.author)
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertNotContains(self.client.get(reverse("review_detail", args=[assignment.pk])), urls[0])
+
     def test_old_page_token_cannot_confirm_replaced_or_invalid_pdf(self):
         submission = self.prepared_submission()
         version = submission.versions.get(number=1)

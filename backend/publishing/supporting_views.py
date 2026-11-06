@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from .forms import SupportingUploadForm
 from .models import Journal, ReviewAssignment, Submission, SubmissionVersion, SupportingFile
 from .supporting_files import checked_and_current, review_fingerprint, save_files, verified_bytes, within_limits
-from .views import (_author_can_view, _editor_can_view, _event, _open_round, _review,
+from .views import (_author_can_view, _downloadable_review_round, _editor_can_view, _event, _open_round, _review,
                     _review_copy_ready, _submission)
 
 
@@ -155,7 +155,7 @@ def download_supporting_file(request, pk):
         raise Http404
     privileged = _author_can_view(request.user, submission) or _editor_can_view(request.user, submission)
     if not privileged:
-        round_ = _open_round(submission)
+        round_ = _downloadable_review_round(submission)
         assignment = (ReviewAssignment.objects.filter(submission=submission, round=round_,
             reviewer=request.user, status__in=['accepted', 'submitted'], conflict='none').first() if round_ else None)
         if (record.visibility != SupportingFile.Visibility.REVIEWER or not round_ or
