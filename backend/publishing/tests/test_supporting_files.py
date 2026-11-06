@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from publishing.models import Membership, ReviewAssignment, SupportingFile
+from publishing.models import Membership, ReviewAssignment, Submission, SubmissionVersion, SupportingFile
 from publishing.tests import test_workflow as workflow
 
 PDF = workflow.PDF
@@ -91,6 +91,42 @@ class SupportingFileTests(TestCase):
         self.client.force_login(self.reviewer)
         Membership.objects.filter(user=self.reviewer, journal=self.journal).update(active=False)
         self.assertEqual(self.client.get(url(reviewer_file)).status_code, 404)
+
+    def test_reviewer_supporting_file_requires_active_submission(self):
+        submission = self.create_draft()
+        self.upload(submission, editor=False)
+        item = SupportingFile.objects.get()
+        self.submit(submission)
+        self.check(item)
+        assignment = self.invite(submission)
+        self.client.force_login(self.reviewer)
+        self.assertEqual(self.client.post(reverse('review_respond', args=[assignment.pk]),
+            {'response':'accept', 'declaration':'none'}).status_code, 302)
+        url = reverse('download_supporting_file', args=[item.pk])
+        for active_status in (Submission.Status.SUBMITTED, Submission.Status.UNDER_REVIEW):
+            Submission.objects.filter(pk=submission.pk).update(status=active_status)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
+        version = submission.versions.get(number=1)
+        later = SubmissionVersion.objects.create(submission=submission, number=2,
+            manuscript=version.manuscript.name, uploaded_by=self.author)
+        before = submission.events.filter(action='supporting_file_downloaded').count()
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertNotContains(self.client.get(reverse('review_detail', args=[assignment.pk])), 'review-data.pdf')
+        later.delete()
+        for status in (Submission.Status.DRAFT, Submission.Status.REVISION_REQUESTED,
+                       Submission.Status.ACCEPTED, Submission.Status.REJECTED):
+            with self.subTest(status=status):
+                Submission.objects.filter(pk=submission.pk).update(status=status)
+                self.assertEqual(self.client.get(url).status_code, 404)
+                self.assertNotContains(self.client.get(reverse('review_detail', args=[assignment.pk])), 'review-data.pdf')
+        self.assertEqual(submission.events.filter(action='supporting_file_downloaded').count(), before)
+        for actor in (self.author, self.editor):
+            self.client.force_login(actor)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
 
     def test_validation_limits_removal_restore_and_methods(self):
         submission = self.create_draft()

@@ -12,6 +12,7 @@ case "${1:-workflow}" in
         probe_labels=(
             publishing.tests.test_workflow
             publishing.tests.test_review_copy_integrity
+            publishing.tests.test_supporting_files
             publishing.tests.test_production
             publishing.tests.test_submission_checklist
             publishing.tests.test_editor_assignments

@@ -97,6 +97,13 @@ def _open_round(submission, locked=False):
     return review_round
 
 
+def _downloadable_review_round(submission):
+    """A reviewer may access files only for the active, current review round."""
+    if submission.status not in ACTIVE_REVIEW_STATUSES:
+        return None
+    return _open_round(submission)
+
+
 def _file_exists(field):
     try:
         return bool(field and field.name and field.storage.exists(field.name))
@@ -712,12 +719,12 @@ def submission_file(request, pk):
     if (not privileged and _has_role(request.user, submission.journal, Membership.Role.REVIEWER)
             and not is_response_participant(request.user, submission)
             and not ProductionAssignment.objects.filter(draft__submission=submission, producer=request.user).exists()):
-        reviewer_access = ReviewAssignment.objects.filter(
-            submission=submission, reviewer=request.user, round__submission=submission,
-            round__version=version, round__status=ReviewRound.Status.OPEN,
+        current_round = _downloadable_review_round(submission)
+        reviewer_access = bool(current_round and ReviewAssignment.objects.filter(
+            submission=submission, reviewer=request.user, round=current_round, round__version=version,
             conflict=ReviewAssignment.Conflict.NONE,
             status__in=[ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED],
-        ).exclude(submission__author=request.user).exists()
+        ).exclude(submission__author=request.user).exists())
     if not (privileged or reviewer_access):
         raise Http404
     return _download_version(request, submission, version, reviewer=reviewer_access)
@@ -776,7 +783,8 @@ def submission_review_copy_file(request, pk, number):
 @require_GET
 def review_file(request, pk):
     assignment = _review(pk, request.user)
-    if (assignment.round.status != ReviewRound.Status.OPEN or
+    current_round = _downloadable_review_round(assignment.submission)
+    if (not current_round or current_round.pk != assignment.round_id or
             assignment.conflict != ReviewAssignment.Conflict.NONE or
             assignment.status not in (ReviewAssignment.Status.ACCEPTED, ReviewAssignment.Status.SUBMITTED)):
         raise Http404
@@ -888,14 +896,14 @@ def review_detail(request, pk):
                             assignment.conflict == ReviewAssignment.Conflict.NONE and
                             assignment.round.status == ReviewRound.Status.OPEN) else None
     files = []
-    copy_ready = _review_copy_ready(assignment.submission, assignment.round.version)
+    current = _downloadable_review_round(assignment.submission)
+    copy_ready = bool(current and current.pk == assignment.round_id and
+                      _review_copy_ready(assignment.submission, assignment.round.version))
     if settings.DEBUG and copy_ready and assignment.status in ('accepted', 'submitted') and assignment.conflict == 'none':
         from .supporting_files import checked_and_current, verified_bytes
-        current = _open_round(assignment.submission)
-        if current and current.pk == assignment.round_id:
-            candidates = SupportingFile.objects.filter(submission=assignment.submission, version=assignment.round.version,
-                visibility=SupportingFile.Visibility.REVIEWER, removed_at__isnull=True)
-            files = [item for item in candidates if checked_and_current(item) and verified_bytes(item) is not None]
+        candidates = SupportingFile.objects.filter(submission=assignment.submission, version=assignment.round.version,
+            visibility=SupportingFile.Visibility.REVIEWER, removed_at__isnull=True)
+        files = [item for item in candidates if checked_and_current(item) and verified_bytes(item) is not None]
     return render(request, "publishing/review_detail.html", {"assignment": assignment, "form": form,
         "review_ai_permissions_available": settings.DEBUG,
         "supporting_files": files, "review_copy_ready": copy_ready, "reviewer_keywords": reviewer_keywords})
