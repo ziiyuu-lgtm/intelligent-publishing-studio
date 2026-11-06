@@ -40,9 +40,27 @@ def _private_root():
     mode = stat.S_IMODE(info.st_mode)
     if not stat.S_ISDIR(info.st_mode) or mode & 0o077 or mode & 0o700 != 0o700:
         raise ImproperlyConfigured("IPS_PRIVATE_DATA_ROOT must be a private owner-readable/writable directory (0700).")
+    if hasattr(os, "geteuid") and info.st_uid != os.geteuid():
+        raise ImproperlyConfigured("IPS_PRIVATE_DATA_ROOT must be owned by the service account.")
     if root.is_relative_to(BASE_DIR.parent.resolve()):
         raise ImproperlyConfigured("IPS_PRIVATE_DATA_ROOT must be outside the source checkout.")
     return root
+
+
+def _private_media_root(root):
+    path = root / "private-media"
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return path
+    except OSError as exc:
+        raise ImproperlyConfigured("The private media directory cannot be inspected.") from exc
+    mode = stat.S_IMODE(info.st_mode)
+    if not stat.S_ISDIR(info.st_mode) or mode & 0o077 or mode & 0o700 != 0o700:
+        raise ImproperlyConfigured("The private media path must be an owner-only directory, not a symlink (0700).")
+    if hasattr(os, "geteuid") and info.st_uid != os.geteuid():
+        raise ImproperlyConfigured("The private media directory must be owned by the service account.")
+    return path
 
 
 def _hosts():
@@ -67,7 +85,7 @@ if SECRET_KEY == IPS_REVIEW_AI_FINGERPRINT_KEY:
     raise ImproperlyConfigured("The Django and review fingerprint keys must be different.")
 
 RUNTIME_DIR = _private_root()
-MEDIA_ROOT = RUNTIME_DIR / "private-media"
+MEDIA_ROOT = _private_media_root(RUNTIME_DIR)
 STATIC_ROOT = RUNTIME_DIR / "collected-static"
 
 DEBUG = False

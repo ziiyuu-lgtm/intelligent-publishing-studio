@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest import skipUnless
 from unittest.mock import patch
 
 from django.core.checks import run_checks
@@ -107,6 +108,54 @@ class BlockedCandidateTests(SimpleTestCase):
         self.addCleanup(link.unlink)
         with self.assertRaises(ImproperlyConfigured):
             self.load_candidate(IPS_PRIVATE_DATA_ROOT=str(link))
+
+    @skipUnless(hasattr(os, "geteuid"), "POSIX directory ownership check")
+    def test_private_root_must_be_owned_by_the_service_account(self):
+        with patch.object(os, "geteuid", return_value=os.geteuid() + 1):
+            with self.assertRaises(ImproperlyConfigured):
+                self.load_candidate()
+
+    def test_existing_media_directory_must_be_private_and_not_a_symlink(self):
+        media = Path(self.temp.name) / "private-media"
+        self.assertEqual(self.load_candidate().MEDIA_ROOT, media)
+        self.assertFalse(media.exists())
+        with tempfile.TemporaryDirectory(prefix="ips-untrusted-media-") as outside:
+            media.symlink_to(outside, target_is_directory=True)
+            with self.assertRaises(ImproperlyConfigured):
+                self.load_candidate()
+            media.unlink()
+            media.symlink_to(Path(outside) / "missing", target_is_directory=True)
+            with self.assertRaises(ImproperlyConfigured):
+                self.load_candidate()
+            media.unlink()
+        media.write_text("not a directory")
+        with self.assertRaises(ImproperlyConfigured):
+            self.load_candidate()
+        media.unlink()
+        media.mkdir(mode=0o700)
+        os.chmod(media, 0o755)
+        with self.assertRaises(ImproperlyConfigured):
+            self.load_candidate()
+        os.chmod(media, 0o700)
+        self.assertEqual(self.load_candidate().MEDIA_ROOT, media)
+
+    @skipUnless(hasattr(os, "geteuid"), "POSIX directory ownership check")
+    def test_existing_media_directory_must_be_owned_by_the_service_account(self):
+        media = Path(self.temp.name) / "private-media"
+        media.mkdir(mode=0o700)
+        original = Path.lstat
+
+        def foreign_owner(path, *args, **kwargs):
+            info = original(path, *args, **kwargs)
+            if path == media:
+                fields = list(info)
+                fields[4] = os.geteuid() + 1
+                return os.stat_result(fields)
+            return info
+
+        with patch.object(Path, "lstat", autospec=True, side_effect=foreign_owner):
+            with self.assertRaises(ImproperlyConfigured):
+                self.load_candidate()
 
     def test_release_guard_never_calls_the_application(self):
         def app(request):
