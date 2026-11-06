@@ -27,9 +27,9 @@ try {
     $env:PATH = $StubDirectory + [IO.Path]::PathSeparator + $env:PATH
     $env:ALTAVIEN_FAKE_SSH = '1'
     $env:ALTAVIEN_FAKE_SSH_TRACE = Join-Path $work 'ssh-arguments.txt'
-    $ssh = Get-Command ssh -CommandType Application
-    if ($ssh.Source -ne (Join-Path $StubDirectory 'ssh.exe')) {
-        throw 'Refusing to test with a real SSH executable'
+    $ssh = Get-Command ssh -CommandType Application | Select-Object -First 1
+    if ($ssh.Path -ne (Join-Path $StubDirectory 'ssh.exe')) {
+        throw ('Refusing to test with a real SSH executable: ' + $ssh.Path)
     }
     foreach ($code in @(0, 1, 3, 255)) {
         $env:ALTAVIEN_FAKE_SSH_EXIT = [string]$code

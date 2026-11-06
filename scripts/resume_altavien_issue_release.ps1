@@ -24,7 +24,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$sshExecutable = (Get-Command ssh -CommandType Application -ErrorAction Stop).Source
+$sshExecutable = (Get-Command ssh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Path
 
 $remoteScript = @'
 set -euo pipefail
