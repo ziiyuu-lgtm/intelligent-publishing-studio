@@ -22,10 +22,6 @@ jobs:
   windows:
     runs-on: windows-2022
     timeout-minutes: 6
-    strategy:
-      fail-fast: false
-      matrix:
-        engine: [powershell, pwsh]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +32,11 @@ jobs:
           $stubDirectory = Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub'
           $null = New-Item -ItemType Directory -Path $stubDirectory
           Add-Type -TypeDefinition (Get-Content scripts/tests/FakeSsh.cs -Raw) -OutputAssembly (Join-Path $stubDirectory 'ssh.exe') -OutputType ConsoleApplication
-      - name: Verify PowerShell arguments and failure reporting without network access
-        shell: ${{ matrix.engine }}
+      - name: Verify Windows PowerShell 5.1 arguments and failure reporting
+        shell: powershell
+        run: |
+          .\scripts\tests\check_resume_launcher.ps1 -StubDirectory (Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub')
+      - name: Verify PowerShell 7 arguments and failure reporting
+        shell: pwsh
         run: |
           .\scripts\tests\check_resume_launcher.ps1 -StubDirectory (Join-Path $env:RUNNER_TEMP 'altavien-ssh-stub')
